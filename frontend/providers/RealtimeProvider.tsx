@@ -1,7 +1,9 @@
 'use client'
 
-// Phase 0 shell — realtime event subscription and reconciliation implemented in Phase 4
-// Do not implement WebSocket or event logic here until Phase 4 realtime runtime is complete
+// RealtimeProvider is a logical grouping layer — WebSocket lifecycle is in WebsocketProvider.
+// This component is kept for layout composition; it requires WebsocketProvider as an ancestor.
+
+import React from 'react'
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   return <>{children}</>

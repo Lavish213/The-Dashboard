@@ -25,3 +25,7 @@ router.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 router.include_router(approvals.router, prefix="/approvals", tags=["approvals"])
 router.include_router(calls.router, prefix="/calls", tags=["calls"])
 router.include_router(transcripts.router, prefix="/transcripts", tags=["transcripts"])
+
+from api.routes.realtime import router as realtime_router  # noqa: E402
+
+router.include_router(realtime_router)
