@@ -1,0 +1,123 @@
+/*
+ * Karpathys Table System
+ * Operational dense tables — sticky headers, selection, status rows
+ */
+
+/* === Base table === */
+.op-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* === Header === */
+.op-table thead {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: hsl(var(--background));
+}
+
+.op-table th {
+  height: 36px;
+  padding: 0 var(--cell-padding-x, 12px);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid hsl(var(--border));
+  white-space: nowrap;
+  user-select: none;
+}
+
+.op-table th:first-child { padding-left: 16px; }
+.op-table th:last-child { padding-right: 16px; }
+
+/* === Rows === */
+.op-table td {
+  height: var(--row-height, 40px);
+  padding: 0 var(--cell-padding-x, 12px);
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  color: hsl(var(--foreground));
+  vertical-align: middle;
+}
+
+.op-table td:first-child { padding-left: 16px; }
+.op-table td:last-child { padding-right: 16px; }
+
+/* === Row states === */
+.op-table tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.op-table tbody tr:hover {
+  background-color: hsl(var(--accent) / 0.5);
+}
+
+.op-table tbody tr[data-selected='true'] {
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.op-table tbody tr[data-status='failed'] {
+  background-color: hsl(var(--destructive) / 0.05);
+}
+
+.op-table tbody tr[data-status='escalated'] {
+  background-color: hsl(var(--warning) / 0.05);
+}
+
+/* === Compact density === */
+.op-table.compact th,
+.op-table.compact td {
+  height: 32px;
+  font-size: var(--text-xs);
+}
+
+/* === Sort indicators === */
+.op-table th[data-sort] {
+  cursor: pointer;
+}
+
+.op-table th[data-sort]:hover {
+  color: hsl(var(--foreground));
+}
+
+/* === Scrollable container === */
+.op-table-container {
+  overflow: auto;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.op-table-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.op-table-container::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 3px;
+}
+
+/* === Pinned columns === */
+.op-table th.pinned-left,
+.op-table td.pinned-left {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: hsl(var(--background));
+  box-shadow: 1px 0 0 hsl(var(--border));
+}
+
+.op-table th.pinned-right,
+.op-table td.pinned-right {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background-color: hsl(var(--background));
+  box-shadow: -1px 0 0 hsl(var(--border));
+}

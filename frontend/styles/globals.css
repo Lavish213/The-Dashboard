@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @import './tokens.css';
+@import './typography.css';
+@import './animations.css';
+@import './utilities.css';
+@import './themes.css';
+@import './tables.css';
 
 @layer base {
   :root {

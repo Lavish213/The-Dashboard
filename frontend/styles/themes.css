@@ -1,0 +1,92 @@
+/*
+ * Karpathys Theme System
+ * Extended surface levels and high-contrast support
+ */
+
+/* === Surface elevation levels === */
+:root,
+.dark {
+  --surface-0: hsl(var(--background));
+  --surface-1: hsl(var(--card));
+  --surface-2: hsl(var(--accent) / 0.3);
+  --surface-3: hsl(var(--muted));
+}
+
+/* === Light theme surface overrides === */
+:root:not(.dark) {
+  --surface-2: hsl(220 13% 96%);
+  --surface-3: hsl(220 13% 93%);
+}
+
+/* === High contrast mode === */
+@media (forced-colors: active) {
+  :root {
+    --background: Canvas;
+    --foreground: CanvasText;
+    --border: ButtonBorder;
+    --primary: Highlight;
+    --primary-foreground: HighlightText;
+    --destructive: LinkText;
+    --muted-foreground: GrayText;
+  }
+}
+
+/* === Operational status color tokens === */
+:root {
+  /* Workflow states */
+  --status-active: hsl(var(--success));
+  --status-active-bg: hsl(var(--success) / 0.1);
+  --status-pending: hsl(48 96% 53%);
+  --status-pending-bg: hsl(48 96% 53% / 0.1);
+  --status-failed: hsl(var(--destructive));
+  --status-failed-bg: hsl(var(--destructive) / 0.1);
+  --status-paused: hsl(var(--muted-foreground));
+  --status-paused-bg: hsl(var(--muted));
+  --status-escalated: hsl(var(--warning));
+  --status-escalated-bg: hsl(var(--warning) / 0.1);
+  --status-completed: hsl(var(--muted-foreground));
+  --status-completed-bg: hsl(var(--muted));
+
+  /* Risk levels */
+  --risk-critical: hsl(0 84% 60%);
+  --risk-high: hsl(var(--warning));
+  --risk-medium: hsl(48 96% 53%);
+  --risk-low: hsl(var(--success));
+
+  /* Realtime states */
+  --realtime-connected: hsl(var(--success));
+  --realtime-connecting: hsl(var(--warning));
+  --realtime-disconnected: hsl(var(--destructive));
+  --realtime-stale: hsl(var(--muted-foreground));
+
+  /* AI confidence */
+  --confidence-high: hsl(var(--success));
+  --confidence-medium: hsl(var(--warning));
+  --confidence-low: hsl(var(--destructive));
+}
+
+/* === Scrollbar — themed === */
+html {
+  color-scheme: dark light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* === Selection === */
+::selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
+}
+
+/* === Print === */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+}

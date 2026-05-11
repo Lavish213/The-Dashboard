@@ -1,0 +1,164 @@
+/*
+ * Karpathys Utility Classes
+ * Operational surface patterns, scrollbars, density helpers
+ */
+
+/* === Surfaces === */
+.surface-base {
+  background-color: hsl(var(--background));
+}
+
+.surface-raised {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+}
+
+.surface-overlay {
+  background-color: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.surface-inset {
+  background-color: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-sm);
+}
+
+/* === Density helpers === */
+.density-compact {
+  --row-height: 32px;
+  --cell-padding-x: 8px;
+  --cell-padding-y: 4px;
+  font-size: var(--text-xs);
+}
+
+.density-default {
+  --row-height: 40px;
+  --cell-padding-x: 12px;
+  --cell-padding-y: 8px;
+  font-size: var(--text-sm);
+}
+
+.density-comfortable {
+  --row-height: 48px;
+  --cell-padding-x: 16px;
+  --cell-padding-y: 12px;
+  font-size: var(--text-sm);
+}
+
+/* === Custom scrollbar (operational style) === */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: var(--radius-full);
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* === Status indicator dots === */
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.status-dot-success { background-color: hsl(var(--success)); }
+.status-dot-warning { background-color: hsl(var(--warning)); }
+.status-dot-destructive { background-color: hsl(var(--destructive)); }
+.status-dot-info { background-color: hsl(var(--info)); }
+.status-dot-muted { background-color: hsl(var(--muted-foreground)); }
+.status-dot-pending { background-color: hsl(48 96% 53%); }
+
+/* === Focus ring === */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* === Interaction states === */
+.interactive {
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+              color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+
+.interactive:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+/* === Dividers === */
+.divider-h {
+  width: 100%;
+  height: 1px;
+  background-color: hsl(var(--border));
+}
+
+.divider-v {
+  height: 100%;
+  width: 1px;
+  background-color: hsl(var(--border));
+}
+
+/* === Overlay backdrop === */
+.backdrop-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(2px);
+}
+
+/* === Loading placeholder === */
+.loading-row {
+  height: var(--row-height, 40px);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted) / 0.4) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-row {
+    animation: none;
+    background: hsl(var(--muted));
+  }
+}
