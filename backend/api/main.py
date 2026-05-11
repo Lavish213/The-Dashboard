@@ -5,25 +5,26 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.errors import register_exception_handlers
+from api.routes.health import router as health_router
+from api.v1.router import router as v1_router
 from config.settings import settings
+from middleware.correlation import CorrelationMiddleware
+from observability.logging import configure_logging
 
+configure_logging(env=settings.app_env)
 logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info(
-        "karpathys.startup",
-        env=settings.app_env,
-        version=settings.app_version,
-    )
+    logger.info("karpathys.startup", env=settings.app_env, version=settings.app_version)
     _validate_startup()
     yield
     logger.info("karpathys.shutdown")
 
 
 def _validate_startup() -> None:
-    """Fail fast on misconfiguration at startup."""
     if settings.is_production and settings.secret_key == "changeme-in-production-use-long-random-string":
         raise RuntimeError("SECRET_KEY must be set in production")
     logger.info("karpathys.startup.validated")
@@ -37,6 +38,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Middleware (outermost first)
+app.add_middleware(CorrelationMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -45,11 +48,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Exception handlers
+register_exception_handlers(app)
 
-@app.get("/api/health", tags=["system"])
-async def health() -> dict:
-    return {
-        "status": "ok",
-        "env": settings.app_env,
-        "version": settings.app_version,
-    }
+# Routers
+app.include_router(health_router)
+app.include_router(v1_router)

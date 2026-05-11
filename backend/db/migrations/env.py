@@ -15,6 +15,21 @@ if config.config_file_name is not None:
 
 # Import Base and all models so autogenerate can detect them
 # Models are imported here once Phase 3 backend core is implemented
+import models.ai_decision  # noqa: E402, F401
+import models.approval  # noqa: E402, F401
+import models.audit_log  # noqa: E402, F401
+import models.call  # noqa: E402, F401
+import models.lead  # noqa: E402, F401
+import models.notification  # noqa: E402, F401
+import models.property  # noqa: E402, F401
+import models.realtime_session  # noqa: E402, F401
+import models.transcript  # noqa: E402, F401
+import models.transcript_segment  # noqa: E402, F401
+
+# Import all models for Alembic autogenerate detection
+import models.user  # noqa: E402, F401
+import models.workflow  # noqa: E402, F401
+import models.workflow_event  # noqa: E402, F401
 from db.session import Base  # noqa: E402
 
 target_metadata = Base.metadata
