@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def _validate_startup() -> None:
-    if settings.is_production and settings.secret_key == "changeme-in-production-use-long-random-string":
-        raise RuntimeError("SECRET_KEY must be set in production")
+    from security.secrets import validate_secrets
+    validate_secrets(settings)
     logger.info("karpathys.startup.validated")
 
 

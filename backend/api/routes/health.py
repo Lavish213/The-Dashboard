@@ -1,8 +1,10 @@
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from config.settings import settings
 from db.session import async_session_factory
+from observability.metrics import metrics
 
 router = APIRouter(tags=["system"])
 
@@ -23,7 +25,6 @@ async def readiness() -> dict:
     Readiness probe — checks DB connectivity.
     Returns 200 if ready, 503 if not.
     """
-    from fastapi.responses import JSONResponse
     try:
         async with async_session_factory() as session:
             await session.execute(text("SELECT 1"))
@@ -33,3 +34,12 @@ async def readiness() -> dict:
             status_code=503,
             content={"status": "not_ready", "db": "unreachable", "detail": str(exc)},
         )
+
+
+@router.get("/api/metrics")
+async def runtime_metrics() -> dict:
+    """
+    Runtime metrics snapshot — uptime, request counts, session stats.
+    Not authenticated (internal use). Gate behind network policy in production.
+    """
+    return metrics.snapshot()

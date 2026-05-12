@@ -1,4 +1,7 @@
 from models.ai_decision import AIDecision
+from models.call_event import CallEvent as CallEvent
+from models.call_participant import CallParticipant as CallParticipant
+from models.call_session import CallSession as CallSession
 from models.approval import Approval
 from models.audit_log import AuditLog
 from models.call import Call

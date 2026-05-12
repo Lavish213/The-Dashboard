@@ -138,3 +138,23 @@ class AuditActorType(enum.StrEnum):
     user = "user"
     system = "system"
     ai = "ai"
+
+
+class CallSessionStatus(enum.StrEnum):
+    waiting = "waiting"        # created, no participants yet
+    active = "active"          # at least one participant connected
+    completed = "completed"    # ended normally
+    failed = "failed"          # ended abnormally
+
+
+class ParticipantRole(enum.StrEnum):
+    operator = "operator"
+    lead = "lead"
+    observer = "observer"
+
+
+class ParticipantStatus(enum.StrEnum):
+    joined = "joined"
+    left = "left"
+    reconnecting = "reconnecting"
+    dropped = "dropped"

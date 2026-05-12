@@ -21,6 +21,9 @@ import models.ai_decision  # noqa: F401
 import models.approval  # noqa: F401
 import models.audit_log  # noqa: F401
 import models.call  # noqa: F401
+import models.call_event  # noqa: F401
+import models.call_participant  # noqa: F401
+import models.call_session  # noqa: F401
 import models.lead  # noqa: F401
 import models.notification  # noqa: F401
 import models.property  # noqa: F401

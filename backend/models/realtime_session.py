@@ -46,6 +46,14 @@ class RealtimeSession(Base, TimestampMixin):
         sa.DateTime(timezone=True),
         nullable=True,
     )
+    last_heartbeat_at: Mapped[sa.DateTime | None] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+    device_info: Mapped[str | None] = mapped_column(
+        sa.String,
+        nullable=True,
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(
