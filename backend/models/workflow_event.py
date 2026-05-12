@@ -30,12 +30,12 @@ class WorkflowEvent(Base):
         sa.UUID(as_uuid=True),
         sa.ForeignKey("workflows.id"),
         nullable=False,
-        index=True,
+        # Covered by composite ix_workflow_events_workflow_id_created_at
     )
     event_type: Mapped[str] = mapped_column(
         sa.String,
         nullable=False,
-        index=True,
+        # Covered by ix_workflow_events_event_type in __table_args__
     )
     payload: Mapped[dict] = mapped_column(
         sa.JSON,
@@ -49,7 +49,7 @@ class WorkflowEvent(Base):
     correlation_id: Mapped[uuid.UUID] = mapped_column(
         sa.UUID(as_uuid=True),
         nullable=False,
-        index=True,
+        # Covered by ix_workflow_events_correlation_id in __table_args__
     )
     actor_type: Mapped[AuditActorType] = mapped_column(
         sa.Enum(AuditActorType, native_enum=True),
@@ -61,7 +61,7 @@ class WorkflowEvent(Base):
     )
     created_at: Mapped[sa.DateTime] = mapped_column(
         sa.DateTime(timezone=True),
-        default=func.now(),
+        server_default=sa.text("clock_timestamp()"),
         nullable=False,
     )
     updated_at: Mapped[sa.DateTime] = mapped_column(

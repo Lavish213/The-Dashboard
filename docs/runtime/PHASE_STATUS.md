@@ -7,14 +7,15 @@
 - Phase 2 App Shell + Routing
 - Phase 3 Backend Core Runtime
 - Phase 4 Realtime Runtime
+- Phase 5 Workflow Runtime
 
 ## Active
 
-Phase 5 — Workflow Runtime
+Phase 6 — Transcript System
 
 ## Phase 5 Status
 
-IN PROGRESS
+COMPLETE — 2026-05-11
 
 ## Current Boundary
 

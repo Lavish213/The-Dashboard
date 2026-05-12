@@ -17,6 +17,17 @@ if TYPE_CHECKING:
 class Approval(Base, TimestampMixin):
     __tablename__ = "approvals"
 
+    __table_args__ = (
+        # Prevent duplicate pending approvals of same type per workflow at DB level.
+        sa.Index(
+            "ix_approvals_workflow_pending_type",
+            "workflow_id",
+            "approval_type",
+            postgresql_where=sa.text("approval_status = 'pending'"),
+            unique=True,
+        ),
+    )
+
     id: Mapped[uuid.UUID] = mapped_column(
         sa.UUID(as_uuid=True),
         primary_key=True,
