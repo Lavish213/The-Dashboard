@@ -97,6 +97,7 @@ export type Channel =
   | "system"
   | `workflow:${string}`
   | `lead:${string}`
+  | `transcript:${string}`
   | `user:${string}`;
 
 // ── Connection state ──────────────────────────────────────────────────────────

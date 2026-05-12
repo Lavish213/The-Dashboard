@@ -11,7 +11,11 @@
 
 ## Active
 
-Phase 6 — Transcript System
+Phase 7 — Approval + Governance System
+
+## Phase 6 Status
+
+COMPLETE — 2026-05-11
 
 ## Phase 5 Status
 

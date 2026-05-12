@@ -24,6 +24,7 @@ _UUID_RE = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 _CHANNEL_PATTERNS = [
     re.compile(rf"^workflow:{_UUID_RE}$"),
     re.compile(rf"^lead:{_UUID_RE}$"),
+    re.compile(rf"^transcript:{_UUID_RE}$"),
     re.compile(r"^approvals$"),
     re.compile(r"^system$"),
     re.compile(rf"^user:{_UUID_RE}$"),

@@ -76,10 +76,26 @@ class RiskLevel(enum.StrEnum):
 
 
 class TranscriptStatus(enum.StrEnum):
-    pending = "pending"
-    processing = "processing"
+    created = "created"
+    active = "active"
+    paused = "paused"
     completed = "completed"
     failed = "failed"
+    archived = "archived"
+
+
+class TranscriptSourceType(enum.StrEnum):
+    call = "call"
+    upload = "upload"
+    realtime = "realtime"
+    manual = "manual"
+
+
+class TranscriptStreamType(enum.StrEnum):
+    agent = "agent"
+    user = "user"
+    system = "system"
+    mixed = "mixed"
 
 
 class CallStatus(enum.StrEnum):

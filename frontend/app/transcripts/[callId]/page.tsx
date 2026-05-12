@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { PageContainer } from '@/components/workspace/PageContainer'
+import { TranscriptViewer } from '@/features/transcripts/components/TranscriptViewer'
 
-export const metadata: Metadata = { title: 'Transcript Detail' }
+export const metadata: Metadata = { title: 'Transcript' }
 
 export default async function TranscriptDetailPage({
   params,
@@ -11,10 +12,8 @@ export default async function TranscriptDetailPage({
   const { callId } = await params
   return (
     <PageContainer title="Transcript">
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          Transcript {callId} — Phase 6+
-        </p>
+      <div className="h-full">
+        <TranscriptViewer transcriptId={callId} />
       </div>
     </PageContainer>
   )

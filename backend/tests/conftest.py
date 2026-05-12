@@ -26,6 +26,8 @@ import models.notification  # noqa: F401
 import models.property  # noqa: F401
 import models.realtime_session  # noqa: F401
 import models.transcript  # noqa: F401
+import models.transcript_chunk  # noqa: F401
+import models.transcript_event  # noqa: F401
 import models.transcript_segment  # noqa: F401
 import models.user  # noqa: F401
 import models.workflow  # noqa: F401
