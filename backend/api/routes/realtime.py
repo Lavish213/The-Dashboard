@@ -18,6 +18,7 @@ import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from observability.correlation import generate_correlation_id
+from observability.metrics import metrics
 from realtime.manager import connection_manager
 from realtime.protocol import (
     ConnectedAck,
@@ -70,6 +71,7 @@ async def websocket_endpoint(
 
     connection_id = await connection_manager.connect(ws)
     heartbeat_tracker.record_connect(connection_id)
+    metrics.ws_connections_total += 1
     generate_correlation_id()
 
     ack = ConnectedAck(connection_id=connection_id, user_id=user_id)

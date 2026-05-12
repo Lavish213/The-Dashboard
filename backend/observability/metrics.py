@@ -4,6 +4,8 @@ Runtime metrics — in-process counters for operational health.
 Lightweight, no external dependency. Prometheus-exportable if needed later.
 Thread-safe via simple integer increments (GIL-safe for CPython).
 Reset is not supported — counters are monotonic.
+
+Live gauge values (connections, stale) are read from singletons at snapshot time.
 """
 from __future__ import annotations
 
@@ -18,9 +20,8 @@ class RuntimeMetrics:
     requests_5xx: int = 0
     requests_4xx: int = 0
 
-    # WebSocket
+    # WebSocket lifecycle (monotonic)
     ws_connections_total: int = 0
-    ws_disconnections_total: int = 0
 
     # Operator sessions
     operator_sessions_connected: int = 0
@@ -44,6 +45,10 @@ class RuntimeMetrics:
         return time.monotonic() - self.started_at
 
     def snapshot(self) -> dict:
+        # Import live singletons here to avoid circular imports at module load
+        from realtime.manager import connection_manager
+        from realtime.reconnect import heartbeat_tracker
+
         return {
             "uptime_seconds": round(self.uptime_seconds(), 2),
             "requests": {
@@ -52,8 +57,8 @@ class RuntimeMetrics:
                 "4xx": self.requests_4xx,
             },
             "websocket": {
-                "connections_total": self.ws_connections_total,
-                "disconnections_total": self.ws_disconnections_total,
+                "active_connections": connection_manager.connection_count,
+                "stale_connections": len(heartbeat_tracker.stale_connections()),
             },
             "operator_sessions": {
                 "connected_total": self.operator_sessions_connected,

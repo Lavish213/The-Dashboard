@@ -1,0 +1,75 @@
+version: '3.9'
+
+# Production overlay — apply on top of docker-compose.yml:
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Required env vars (set in environment or .env.production):
+#   SECRET_KEY, DATABASE_URL, REDIS_URL, CORS_ORIGINS
+#   NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL
+
+services:
+  postgres:
+    restart: unless-stopped
+    ports: []                        # no port exposure in production
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-karpathys}
+
+  redis:
+    restart: unless-stopped
+    ports: []
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      target: production
+    restart: unless-stopped
+    ports: []                        # expose via reverse proxy only
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+    volumes: []                      # no bind mounts in production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      target: runner
+    restart: unless-stopped
+    ports: []
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+    volumes: []
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Reverse proxy — route HTTP + WebSocket to backend/frontend
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
