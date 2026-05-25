@@ -2,14 +2,11 @@ from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/v1")
 
-
 @router.get("/ping", tags=["system"])
 async def v1_ping() -> dict:
-    """V1 API liveness stub."""
     return {"status": "ok"}
 
-
-from api.routes import (  # noqa: E402
+from api.routes import (
     activity,
     analytics,
     approvals,
@@ -25,6 +22,7 @@ from api.routes import (  # noqa: E402
     transcripts,
     workflows,
 )
+from api.routes import realtime_active
 
 router.include_router(auth.router)
 router.include_router(leads.router, prefix="/leads", tags=["leads"])
@@ -40,7 +38,7 @@ router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 router.include_router(activity.router, prefix="/activity", tags=["activity"])
 router.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 router.include_router(property_search.router, prefix="/property-search", tags=["property-search"])
+router.include_router(realtime_active.router, prefix="/realtime/active-call", tags=["realtime"])
 
-from api.routes.realtime import router as realtime_router  # noqa: E402
-
+from api.routes.realtime import router as realtime_router
 router.include_router(realtime_router)
