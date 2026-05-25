@@ -1,22 +1,44 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
-from models.enums import AuditActorType
+from models.enums import AuditActorType, WorkflowStatus
+from models.workflow import Workflow
 from schemas.workflow import WorkflowCreate, WorkflowResponse
+from security.auth import get_current_active_user
 from workflows.persistence import WorkflowEventRepository, WorkflowRepository
 from workflows.recovery import WorkflowRecovery
 from workflows.runtime import WorkflowRuntime
 from workflows.transitions import TransitionError
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 
-# ---------------------------------------------------------------------------
-# CRUD
-# ---------------------------------------------------------------------------
+@router.get("")
+async def list_workflows(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    workflow_status: WorkflowStatus | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    q = select(Workflow)
+    if workflow_status:
+        q = q.where(Workflow.workflow_status == workflow_status)
+    q = q.order_by(Workflow.created_at.desc())
+    total = (await session.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    result = await session.execute(q.offset((page - 1) * page_size).limit(page_size))
+    workflows = result.scalars().all()
+    return {
+        "items": [WorkflowResponse.model_validate(w).model_dump(mode="json") for w in workflows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": max(1, -(-total // page_size)),
+    }
+
 
 @router.post("", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
 async def create_workflow(
@@ -42,10 +64,6 @@ async def get_workflow(
     workflow = await repo.get_by_id_or_raise(workflow_id)
     return WorkflowResponse.model_validate(workflow)
 
-
-# ---------------------------------------------------------------------------
-# Transitions
-# ---------------------------------------------------------------------------
 
 @router.post("/{workflow_id}/pause", response_model=WorkflowResponse)
 async def pause_workflow(
@@ -99,17 +117,13 @@ async def cancel_workflow(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
-# ---------------------------------------------------------------------------
-# Events
-# ---------------------------------------------------------------------------
-
 @router.get("/{workflow_id}/events")
 async def get_workflow_events(
     workflow_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> list[dict]:
     repo = WorkflowRepository(session)
-    await repo.get_by_id_or_raise(workflow_id)  # 404 guard
+    await repo.get_by_id_or_raise(workflow_id)
     events_repo = WorkflowEventRepository(session)
     events = await events_repo.get_by_workflow(workflow_id)
     return [
@@ -126,10 +140,6 @@ async def get_workflow_events(
         for e in events
     ]
 
-
-# ---------------------------------------------------------------------------
-# Recovery
-# ---------------------------------------------------------------------------
 
 @router.post("/{workflow_id}/recover", response_model=WorkflowResponse)
 async def recover_workflow(

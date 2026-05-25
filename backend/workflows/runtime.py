@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from governance.engine import GovernanceEngine
 from models.enums import AuditActorType, WorkflowStatus, WorkflowType
 from models.workflow import Workflow
 from workflows.persistence import WorkflowEventRepository, WorkflowRepository
@@ -30,6 +31,7 @@ class WorkflowRuntime:
         self._session = session
         self._repo = WorkflowRepository(session)
         self._events = WorkflowEventRepository(session)
+        self._governance = GovernanceEngine(session)
 
     # ------------------------------------------------------------------
     # Public interface
@@ -44,6 +46,11 @@ class WorkflowRuntime:
         correlation_id: UUID | None = None,
     ) -> Workflow:
         """Create and activate a new workflow."""
+        # Governance enforcement: global freeze check (INV-4, INV-24).
+        # Terminal operations (fail/cancel/complete) are NOT gated — they must
+        # remain reachable during freeze to support graceful shutdown (INV-18).
+        await self._governance.check_freeze("global", source_runtime="workflow")
+
         corr_id = correlation_id or uuid4()
 
         workflow = await self._repo.create(
@@ -73,6 +80,11 @@ class WorkflowRuntime:
         actor_id: UUID | None = None,
     ) -> Workflow:
         """Move workflow to next step (must already be active)."""
+        # Governance enforcement: check workflow-scoped freeze in addition to global.
+        await self._governance.check_freeze(
+            f"workflow:{workflow_id}", source_runtime="workflow"
+        )
+
         workflow = await self._repo.get_for_update_or_raise(workflow_id)
         self._assert_active(workflow)
 

@@ -1,5 +1,10 @@
-
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULTS = {
+    "changeme-in-production-use-long-random-string",
+    "dev-secret-key-change-in-production-at-least-32-chars",
+}
 
 
 class Settings(BaseSettings):
@@ -10,24 +15,27 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # App
     app_env: str = "development"
     app_version: str = "0.1.0"
+    app_name: str = "Karpathys"
     secret_key: str = "changeme-in-production-use-long-random-string"
     debug: bool = False
 
-    # Database
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/karpathys"
-
-    # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # Auth (Phase 3)
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24  # 24 hours
+    access_token_expire_minutes: int = 60 * 24
+    refresh_token_expire_days: int = 7
+
+    @field_validator("secret_key")
+    @classmethod
+    def secret_key_must_be_secure(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("secret_key must be at least 32 characters")
+        return v
 
     @property
     def is_development(self) -> bool:
@@ -36,6 +44,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def is_secret_key_insecure(self) -> bool:
+        return self.secret_key in _INSECURE_DEFAULTS
 
 
 settings = Settings()

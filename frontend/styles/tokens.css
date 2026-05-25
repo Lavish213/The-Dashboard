@@ -81,3 +81,32 @@
   --header-height: 56px;
   --panel-min-width: 280px;
 }
+:root {
+  /* === Brand colors === */
+  --teal: 180 56% 60%;
+  --teal-muted: 180 56% 60% / 0.1;
+  --gold: 38 65% 68%;
+  --gold-muted: 38 65% 68% / 0.1;
+
+  /* === Elevation surfaces (dark) === */
+  --elevation-0: 222 25% 7%;
+  --elevation-1: 222 22% 9%;
+  --elevation-2: 222 20% 11%;
+  --elevation-3: 222 18% 14%;
+
+  /* === Dark-tuned shadows === */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-elevated: 0 4px 16px 0 rgb(0 0 0 / 0.5);
+  --shadow-modal: 0 24px 48px 0 rgb(0 0 0 / 0.6);
+  --shadow-tooltip: 0 4px 8px 0 rgb(0 0 0 / 0.5);
+
+  /* === Score tier colors === */
+  --score-high: 142 69% 44%;
+  --score-mid: 38 92% 50%;
+  --score-low: 0 72% 51%;
+
+  /* === Scrollbar === */
+  --scrollbar-track: hsl(222 22% 9%);
+  --scrollbar-thumb: hsl(222 18% 18%);
+  --scrollbar-thumb-hover: hsl(222 18% 24%);
+}

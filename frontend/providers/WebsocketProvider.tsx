@@ -19,8 +19,9 @@ const WebSocketContext = createContext<WebSocketContextValue | null>(null)
 
 export function WebsocketProvider({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
-  const { setStatus, setConnectionId, setLastError } = useWebSocketStore()
-  const { addChannel, removeChannel, recordEvent, reset } = useRealtimeStore()
+  const { setStatus, setConnectionId, setLastError, setReconnectAttempts } = useWebSocketStore()
+  const { addChannel, removeChannel, intendChannel, unintendChannel, setLastEventId, recordEvent, reset } =
+    useRealtimeStore()
 
   const clientRef = useRef<WebSocketClient | null>(null)
   const dispatcherRef = useRef<MessageDispatcher | null>(null)
@@ -57,9 +58,25 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
         }
       },
       onMessage: (msg) => {
-        if (msg.type === 'event') recordEvent()
+        if (msg.type === 'event') {
+          recordEvent()
+          setLastEventId(msg.channel, msg.event_id)
+        }
         dispatcher.dispatch(msg)
       },
+      onReconnected: () => {
+        // Re-subscribe to all intended channels with replay cursor.
+        // Dedup in dispatcher ensures replayed events are not double-dispatched.
+        const { intendedChannels, lastEventIds } = useRealtimeStore.getState()
+        for (const channel of intendedChannels) {
+          client.send({
+            type: 'subscribe',
+            channel,
+            last_event_id: lastEventIds[channel],
+          })
+        }
+      },
+      onAttemptChange: (n) => setReconnectAttempts(n),
     })
 
     clientRef.current = client
@@ -71,8 +88,15 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Intercept subscribe/unsubscribe to track intended channels
+  const send = (msg: ClientMessage): void => {
+    if (msg.type === 'subscribe') intendChannel(msg.channel)
+    else if (msg.type === 'unsubscribe') unintendChannel(msg.channel)
+    clientRef.current?.send(msg)
+  }
+
   const value: WebSocketContextValue = {
-    send: (msg) => clientRef.current?.send(msg),
+    send,
     registry: dispatcherRef.current.registry,
   }
 

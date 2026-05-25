@@ -65,6 +65,17 @@ class ConnectionManager:
             await self.disconnect(connection_id)
             return False
 
+    async def close_connection(self, connection_id: str) -> None:
+        """Close the underlying WebSocket and remove from registry."""
+        async with self._lock:
+            ws = self._connections.pop(connection_id, None)
+        if ws is not None:
+            try:
+                await ws.close(code=1001)
+            except Exception:
+                pass
+        logger.info("realtime.connection.evicted", connection_id=connection_id)
+
     async def broadcast_json(self, connection_ids: set[str], data: dict[str, Any]) -> int:
         """Send JSON to multiple connections concurrently. Returns success count."""
         if not connection_ids:

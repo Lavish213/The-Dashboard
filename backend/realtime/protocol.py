@@ -34,6 +34,7 @@ class RealtimeEvent(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     correlation_id: str | None = None
     occurred_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    seq_num: int | None = None
 
 
 class SubscribedAck(BaseModel):

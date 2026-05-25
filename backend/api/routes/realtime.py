@@ -24,6 +24,7 @@ from realtime.protocol import (
     ConnectedAck,
     PingMessage,
     RealtimeError,
+    RealtimeEvent,
     ReplayResponse,
     SubscribedAck,
     UnsubscribedAck,
@@ -32,6 +33,7 @@ from realtime.protocol import (
 from realtime.reconnect import HEARTBEAT_INTERVAL_SECONDS, heartbeat_tracker
 from realtime.subscriptions import channel_allowed, subscription_manager
 from security.auth import decode_access_token
+from core.redis import get_redis
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 logger = structlog.get_logger(__name__)
@@ -54,21 +56,30 @@ async def websocket_endpoint(
     ws: WebSocket,
     token: str | None = Query(default=None),
 ) -> None:
+    # --- Auth gate — reject immediately if no token or invalid token ---
+    if token is None:
+        await ws.accept()
+        err = RealtimeError(code="authentication_error", message="Missing authentication token")
+        await ws.send_json(err.model_dump())
+        await ws.close(code=4001)
+        return
+
     user_id: str | None = None
     role: str = "operator"
 
-    if token:
-        try:
-            payload = decode_access_token(token)
+    try:
+        async for redis in get_redis():
+            payload = await decode_access_token(token, redis)
             user_id = payload.get("sub")
             role = payload.get("role", "operator")
-        except Exception:
-            await ws.accept()
-            err = RealtimeError(code="authentication_error", message="Invalid or missing token")
-            await ws.send_json(err.model_dump())
-            await ws.close(code=4001)
-            return
+    except Exception:
+        await ws.accept()
+        err = RealtimeError(code="authentication_error", message="Invalid or expired token")
+        await ws.send_json(err.model_dump())
+        await ws.close(code=4001)
+        return
 
+    # --- Connection accepted ---
     connection_id = await connection_manager.connect(ws)
     heartbeat_tracker.record_connect(connection_id)
     metrics.ws_connections_total += 1
@@ -131,9 +142,38 @@ async def websocket_endpoint(
                     await connection_manager.send_json(connection_id, unsub_ack.model_dump())
 
                 case "replay":
-                    # Phase 4: return empty replay (DB replay implemented Phase 5+)
-                    resp = ReplayResponse(channel=msg.channel, events=[], has_more=False)
-                    await connection_manager.send_json(connection_id, resp.model_dump())
+                    if not channel_allowed(msg.channel, role):
+                        err = RealtimeError(
+                            code="permission_denied",
+                            message=f"Not allowed to replay {msg.channel}",
+                            channel=msg.channel,
+                        )
+                        await connection_manager.send_json(connection_id, err.model_dump())
+                    else:
+                        from db.session import async_session_factory
+                        from events.replay import replay_channel
+
+                        async with async_session_factory() as session:
+                            stored, has_more = await replay_channel(
+                                session,
+                                msg.channel,
+                                msg.from_event_id,
+                                msg.limit,
+                            )
+                        events = [
+                            RealtimeEvent(
+                                event_id=e.event_id,
+                                channel=e.channel,
+                                event_type=e.event_type,
+                                payload=e.payload,
+                                correlation_id=e.correlation_id,
+                                occurred_at=e.occurred_at.isoformat(),
+                                seq_num=e.seq_num,
+                            )
+                            for e in stored
+                        ]
+                        resp = ReplayResponse(channel=msg.channel, events=events, has_more=has_more)
+                        await connection_manager.send_json(connection_id, resp.model_dump())
 
     except WebSocketDisconnect:
         pass

@@ -26,6 +26,12 @@ from workflows.transitions import TransitionError
 EVT_APPROVAL_REQUESTED = "workflow.approval.requested"
 EVT_APPROVAL_RESOLVED = "workflow.approval.resolved"
 
+# Statuses that can be resolved (approved/rejected)
+_RESOLVABLE_STATUSES: frozenset[ApprovalStatus] = frozenset({
+    ApprovalStatus.pending,
+    ApprovalStatus.escalated,
+})
+
 
 class ApprovalGateError(Exception):
     """Raised when approval gate constraints are violated."""
@@ -111,9 +117,9 @@ class WorkflowApprovalGate:
         """
         approval = await self._approvals.get_by_id_or_raise(approval_id)
 
-        if approval.approval_status != ApprovalStatus.pending:
+        if approval.approval_status not in _RESOLVABLE_STATUSES:
             raise ApprovalGateError(
-                f"Approval {approval_id} is already {approval.approval_status}"
+                f"Approval {approval_id} is {approval.approval_status} — not resolvable"
             )
 
         new_status = ApprovalStatus.approved if approved else ApprovalStatus.rejected

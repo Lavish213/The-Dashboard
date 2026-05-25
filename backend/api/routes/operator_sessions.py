@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
 from models.enums import RealtimeSessionStatus
+from security.auth import get_current_active_user
 from services.operator_sessions import OperatorSessionRuntime
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 
 # ---------------------------------------------------------------------------

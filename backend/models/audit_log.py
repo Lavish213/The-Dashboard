@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from db.session import Base
+from db.base import Base
 from models.enums import AuditActorType
 
 

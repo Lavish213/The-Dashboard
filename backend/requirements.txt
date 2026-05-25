@@ -12,3 +12,4 @@ httpx>=0.28.0
 structlog>=24.4.0
 redis>=5.2.0
 python-dotenv>=1.0.0
+email-validator>=2.2.0

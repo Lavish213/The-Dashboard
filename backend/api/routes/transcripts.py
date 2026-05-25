@@ -2,9 +2,12 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
+from models.transcript import Transcript
+from security.auth import get_current_active_user
 from transcripts.repositories.chunk import TranscriptChunkRepository
 from transcripts.repositories.event import TranscriptEventRepository
 from transcripts.repositories.transcript import TranscriptRepository
@@ -17,11 +20,27 @@ from transcripts.schemas.transcript import (
     TranscriptResponse,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
-# ---------------------------------------------------------------------------
-# Create / Get
-# ---------------------------------------------------------------------------
+
+@router.get("")
+async def list_transcripts(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    q = select(Transcript).order_by(Transcript.created_at.desc())
+    total = (await session.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    result = await session.execute(q.offset((page - 1) * page_size).limit(page_size))
+    transcripts = result.scalars().all()
+    return {
+        "items": [TranscriptResponse.model_validate(t).model_dump(mode="json") for t in transcripts],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": max(1, -(-total // page_size)),
+    }
+
 
 @router.post("", response_model=TranscriptResponse, status_code=status.HTTP_201_CREATED)
 async def create_transcript(
@@ -47,10 +66,6 @@ async def get_transcript(
     transcript = await repo.get_by_id_or_raise(transcript_id)
     return TranscriptResponse.model_validate(transcript)
 
-
-# ---------------------------------------------------------------------------
-# Lifecycle transitions
-# ---------------------------------------------------------------------------
 
 @router.post("/{transcript_id}/start", response_model=TranscriptResponse)
 async def start_transcript(
@@ -131,10 +146,6 @@ async def archive_transcript(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
-# ---------------------------------------------------------------------------
-# Chunks — append + paginated retrieval
-# ---------------------------------------------------------------------------
-
 @router.post("/{transcript_id}/chunks", response_model=TranscriptChunkResponse, status_code=status.HTTP_201_CREATED)
 async def append_chunk(
     transcript_id: UUID,
@@ -163,15 +174,11 @@ async def get_chunks(
     session: AsyncSession = Depends(get_session),
 ) -> list[TranscriptChunkResponse]:
     repo = TranscriptRepository(session)
-    await repo.get_by_id_or_raise(transcript_id)  # 404 guard
+    await repo.get_by_id_or_raise(transcript_id)
     chunk_repo = TranscriptChunkRepository(session)
     result = await chunk_repo.get_by_transcript(transcript_id, page=page, page_size=page_size)
     return [TranscriptChunkResponse.model_validate(c) for c in result.items]
 
-
-# ---------------------------------------------------------------------------
-# Events — paginated replay
-# ---------------------------------------------------------------------------
 
 @router.get("/{transcript_id}/events", response_model=list[TranscriptEventResponse])
 async def get_events(
@@ -181,7 +188,7 @@ async def get_events(
     session: AsyncSession = Depends(get_session),
 ) -> list[TranscriptEventResponse]:
     repo = TranscriptRepository(session)
-    await repo.get_by_id_or_raise(transcript_id)  # 404 guard
+    await repo.get_by_id_or_raise(transcript_id)
     event_repo = TranscriptEventRepository(session)
     result = await event_repo.get_by_transcript(transcript_id, page=page, page_size=page_size)
     return [TranscriptEventResponse.model_validate(e) for e in result.items]

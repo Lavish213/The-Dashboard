@@ -2,6 +2,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from calls.repositories import (
@@ -21,13 +22,49 @@ from calls.schemas import (
     ConnectionStateResponse,
 )
 from db.session import get_session
+from models.call import Call
+from models.enums import CallStatus
+from security.auth import get_current_active_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 
-# ---------------------------------------------------------------------------
-# Session lifecycle
-# ---------------------------------------------------------------------------
+@router.get("")
+async def list_calls(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    call_status: CallStatus | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    q = select(Call)
+    if call_status:
+        q = q.where(Call.call_status == call_status)
+    q = q.order_by(Call.created_at.desc())
+    total = (await session.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    result = await session.execute(q.offset((page - 1) * page_size).limit(page_size))
+    calls = result.scalars().all()
+    return {
+        "items": [
+            {
+                "id": str(c.id),
+                "lead_id": str(c.lead_id) if c.lead_id else None,
+                "workflow_id": str(c.workflow_id) if c.workflow_id else None,
+                "call_status": c.call_status.value,
+                "provider": c.provider.value,
+                "duration_seconds": c.duration_seconds,
+                "started_at": c.started_at.isoformat() if c.started_at else None,
+                "ended_at": c.ended_at.isoformat() if c.ended_at else None,
+                "recording_url": c.recording_url,
+                "created_at": c.created_at.isoformat(),
+            }
+            for c in calls
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": max(1, -(-total // page_size)),
+    }
+
 
 @router.post("", response_model=CallSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session(
@@ -75,10 +112,6 @@ async def fail_session(
     except CallSessionTransitionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
-
-# ---------------------------------------------------------------------------
-# Participants
-# ---------------------------------------------------------------------------
 
 @router.post(
     "/{session_id}/join",
@@ -142,10 +175,6 @@ async def list_participants(
     return [CallParticipantResponse.model_validate(p) for p in participants]
 
 
-# ---------------------------------------------------------------------------
-# Events — paginated, sequence-ordered, replay-safe
-# ---------------------------------------------------------------------------
-
 @router.get("/{session_id}/events", response_model=dict)
 async def list_session_events(
     session_id: UUID,
@@ -180,10 +209,6 @@ async def replay_session(
         "participant_count": result.participant_count,
     }
 
-
-# ---------------------------------------------------------------------------
-# Presence
-# ---------------------------------------------------------------------------
 
 @router.get("/{session_id}/presence", response_model=list[ConnectionStateResponse])
 async def get_presence(

@@ -8,10 +8,11 @@ from db.session import get_session
 from models.enums import ApprovalType
 from repositories.approval import ApprovalRepository
 from schemas.approval import ApprovalCreate, ApprovalResolve, ApprovalResponse
+from security.auth import get_current_active_user
 from workflows.approvals import ApprovalGateError
 from workflows.transitions import TransitionError
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_active_user)])
 
 
 @router.post("/request", response_model=ApprovalResponse, status_code=status.HTTP_201_CREATED)

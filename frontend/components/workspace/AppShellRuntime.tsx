@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { AppNav } from '@/components/navigation/AppNav'
 import { BottomNav } from '@/components/navigation/BottomNav'
@@ -19,18 +20,21 @@ import { useNavigation } from '@/hooks/navigation/useNavigation'
 import { Bell, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCommandStore } from '@/stores/command.store'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { SessionTimeoutModal } from '@/components/ui/session-timeout-modal'
+import { RouteProgressBar } from '@/components/ui/progress-bar'
 
 interface AppShellRuntimeProps {
   children: React.ReactNode
 }
 
-/** Inner authenticated shell — only rendered for non-auth routes */
 function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   const { collapsed, toggle } = useSidebar()
   const breadcrumbs = useBreadcrumbs()
   const mainRef = useFocusRestore()
   const openCommand = useCommandStore((s) => s.setOpen)
   const { isActive } = useNavigation()
+  const pathname = usePathname()
 
   const sidebarWidth = collapsed ? 56 : 280
 
@@ -44,9 +48,9 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+      <RouteProgressBar />
       <SkipNav />
 
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           'hidden md:flex flex-col flex-shrink-0 border-r border-border overflow-hidden',
@@ -58,9 +62,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         <AppNav collapsed={collapsed} onCollapseToggle={toggle} />
       </aside>
 
-      {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Topbar */}
         <header
           className="flex-shrink-0 border-b border-border"
           style={{ height: 48 }}
@@ -69,7 +71,6 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           <Topbar
             left={
               <div className="flex items-center gap-3">
-                {/* Mobile hamburger */}
                 <MobileNav items={navItems} />
                 {breadcrumbs.length > 0 && (
                   <Breadcrumbs items={breadcrumbs} className="hidden sm:flex" />
@@ -112,7 +113,6 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           />
         </header>
 
-        {/* Main content area */}
         <main
           id="main-content"
           ref={mainRef as React.RefObject<HTMLElement>}
@@ -121,33 +121,35 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           tabIndex={-1}
           aria-label="Main content"
         >
-          {children}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.1, ease: 'easeOut' }}
+              className="h-full"
+            >
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
       <BottomNav />
-
-      {/* Global command palette */}
       <CommandPaletteProvider />
+      <SessionTimeoutModal />
     </div>
   )
 }
 
-/**
- * AppShellRuntime — top-level shell orchestrator.
- * Reads pathname to decide whether to render the authenticated shell
- * (with sidebar/topbar) or the auth layout (centered, no chrome).
- *
- * Auth route detection: Phase 3 will add JWT validation here.
- */
 export function AppShellRuntime({ children }: AppShellRuntimeProps) {
   const pathname = usePathname()
 
   if (isAuthRoute(pathname)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </div>
     )
   }

@@ -1,41 +1,42 @@
-# Decisions
+# Decision Log
 
-## 2026-05-11 — Use Phase-Gated Execution
+## Runtime Architecture
 
-Decision:
-Karpathys will be built phase by phase with strict boundaries.
+- Dashboard is authoritative control layer.
+- Deterministic runtime before autonomous systems.
+- Realtime runtime before transcript intelligence.
+- Transcript runtime before AI orchestration.
+- Governance runtime after deterministic infrastructure.
+- AI systems must operate beneath deterministic runtime layers.
 
-Reason:
-Prevents architecture drift, duplicate systems, and token-heavy rework.
+---
 
-## 2026-05-11 — Use Repo Memory Instead Of Chat Memory
+## Context Architecture
 
-Decision:
-Durable project state lives in markdown files inside the repository.
+- Sessions should remain compact.
+- Canonical docs replace conversational repetition.
+- Structured handoffs preferred over long sessions.
+- Runtime state should become increasingly machine-readable over time.
 
-Reason:
-Reduces repeated prompting and prevents long chat context from becoming the source of truth.
+---
 
-## 2026-05-11 — Use Scoped Context Loading
+## Engineering Rules
 
-Decision:
-Agents must load only active context, subsystem instructions, and directly relevant files.
+- No uncontrolled architecture drift.
+- No broad repo scans without need.
+- No giant implementation summaries.
+- Validation gates required before phase completion.
+- Runtime boundaries enforced per phase.
 
-Reason:
-Improves output quality and reduces token waste.
+---
 
-## 2026-05-11 — Keep Root CLAUDE.md Lean
+## Current Locked Sequencing
 
-Decision:
-Root CLAUDE.md acts as a routing guide only.
-
-Reason:
-Large root instruction files are loaded too often and become token-heavy.
-
-## 2026-05-11 — Separate Planning From Execution
-
-Decision:
-Planning and implementation should happen in separate scoped sessions when tasks are large.
-
-Reason:
-Keeps execution context clean and avoids wasted rebuilds.
+1. Deterministic Realtime Runtime
+2. Transcript Runtime + Streaming
+3. Context Infrastructure Layer
+4. Governance + Approval Runtime
+5. Sophia Runtime
+6. Karoathys Research Runtime
+7. Agent Orchestration
+8. Hardening + Production Stabilization

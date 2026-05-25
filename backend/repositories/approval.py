@@ -64,6 +64,14 @@ class ApprovalRepository(BaseRepository[Approval]):
         )
         return list(result.scalars().all())
 
+    async def get_escalated(self, page: int = 1, page_size: int = 20) -> PageResult[Approval]:
+        """Return all escalated approvals (still require resolution)."""
+        return await self.list_paginated(
+            page=page,
+            page_size=page_size,
+            filters=[Approval.approval_status == ApprovalStatus.escalated],
+        )
+
     async def get_by_workflow(self, workflow_id: UUID) -> list[Approval]:
         result = await self.session.execute(
             select(Approval).where(

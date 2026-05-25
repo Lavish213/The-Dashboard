@@ -4,9 +4,11 @@
 
 Reduce token waste while preserving engineering quality.
 
+---
+
 ## Default Output Format
 
-Use this format unless asked otherwise:
+Use this format unless explicitly asked otherwise.
 
 Files changed:
 - ...
@@ -20,54 +22,79 @@ Blockers:
 Next step:
 - ...
 
+---
+
 ## Prompt Rules
 
 - Keep prompts task-specific.
 - Batch related instructions into one message.
-- Avoid follow-up correction chains when possible.
+- Avoid correction chains when possible.
 - Use fresh sessions for unrelated tasks.
-- Use current repo memory instead of restating architecture.
+- Reuse canonical runtime docs instead of repeating architecture.
+- Do not restate completed phases unnecessarily.
+
+---
 
 ## Execution Rules
 
-- Read active context first.
+- Read ACTIVE_CONTEXT.md first.
 - Read only relevant subsystem docs.
-- Avoid full repository scans.
-- Avoid dumping large command outputs.
-- Summarize logs compactly.
-- Preserve validation gates.
+- Avoid broad repository scans.
+- Avoid unnecessary tool calls.
+- Avoid giant summaries.
+- Preserve deterministic phase boundaries.
+- Stop when current scope is complete.
+
+---
 
 ## Terminal Rules
 
 Prefer compact commands.
 
 Good:
-- pytest tests/test_workflows.py -q
-- ruff check workflows tests/test_workflows.py
+- pytest tests/test_runtime.py -q
+- ruff check backend tests
 - npm run typecheck
 
 Avoid:
-- printing full logs unless debugging requires it
 - recursive tree dumps
-- full git diff dumps without scope
+- giant git diffs
+- printing full logs unnecessarily
+- repeated repo-wide scans
 
-## Model Strategy
+---
+
+## Runtime Rules
 
 Use deeper reasoning for:
 - architecture
-- debugging hard failures
+- runtime debugging
 - phase planning
+- deterministic systems
 
 Use execution mode for:
 - implementation
 - validation
-- file edits
+- targeted edits
 - small fixes
+
+---
 
 ## Stop Conditions
 
 Stop immediately when:
 - validation fails
 - architecture conflict appears
-- missing dependency is discovered
+- missing dependency discovered
 - phase boundary would be crossed
+- unrelated subsystem exploration begins
+
+---
+
+## Session Discipline
+
+- Prefer short focused sessions.
+- Reset sessions before heavy context rot.
+- Preserve decisions in canonical docs.
+- Use structured handoffs between sessions.
+- Never rely on giant conversational memory.

@@ -24,6 +24,7 @@ export interface RealtimeEvent {
   payload: Record<string, unknown>;
   correlation_id: string | null;
   occurred_at: string;
+  seq_num: number | null;
 }
 
 export interface SubscribedAck {

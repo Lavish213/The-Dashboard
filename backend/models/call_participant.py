@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from db.session import Base
+from db.base import Base
 from models.enums import ParticipantRole, ParticipantStatus
 
 if TYPE_CHECKING:

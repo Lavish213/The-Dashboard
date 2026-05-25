@@ -192,6 +192,8 @@ class TestRecoveryReplayLogic:
             "workflow.completed",
             "workflow.failed",
             "workflow.cancelled",
+            "workflow.recovery.resumed",
+            "workflow.recovery.checkpoint_restored",
         }
         assert expected == set(_STATUS_EVENTS.keys())
 

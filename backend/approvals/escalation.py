@@ -12,6 +12,8 @@ from uuid import UUID
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from events.contracts import DomainEvent
+from events.emitter import event_emitter
 from models.enums import ApprovalStatus, AuditActorType
 from realtime.broadcast import broadcast_service
 from realtime.protocol import RealtimeEvent
@@ -82,16 +84,28 @@ class ApprovalEscalationRuntime:
             correlation_id=approval.workflow_id,
         )
 
+        domain_payload = {
+            "approval_id": str(approval_id),
+            "workflow_id": str(approval.workflow_id),
+            "approval_type": approval.approval_type,
+            "reason": reason,
+            "escalated_to": str(escalated_to) if escalated_to else None,
+        }
+
+        await event_emitter.emit(
+            self._session,
+            DomainEvent(
+                channel=APPROVAL_CHANNEL,
+                event_type=EVT_APPROVAL_ESCALATED,
+                payload=domain_payload,
+                correlation_id=str(approval.workflow_id),
+            ),
+        )
+
         await broadcast_service.publish(RealtimeEvent(
             channel=APPROVAL_CHANNEL,
             event_type=EVT_APPROVAL_ESCALATED,
-            payload={
-                "approval_id": str(approval_id),
-                "workflow_id": str(approval.workflow_id),
-                "approval_type": approval.approval_type,
-                "reason": reason,
-                "escalated_to": str(escalated_to) if escalated_to else None,
-            },
+            payload=domain_payload,
             correlation_id=str(approval.workflow_id),
         ))
 

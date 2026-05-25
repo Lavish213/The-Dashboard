@@ -1,41 +1,52 @@
-# Guardrails
+# Runtime Guardrails
 
-## Repository Rules
+## Core Doctrine
 
-- Never scan the full repository unless explicitly required.
-- Never load unrelated subsystems by default.
-- Never mix frontend, backend, realtime, vision, memory, and Sophia context unless the task requires it.
-- Never continue past failed validation without reporting the blocker.
-- Never invent architecture outside the doctrine documents.
+- Deterministic systems first.
+- Autonomous systems second.
+- Human control above all runtime layers.
+- Runtime state must remain inspectable.
+- Every major action should be traceable.
 
-## Context Rules
+---
 
-- Read docs/runtime/ACTIVE_CONTEXT.md first.
-- Read the current phase document second.
-- Read the relevant subsystem CLAUDE.md third.
-- Load directly relevant files only.
-- Use supporting docs only when needed.
+## Forbidden Patterns
 
-## Token Rules
+Do not:
+- collapse phases together
+- add AI early
+- bypass validation
+- create hidden runtime state
+- allow uncontrolled agent execution
+- build giant conversational workflows
+- depend on massive session memory
 
-- Keep outputs compact.
-- Avoid giant summaries.
-- Avoid full file dumps unless requested.
-- Avoid repeated explanations.
-- Avoid verbose terminal output.
-- Prefer changed files, validations, blockers, and next step.
+---
 
-## Execution Rules
+## Runtime Requirements
 
-- Touch only files allowed by the active phase.
-- Do not implement future-phase systems early.
-- Do not create duplicate runtimes.
-- Do not add dependencies without reason.
-- Do not perform speculative refactors.
+- Runtime events must be deterministic.
+- Event ordering must be stable.
+- Reconnect behavior must be safe.
+- Duplicate event prevention required.
+- Runtime state transitions must be auditable.
 
-## Validation Rules
+---
 
-- Run required tests for the touched subsystem.
-- Report validation results clearly.
-- Report blockers honestly.
-- Stop at the phase boundary.
+## Context Discipline
+
+- Keep sessions focused.
+- Use canonical docs.
+- Prefer structured state.
+- Minimize unnecessary context growth.
+- Preserve important decisions externally.
+
+---
+
+## Validation Discipline
+
+Never mark a phase complete without:
+- required validations
+- runtime verification
+- boundary verification
+- reconnect verification if realtime touched

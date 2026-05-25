@@ -4,11 +4,12 @@ ApprovalEngine: operational governance wrapper around WorkflowApprovalGate.
 Responsibilities:
 - request approval (delegates to gate)
 - resolve approval (delegates to gate)
+- persist governance domain events (EventEmitter → domain_events for replay)
 - emit realtime broadcast events after each mutation
 - NO intelligence, NO policy evaluation
 
 WorkflowApprovalGate remains the deterministic core.
-This layer adds observability and realtime fan-out only.
+This layer adds persistence and realtime fan-out only.
 """
 
 from datetime import datetime
@@ -16,6 +17,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from events.contracts import DomainEvent
+from events.emitter import event_emitter
 from models.approval import Approval
 from models.enums import ApprovalType, RiskLevel
 from realtime.broadcast import broadcast_service
@@ -46,7 +49,7 @@ class ApprovalEngine:
     ) -> Approval:
         """
         Request an approval via the workflow gate.
-        Pauses the workflow. Emits realtime event.
+        Pauses the workflow. Persists domain event. Emits realtime event.
         Raises ApprovalGateError / TransitionError on constraint violation.
         """
         approval = await self._gate.request_approval(
@@ -57,16 +60,28 @@ class ApprovalEngine:
             expires_at=expires_at,
         )
 
+        payload = {
+            "approval_id": str(approval.id),
+            "workflow_id": str(workflow_id),
+            "approval_type": approval_type,
+            "risk_level": risk_level,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+        }
+
+        await event_emitter.emit(
+            self._session,
+            DomainEvent(
+                channel=APPROVAL_CHANNEL,
+                event_type=EVT_APPROVAL_REQUESTED,
+                payload=payload,
+                correlation_id=str(workflow_id),
+            ),
+        )
+
         await broadcast_service.publish(RealtimeEvent(
             channel=APPROVAL_CHANNEL,
             event_type=EVT_APPROVAL_REQUESTED,
-            payload={
-                "approval_id": str(approval.id),
-                "workflow_id": str(workflow_id),
-                "approval_type": approval_type,
-                "risk_level": risk_level,
-                "expires_at": expires_at.isoformat() if expires_at else None,
-            },
+            payload=payload,
             correlation_id=str(workflow_id),
         ))
 
@@ -80,9 +95,9 @@ class ApprovalEngine:
         notes: str = "",
     ) -> Approval:
         """
-        Approve or reject a pending approval via the workflow gate.
+        Approve or reject a pending/escalated approval via the workflow gate.
         Resumes workflow on approval; fails on rejection.
-        Emits realtime event.
+        Persists domain event. Emits realtime event.
         Raises ApprovalGateError if already resolved.
         """
         approval = await self._gate.resolve(
@@ -92,17 +107,29 @@ class ApprovalEngine:
             notes=notes,
         )
 
+        payload = {
+            "approval_id": str(approval_id),
+            "workflow_id": str(approval.workflow_id),
+            "approval_type": approval.approval_type,
+            "approved": approved,
+            "resolved_by": str(resolved_by),
+            "notes": notes,
+        }
+
+        await event_emitter.emit(
+            self._session,
+            DomainEvent(
+                channel=APPROVAL_CHANNEL,
+                event_type=EVT_APPROVAL_RESOLVED,
+                payload=payload,
+                correlation_id=str(approval.workflow_id),
+            ),
+        )
+
         await broadcast_service.publish(RealtimeEvent(
             channel=APPROVAL_CHANNEL,
             event_type=EVT_APPROVAL_RESOLVED,
-            payload={
-                "approval_id": str(approval_id),
-                "workflow_id": str(approval.workflow_id),
-                "approval_type": approval.approval_type,
-                "approved": approved,
-                "resolved_by": str(resolved_by),
-                "notes": notes,
-            },
+            payload=payload,
             correlation_id=str(approval.workflow_id),
         ))
 

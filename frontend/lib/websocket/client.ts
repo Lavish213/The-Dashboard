@@ -13,6 +13,10 @@ import { ReconnectStrategy } from "./reconnect";
 export interface WebSocketClientCallbacks {
   onStatusChange: (status: ConnectionStatus) => void;
   onMessage: (msg: ServerMessage) => void;
+  /** Called when reconnect succeeds (not the initial connect). */
+  onReconnected?: () => void;
+  /** Called each time a reconnect attempt is scheduled. n = total attempts so far. */
+  onAttemptChange?: (n: number) => void;
 }
 
 const PONG_RESPONSE = JSON.stringify({ type: "pong" });
@@ -56,8 +60,12 @@ export class WebSocketClient {
     this.ws = ws;
 
     ws.onopen = () => {
+      const wasReconnect = this.reconnect.attemptCount > 0;
       this.reconnect.reset();
       this._setStatus("connected");
+      if (wasReconnect) {
+        this.callbacks.onReconnected?.();
+      }
     };
 
     ws.onmessage = (evt: MessageEvent<string>) => {
@@ -97,6 +105,7 @@ export class WebSocketClient {
       return;
     }
     this._setStatus("reconnecting");
+    this.callbacks.onAttemptChange?.(this.reconnect.attemptCount);
     this.reconnectTimer = setTimeout(() => {
       if (!this.destroyed) this._openSocket();
     }, delay);

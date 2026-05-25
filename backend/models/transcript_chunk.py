@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.session import Base
+from db.base import Base
 from models.enums import TranscriptStreamType
 
 if TYPE_CHECKING:

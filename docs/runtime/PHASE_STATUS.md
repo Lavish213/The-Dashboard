@@ -2,50 +2,40 @@
 
 ## Completed
 
-- Phase 0 Foundation Lock
-- Phase 1 Design System
-- Phase 2 App Shell + Routing
-- Phase 3 Backend Core Runtime
-- Phase 4 Realtime Runtime
-- Phase 5 Workflow Runtime
+- Phase 0 — Foundation Lock
+- Phase 1 — Design System
+- Phase 2 — App Shell + Routing
+- Phase 3 — Backend Core Runtime
+- Phase 4 — Realtime Runtime Foundation
+- Phase 5 — Workflow Runtime
+- Phase 6 — Transcript System Foundation
+- Phase 7 — Deterministic Realtime Runtime
+- Phase 8 — AI Runtime Foundation
+- Phase 9 — Transcript Runtime + Streaming
+- Phase 10 — Context Infrastructure Layer
+- Phase 11 — Governance + Approval Runtime
+- Phase 12 — Sophia Runtime
+- Phase 13 — Karoathys Research Runtime
+- Phase 14 — Agent Orchestration + Governance Enforcement Integration
+
+---
 
 ## Active
 
-Phase 7 — Approval + Governance System
+Phase 15 — Context + Memory Runtime
 
-## Phase 6 Status
+Status:
+- IN PROGRESS
 
-COMPLETE — 2026-05-11
+Primary Goal:
+- Deterministic context + memory runtime for bounded, replay-safe,
+  governance-compatible context assembly.
+- context/exceptions.py, context/budget.py, context/ranking.py,
+  context/sanitizer.py, context/memory.py, context/replay.py,
+  context/runtime.py as Phase 15 additions over Phase 10 foundation.
 
-## Phase 5 Status
+---
 
-COMPLETE — 2026-05-11
+## Upcoming Phases
 
-## Current Boundary
-
-Allowed:
-- workflow runtime
-- workflow state machine
-- workflow persistence
-- workflow event emission
-- retry foundation
-- rollback foundation
-- escalation foundation
-- approval gate foundation
-- workflow UI foundation
-
-Forbidden:
-- transcript intelligence
-- AI orchestration
-- mobile runtime
-- business-specific automations
-- advanced approval UI
-
-## Next Required Validation
-
-- backend pytest
-- backend ruff
-- backend imports
-- frontend typecheck if frontend touched
-- frontend lint if frontend touched
-- frontend build if frontend touched
+- Phase 16 — Hardening + Production Stabilization
