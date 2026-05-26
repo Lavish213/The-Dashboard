@@ -16,10 +16,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-# Resolve backend root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import all models so SQLAlchemy mapper can resolve all relationships
 import models.ai_decision  # noqa: F401, E402
 import models.approval  # noqa: F401, E402
 import models.audit_log  # noqa: F401, E402
@@ -37,17 +35,18 @@ import models.transcript_event  # noqa: F401, E402
 import models.transcript_segment  # noqa: F401, E402
 import models.workflow  # noqa: F401, E402
 import models.workflow_event  # noqa: F401, E402
+
 from models.enums import UserRole, UserStatus  # noqa: E402
 from models.user import User  # noqa: E402
 from security.auth import hash_password  # noqa: E402
 
 ADMIN_EMAIL = "admin@karpathys.dev"
-ADMIN_PASSWORD = "admin1234"
+ADMIN_PASSWORD = "Karpathys2025!"
 ADMIN_NAME = "Internal Admin"
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://angelowashington@localhost:5432/karpathys_dev",
+    "postgresql+asyncpg://postgres:postgres@postgres:5432/karpathys",
 )
 
 
@@ -58,7 +57,6 @@ async def seed() -> None:
     async with async_session() as session:
         result = await session.execute(select(User).where(User.email == ADMIN_EMAIL))
         existing = result.scalar_one_or_none()
-
         if existing:
             print(f"Admin already exists: {ADMIN_EMAIL} (id={existing.id})")
         else:
