@@ -68,8 +68,27 @@ class Lead(Base, TimestampMixin):
         sa.DateTime(timezone=True),
         nullable=True,
     )
+    notes: Mapped[str | None] = mapped_column(
+        sa.Text,
+        nullable=True,
+    )
+    follow_up_at: Mapped[datetime.datetime | None] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+    )
+    address: Mapped[str | None] = mapped_column(
+        sa.String,
+        nullable=True,
+    )
+    city: Mapped[str | None] = mapped_column(
+        sa.String,
+        nullable=True,
+    )
+    state: Mapped[str | None] = mapped_column(
+        sa.String,
+        nullable=True,
+    )
 
-    # Relationships
     assigned_user: Mapped["User | None"] = relationship(
         "User",
         back_populates="leads",
