@@ -1,17 +1,21 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  LayoutDashboard,
-  Users,
-  Building2,
-  Phone,
-  GitBranch,
-  CheckSquare,
   Activity,
   BarChart2,
+  Bell,
+  Building2,
+  CalendarDays,
+  CheckSquare,
+  GitBranch,
+  Handshake,
+  LayoutDashboard,
+  Phone,
+  PhoneCall,
   Radio,
   ScrollText,
   Settings,
-  PhoneCall,
+  Share2,
+  Users,
 } from 'lucide-react'
 
 export interface NavRoute {
@@ -20,9 +24,7 @@ export interface NavRoute {
   href: string
   icon: LucideIcon
   group: NavGroup
-  /** Badge count source key — populated by stores in Phase 3+ */
   badgeKey?: string
-  /** Sub-routes (detail pages) — not shown in nav but used for active matching */
   matchPrefixes?: string[]
 }
 
@@ -36,7 +38,6 @@ export const NAV_GROUPS: { id: NavGroup; label: string }[] = [
 ]
 
 export const NAV_ROUTES: NavRoute[] = [
-  // Operations
   {
     id: 'dashboard',
     label: 'Dashboard',
@@ -51,6 +52,35 @@ export const NAV_ROUTES: NavRoute[] = [
     icon: Users,
     group: 'operations',
     matchPrefixes: ['/leads/'],
+  },
+  {
+    id: 'deals',
+    label: 'Deals',
+    href: '/deals',
+    icon: Handshake,
+    group: 'operations',
+    matchPrefixes: ['/deals/'],
+  },
+  {
+    id: 'followups',
+    label: 'Follow-ups',
+    href: '/followups',
+    icon: Bell,
+    group: 'operations',
+  },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    href: '/calendar',
+    icon: CalendarDays,
+    group: 'operations',
+  },
+  {
+    id: 'social',
+    label: 'Social',
+    href: '/social',
+    icon: Share2,
+    group: 'operations',
   },
   {
     id: 'properties',
@@ -76,7 +106,6 @@ export const NAV_ROUTES: NavRoute[] = [
     group: 'operations',
     matchPrefixes: ['/workflows/'],
   },
-  // Governance
   {
     id: 'approvals',
     label: 'Approvals',
@@ -87,7 +116,7 @@ export const NAV_ROUTES: NavRoute[] = [
   },
   {
     id: 'realtime',
-    label: 'Realtime',
+    label: 'Sophia Live',
     href: '/realtime',
     icon: Radio,
     group: 'governance',
@@ -99,7 +128,6 @@ export const NAV_ROUTES: NavRoute[] = [
     icon: ScrollText,
     group: 'governance',
   },
-  // Insights
   {
     id: 'analytics',
     label: 'Analytics',
@@ -122,7 +150,6 @@ export const NAV_ROUTES: NavRoute[] = [
     group: 'insights',
     matchPrefixes: ['/transcripts/'],
   },
-  // System
   {
     id: 'settings',
     label: 'Settings',
@@ -132,10 +159,8 @@ export const NAV_ROUTES: NavRoute[] = [
   },
 ]
 
-/** Routes that render WITHOUT the app shell (no sidebar/topbar) */
 export const AUTH_ROUTES: string[] = ['/login', '/register', '/forgot-password', '/reset-password']
 
-/** Routes accessible without authentication (Phase 3 will enforce) */
 export const PUBLIC_ROUTES: string[] = ['/login', '/register', '/forgot-password', '/reset-password']
 
 export function isAuthRoute(pathname: string): boolean {
@@ -146,13 +171,9 @@ export function getRouteById(id: string): NavRoute | undefined {
   return NAV_ROUTES.find((r) => r.id === id)
 }
 
-/** Returns the nav route that best matches the current pathname */
 export function getActiveRoute(pathname: string): NavRoute | undefined {
-  // Exact match first
   const exact = NAV_ROUTES.find((r) => r.href === pathname)
   if (exact) return exact
-
-  // Prefix match (for detail pages)
   return NAV_ROUTES.find(
     (r) =>
       r.matchPrefixes?.some((prefix) => pathname.startsWith(prefix)) ||
