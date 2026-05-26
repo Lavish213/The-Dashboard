@@ -22,6 +22,7 @@ from api.routes import (
     operator_sessions,
     properties,
     property_search,
+    reddit_monitor,
     social,
     social_leads,
     transcripts,
@@ -47,6 +48,7 @@ router.include_router(realtime_active.router, prefix="/realtime/active-call", ta
 router.include_router(social.router, prefix="/social/posts", tags=["social"])
 router.include_router(social_leads.router, prefix="/social/leads", tags=["social"])
 router.include_router(curator.router, prefix="/curator", tags=["curator"])
+router.include_router(reddit_monitor.router, prefix="/reddit/matches", tags=["reddit"])
 
 from api.routes.realtime import router as realtime_router
 router.include_router(realtime_router)
