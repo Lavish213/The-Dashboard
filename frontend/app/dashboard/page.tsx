@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { KPIGrid } from '@/components/dashboard/KPIGrid'
 import { SophiaStatusWidget } from '@/components/dashboard/SophiaStatusWidget'
+import { SocialWidget } from '@/components/dashboard/SocialWidget'
 import { apiFetch } from '@/services/api'
 import { useSophiaStore } from '@/stores/sophia.store'
 import { getSignals } from '@/services/sophia'
@@ -155,6 +156,7 @@ export default function DashboardPage() {
           <KPIGrid tiles={kpiTiles.slice(4)} cols={4} />
         )}
       </div>
-    </PageContainer>
+              <SocialWidget />
+        </PageContainer>
   )
 }
