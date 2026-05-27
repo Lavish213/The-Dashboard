@@ -9,6 +9,7 @@ async def v1_ping() -> dict:
 
 
 from api.routes import (
+    sophia_bridge,
     activity,
     analytics,
     approvals,
@@ -54,6 +55,7 @@ router.include_router(curator.router, prefix="/curator", tags=["curator"])
 router.include_router(reddit_monitor.router, prefix="/reddit/matches", tags=["reddit"])
 router.include_router(instantdm_webhook.router, prefix="/webhooks", tags=["webhooks"])
 router.include_router(email_drip.router, prefix="/email-drip", tags=["email"])
+router.include_router(sophia_bridge.router, prefix="/sophia", tags=["sophia"])
 router.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
 
 from api.routes.realtime import router as realtime_router
