@@ -42,6 +42,7 @@ export default function LoginPage() {
           role: data.user.role,
         },
         data.access_token,
+        data.refresh_token ?? '',
       )
 
       // Persist token for API calls

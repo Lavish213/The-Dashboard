@@ -144,7 +144,7 @@ export default function RealtimePage() {
                   {activeCall.caller_name ?? 'Unknown caller'}
                 </p>
                 <p className="text-xs text-muted-foreground font-mono">
-                  {activeCall.phone ?? activeCall.provider_call_id?.slice(0, 16) ?? '—'}
+                  {activeCall.phone ?? activeCall.session_id?.slice(0, 16) ?? '—'}
                 </p>
               </div>
               <div className="text-right flex-shrink-0">

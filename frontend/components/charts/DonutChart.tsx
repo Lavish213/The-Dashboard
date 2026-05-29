@@ -41,9 +41,7 @@ export function DonutChart({ data, height = 200 }: DonutChartProps) {
             fontSize: '12px',
             color: 'hsl(210 20% 96%)',
           }}
-          formatter={(value: number) => [
-            `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
-          ]}
+          formatter={(value: any) => [`${Number(value)} (${total > 0 ? Math.round((Number(value) / total) * 100) : 0}%)`]}
         />
         <Legend
           iconType="circle"
