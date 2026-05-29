@@ -42,5 +42,5 @@ CMD ["uvicorn", "api.main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
      "--workers", "1", \
-     "--log-level", "warning", \
+     "--log-level", "info", \
      "--timeout-graceful-shutdown", "30"]
