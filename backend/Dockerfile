@@ -32,16 +32,8 @@ ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8000
-
 # Single worker: ConnectionManager is in-process (not redis-backed).
 # Scale horizontally only after migrating broadcasts to redis pub/sub.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8000/api/ready || exit 1
-
 CMD ["python", "-c", "import api.main; print('import ok')"]
-# CMD ["uvicorn", "api.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "1", \
-     "--log-level", "info", \
-     "--timeout-graceful-shutdown", "30"]
