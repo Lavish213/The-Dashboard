@@ -5,9 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from db.session import get_session
-from security.auth import get_current_active_user
+import os as _os
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+from fastapi import Header, HTTPException, status
+
+_WEBHOOK_SECRET = _os.environ.get("KARPATHYS_WEBHOOK_SECRET", "")
+
+
+def _verify_secret(x_karpathys_secret: str = Header(default="")) -> None:
+    if _WEBHOOK_SECRET and x_karpathys_secret != _WEBHOOK_SECRET:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid secret")
+
+
+router = APIRouter(dependencies=[Depends(_verify_secret)])
 
 DISPOSITION_ACTIONS = {
     "HOT": {

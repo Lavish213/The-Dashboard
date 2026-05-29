@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000"]
 
     jwt_algorithm: str = "HS256"
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            import json
+            try:
+                return json.loads(v)
+            except Exception:
+                return [o.strip() for o in v.split(",") if o.strip()]
+        return v
+
     access_token_expire_minutes: int = 60 * 24
     refresh_token_expire_days: int = 7
 

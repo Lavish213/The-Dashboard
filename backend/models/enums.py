@@ -339,6 +339,7 @@ class SophiaEventType(enum.StrEnum):
     context_assembled = "context_assembled"
     cancellation_requested = "cancellation_requested"
     recovery_initiated = "recovery_initiated"
+    mode_changed = "mode_changed"
 
 
 class ResearchJobStatus(enum.StrEnum):

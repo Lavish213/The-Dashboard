@@ -71,10 +71,15 @@ async def ingest_turn(
         from models.sophia_turn import SophiaTurn
         from models.enums import SophiaTurnStatus
 
-        sess_result = await session.execute(
-            select(SophiaSession).where(SophiaSession.call_id == call.id)
-        )
-        sophia_session = sess_result.scalar_one_or_none()
+        sophia_session = None
+        if call.lead_id:
+            sess_result = await session.execute(
+                select(SophiaSession)
+                .where(SophiaSession.lead_id == call.lead_id)
+                .order_by(SophiaSession.created_at.desc())
+                .limit(1)
+            )
+            sophia_session = sess_result.scalar_one_or_none()
 
         if sophia_session:
             turn = SophiaTurn(
@@ -113,8 +118,9 @@ async def ingest_complete(
 
     if call:
         call.call_status = CallStatus.completed
-        if turn_count:
-            call.duration_seconds = turn_count * 30
+        duration_seconds = body.get("duration_seconds")
+        if duration_seconds is not None:
+            call.duration_seconds = int(duration_seconds)
         session.add(call)
 
         if disposition and call.lead_id:
