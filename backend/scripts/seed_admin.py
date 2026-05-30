@@ -17,8 +17,8 @@ async def seed() -> None:
     else:
         pw = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
         await conn.execute("""
-            INSERT INTO users (id, email, hashed_password, full_name, role, status, is_active, created_at, updated_at)
-            VALUES ($1, $2, $3, 'Internal Admin', 'admin', 'active', true, now(), now())
+            INSERT INTO users (id, email, hashed_password, full_name, role, status, created_at, updated_at)
+            VALUES ($1, $2, $3, 'Internal Admin', 'admin', 'active', now(), now())
         """, str(uuid.uuid4()), ADMIN_EMAIL, pw)
         print(f"Created admin: {ADMIN_EMAIL}")
     await conn.close()
