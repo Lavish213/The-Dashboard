@@ -21,10 +21,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def _safe_drop(table, constraint, type_):
     from sqlalchemy import text
     conn = op.get_bind()
-    try:
-        op.drop_constraint(op.f(constraint), table, type_=type_)
-    except Exception:
-        pass
+    if type_ == 'foreignkey':
+        conn.execute(text(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {constraint}"))
+    elif type_ == 'unique':
+        conn.execute(text(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {constraint}"))
+    elif type_ == 'primary':
+        conn.execute(text(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {constraint}"))
 
 
 def upgrade() -> None:
