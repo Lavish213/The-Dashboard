@@ -67,7 +67,7 @@ class ResearchGovernanceRuntime:
             permitted = result.classification not in (
                 ActionClassification.forbidden,
             )
-            requires_approval = result.classification == ActionClassification.restricted
+            requires_approval = result.classification == ActionClassification.requires_approval
             reason = result.reason
         else:
             # No evaluator available — default permit with note

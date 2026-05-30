@@ -233,6 +233,7 @@ class ActionClassification(enum.StrEnum):
     restricted = "restricted"
     privileged = "privileged"
     forbidden = "forbidden"
+    requires_approval = "requires_approval"
 
 
 class RiskTier(enum.StrEnum):
