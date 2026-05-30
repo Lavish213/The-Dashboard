@@ -8,7 +8,7 @@ from alembic import op
 from sqlalchemy import text
 
 revision = "001_enum_additions"
-down_revision = None
+down_revision = "91a0435fc938"
 branch_labels = None
 depends_on = None
 
