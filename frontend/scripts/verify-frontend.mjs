@@ -62,7 +62,7 @@ test('Headers, redirect rejection and bounded signal survive', async () => {
   })
   await api('/api/v1/leads', { headers: new Headers({ 'X-Trace': 'synthetic' }) })
 })
-test('20 concurrent 401 requests use one refresh', async () => {
+for (const concurrency of [20, 200]) test(`${concurrency} concurrent 401 requests use one refresh`, async () => {
   let refreshes = 0
   let accepted = 0
   const { api } = await load(async (url, options) => {
@@ -74,9 +74,9 @@ test('20 concurrent 401 requests use one refresh', async () => {
     if (options.headers.get('Authorization') === 'Bearer renewed') { accepted++; return new Response('{}') }
     return new Response('', { status: 401 })
   })
-  await Promise.all(Array.from({ length: 20 }, () => api('/api/v1/leads')))
+  await Promise.all(Array.from({ length: concurrency }, () => api('/api/v1/leads')))
   assert.equal(refreshes, 1)
-  assert.equal(accepted, 20)
+  assert.equal(accepted, concurrency)
 })
 for (const fault of ['denied', 'network', 'missing']) {
   test(`refresh ${fault} releases all waiters`, async () => {
@@ -112,4 +112,38 @@ test('real Zustand store resets session-specific evidence', async () => {
   assert.equal(store.getState().mode, 'ai')
   store.getState().setSessionId(null)
   assert.equal(store.getState().sessionId, null)
+})
+
+test('account changes and logout clear conversation and approval identity', async () => {
+  const storage = new Map()
+  const context = createContext({ window: {}, localStorage: { setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) } })
+  const modules = new Map()
+  async function moduleFor(name) {
+    if (modules.has(name)) return modules.get(name)
+    if (name === 'zustand') return new SyntheticModule(['create'], function () { this.setExport('create', create) }, { context })
+    const filename = name.replace('@/stores/', '')
+    const code = await readFile(new URL(`../stores/${filename}.ts`, import.meta.url), 'utf8')
+    const mod = new SourceTextModule(compile(code), { context })
+    modules.set(name, mod)
+    await mod.link(moduleFor)
+    return mod
+  }
+  const mod = await moduleFor('@/stores/auth.store')
+  await mod.evaluate()
+  const auth = mod.namespace.useAuthStore
+  const sophia = modules.get('@/stores/sophia.store').namespace.useSophiaStore
+  const approvals = modules.get('@/stores/approval.store').namespace.useApprovalStore
+  auth.getState().setUser({ id: 'one' }, 'token', 'refresh')
+  sophia.getState().setSessionId('seller-one')
+  approvals.getState().setPendingCount(3)
+  auth.getState().setUser({ id: 'one' }, 'renewed', 'refresh')
+  assert.equal(sophia.getState().sessionId, 'seller-one')
+  auth.getState().setUser({ id: 'two' }, 'second', 'refresh')
+  assert.equal(sophia.getState().sessionId, null)
+  assert.equal(approvals.getState().pendingCount, 0)
+  sophia.getState().setSessionId('seller-two')
+  auth.getState().clearUser()
+  assert.equal(sophia.getState().sessionId, null)
+  assert.equal(auth.getState().status, 'unauthenticated')
+  assert.equal(storage.size, 0)
 })

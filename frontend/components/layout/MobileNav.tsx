@@ -1,10 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetBody, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetBody, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import type { SidebarNavItem } from './Sidebar'
 
 interface MobileNavProps {
@@ -36,6 +37,8 @@ export function MobileNav({
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 p-0">
+          <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
+          <SheetDescription className="sr-only">Choose a workspace page.</SheetDescription>
           {header && (
             <div className="border-b border-border p-4">{header}</div>
           )}
@@ -45,7 +48,7 @@ export function MobileNav({
                 <ul className="space-y-0.5 p-2">
                   {items.map((item) => (
                     <li key={item.id}>
-                      <a
+                      <Link
                         href={item.href ?? '#'}
                         className={cn(
                           'flex items-center gap-2.5 rounded-md px-2 py-2 text-sm transition-colors',
@@ -66,7 +69,7 @@ export function MobileNav({
                             {item.badge}
                           </span>
                         )}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>

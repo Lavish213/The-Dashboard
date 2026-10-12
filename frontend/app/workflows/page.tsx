@@ -101,7 +101,7 @@ export default function WorkflowsPage() {
           {loading && [...Array(4)].map((_, i) => (
             <div key={i} className="rounded-lg border bg-card p-4 h-20 animate-pulse" />
           ))}
-          {!loading && workflows.length === 0 && (
+          {!loading && !error && workflows.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No workflows found
             </div>

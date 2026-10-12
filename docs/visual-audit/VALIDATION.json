@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-10-12T17:59:54.900Z",
+  "browser": "134.0.6998.35",
+  "fixtureOnly": true,
+  "screenStates": 31,
+  "automatedAccessibilityViolations": 0,
+  "runtimeErrors": [],
+  "interactions": [
+    "Settings displays authenticated account",
+    "Security audit destination",
+    "Sidebar collapses and expands",
+    "Command palette opens and dismisses",
+    "Mobile navigation selects Calls and closes",
+    "Logout clears credentials and redirects to login",
+    "Structured sign-in rejection remains readable without crashing"
+  ],
+  "frontendFaultAndStoreTests": 22,
+  "typecheck": "passed",
+  "lint": "passed",
+  "productionBuild": "passed after clean build",
+  "runtimeDependencyAdvisories": 0,
+  "ci": "pending publication",
+  "deployment": "none"
+}

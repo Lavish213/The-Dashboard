@@ -2,8 +2,13 @@
 
 import { useSophiaStore } from '@/stores/sophia.store'
 
-export function ModeIndicator() {
+export function ModeIndicator({ active = false }: { active?: boolean }) {
   const mode = useSophiaStore((s) => s.mode)
+  const sessionId = useSophiaStore((s) => s.sessionId)
+
+  if (!active && !sessionId) {
+    return <span className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Idle</span>
+  }
 
   if (mode === 'human_takeover') {
     return (

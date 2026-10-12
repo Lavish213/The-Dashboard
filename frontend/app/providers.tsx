@@ -13,8 +13,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <NuqsAdapter>
       <ThemeProvider>
-        <QueryProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <QueryProvider>
             <WebsocketProvider>
               <RealtimeProvider>
                 <ToastProvider>
@@ -22,8 +22,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 </ToastProvider>
               </RealtimeProvider>
             </WebsocketProvider>
-          </AuthProvider>
-        </QueryProvider>
+          </QueryProvider>
+        </AuthProvider>
       </ThemeProvider>
     </NuqsAdapter>
   )

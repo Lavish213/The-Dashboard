@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,33 +9,19 @@ import { useTheme } from '@/hooks/ui/useTheme'
 import { apiFetch } from '@/services/api'
 
 function ConnectionDot() {
-  const [connected, setConnected] = useState(true)
-
-  useEffect(() => {
-    async function check() {
-      try {
-        await apiFetch('/api/ready')
-        setConnected(true)
-      } catch {
-        setConnected(false)
-      }
-    }
-    check()
-    const id = setInterval(check, 15_000)
-    return () => clearInterval(id)
-  }, [])
+  const health = useQuery({ queryKey: ['api-readiness'], queryFn: ({ signal }) => apiFetch('/api/ready', { signal }), refetchInterval: 15_000, retry: false })
+  const connected = health.isSuccess
+  const label = health.isPending ? 'Checking API' : connected ? 'API online' : 'API unavailable'
 
   return (
-    <div className="flex items-center gap-1.5 px-2">
+    <div className="flex items-center gap-1.5 px-2" role="status" aria-label={label} title={label}>
       <div
         className={cn(
           'h-1.5 w-1.5 rounded-full flex-shrink-0',
-          connected ? 'bg-green-400' : 'bg-red-400 animate-pulse'
+          health.isPending ? 'bg-muted-foreground' : connected ? 'bg-green-400' : 'bg-red-400'
         )}
       />
-      {!connected && (
-        <span className="text-xs text-red-400">Offline</span>
-      )}
+      <span className="hidden text-xs text-muted-foreground sm:inline">{label}</span>
     </div>
   )
 }

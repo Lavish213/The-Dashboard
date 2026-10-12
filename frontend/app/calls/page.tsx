@@ -82,7 +82,7 @@ export default function CallsPage() {
       {loading ? (
         <SkeletonTable rows={8} cols={5} />
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Call history table">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -94,7 +94,7 @@ export default function CallsPage() {
               </tr>
             </thead>
             <tbody>
-              {calls.length === 0 && (
+              {!error && calls.length === 0 && (
                 <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">No calls found</td></tr>
               )}
               {calls.map((call) => (

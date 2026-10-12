@@ -2,12 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth.store'
-import env from '@/config/environment'
+import { login } from '@/services/auth'
 
 export default function LoginPage() {
   const router = useRouter()
-  const setUser = useAuthStore((s) => s.setUser)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -21,42 +19,10 @@ export default function LoginPage() {
     const password = (form.elements.namedItem('password') as HTMLInputElement).value
 
     try {
-      const res = await fetch(`${env.apiUrl}/api/v1/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        setError(body.detail ?? `Login failed (${res.status})`)
-        return
-      }
-
-      const data = await res.json()
-      setUser(
-        {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.full_name ?? data.user.email,
-          role: data.user.role,
-        },
-        data.access_token,
-        data.refresh_token ?? '',
-      )
-
-      // Persist token for API calls
-      localStorage.setItem('karpathys_token', data.access_token)
-      localStorage.setItem('karpathys_user', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.full_name ?? data.user.email,
-        role: data.user.role,
-      }))
-
+      await login({ email, password })
       router.push('/dashboard')
-    } catch {
-      setError('Network error — is the backend running?')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Sign-in unavailable. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -105,7 +71,7 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <p className="text-xs text-destructive">{error}</p>
+          <p role="alert" className="text-sm text-destructive">{error}</p>
         )}
 
         <button
@@ -118,7 +84,7 @@ export default function LoginPage() {
       </form>
 
       <p className="text-center text-[10px] text-muted-foreground">
-        Internal alpha — admin@karpathys.dev
+        Use your workspace account to sign in.
       </p>
     </div>
   )

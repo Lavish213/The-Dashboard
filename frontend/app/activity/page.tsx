@@ -60,7 +60,7 @@ export default function ActivityPage() {
         <SkeletonFeed rows={8} />
       ) : (
         <div className="space-y-2">
-          {events.length === 0 && (
+          {!error && events.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
               No activity yet
             </div>

@@ -33,7 +33,7 @@ export default function AuditPage() {
       {loading ? (
         <SkeletonTable rows={10} cols={4} />
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Audit events table">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -44,7 +44,7 @@ export default function AuditPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.length === 0 && (
+              {!error && logs.length === 0 && (
                 <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-muted-foreground">No audit events yet</td></tr>
               )}
               {logs.map((log) => (

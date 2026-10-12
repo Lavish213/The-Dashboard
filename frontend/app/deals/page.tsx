@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
 import { scoreColor, STATUS_COLORS } from '@/constants/colors'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
-import { TrendingUp, DollarSign, Home, Clock } from 'lucide-react'
+import { TrendingUp, DollarSign, Home, Clock, type LucideIcon } from 'lucide-react'
 
 interface Deal {
   id: string
@@ -71,7 +70,7 @@ function DealCard({ deal, onClick }: { deal: Deal; onClick: () => void }) {
 }
 
 function StatTile({ icon: Icon, label, value, color }: {
-  icon: any; label: string; value: string | number; color: string
+  icon: LucideIcon; label: string; value: string | number; color: string
 }) {
   return (
     <div className="rounded-lg border bg-card shadow-card p-4 flex items-center gap-3">
@@ -88,27 +87,14 @@ function StatTile({ icon: Icon, label, value, color }: {
 
 export default function DealsPage() {
   const router = useRouter()
-  const [deals, setDeals] = useState<Deal[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Deal[] }>(
-          '/api/v1/leads?status=qualified&page_size=200'
-        )
-        const converted = await apiFetch<{ items: Deal[] }>(
-          '/api/v1/leads?status=converted&page_size=200'
-        )
-        setDeals([...data.items, ...converted.items])
-      } catch {
-        toast.error('Failed to load deals')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error } = useQuery({ queryKey: ['deal-leads'], queryFn: async ({ signal }) => {
+    const [qualified, converted] = await Promise.all([
+      apiFetch<{ items: Deal[]; total: number }>('/api/v1/leads?status=qualified&page_size=200', { signal }),
+      apiFetch<{ items: Deal[]; total: number }>('/api/v1/leads?status=converted&page_size=200', { signal }),
+    ])
+    return { items: [...qualified.items, ...converted.items], truncated: qualified.total > qualified.items.length || converted.total > converted.items.length }
+  } })
+  const deals = data?.items ?? []
 
   const qualified = deals.filter(d => d.lead_status === 'qualified')
   const converted = deals.filter(d => d.lead_status === 'converted')
@@ -118,12 +104,14 @@ export default function DealsPage() {
 
   return (
     <PageContainer title="Deals" description="Active pipeline — qualified leads and closed deals">
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">Deals unavailable. Existing values may be stale.</p>}
+      {data?.truncated && <p role="status" className="mb-4 text-sm text-muted-foreground">Showing the first 200 leads per status. Totals below cover this subset.</p>}
       <div className="space-y-6 max-w-content">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile icon={TrendingUp} label="Total deals" value={deals.length} color="bg-teal-500/10 text-teal-400" />
-          <StatTile icon={Home} label="Qualified" value={qualified.length} color="bg-amber-500/10 text-amber-400" />
-          <StatTile icon={DollarSign} label="Converted" value={converted.length} color="bg-green-500/10 text-green-400" />
-          <StatTile icon={Clock} label="Avg score" value={avgScore} color="bg-blue-500/10 text-blue-400" />
+          <StatTile icon={TrendingUp} label="Total deals" value={data ? deals.length : '—'} color="bg-teal-500/10 text-teal-400" />
+          <StatTile icon={Home} label="Qualified" value={data ? qualified.length : '—'} color="bg-amber-500/10 text-amber-400" />
+          <StatTile icon={DollarSign} label="Converted" value={data ? converted.length : '—'} color="bg-green-500/10 text-green-400" />
+          <StatTile icon={Clock} label="Avg score" value={data ? avgScore : '—'} color="bg-blue-500/10 text-blue-400" />
         </div>
 
         {loading ? (
@@ -132,7 +120,7 @@ export default function DealsPage() {
               <div key={i} className="h-32 rounded-lg border bg-card animate-pulse" />
             ))}
           </div>
-        ) : deals.length === 0 ? (
+        ) : !error && deals.length === 0 ? (
           <div className="rounded-lg border bg-card p-10 text-center shadow-card">
             <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">No deals yet</p>

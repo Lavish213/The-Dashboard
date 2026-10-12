@@ -1,5 +1,7 @@
 # Repair pass and verification limits
 
+The subsequent screenshot-led repair pass, its 22-item issue log, design contract, before/after screenshots and final browser measurements are in [visual-audit/REPORT.md](visual-audit/REPORT.md). It covers all 16 navigation routes, mobile/light states, error states and auth/navigation interactions using the real production frontend with synthetic APIs. It does not close the production integration gates below.
+
 Confirmed repairs: fail-closed webhook authentication; genuine property provider error/empty states; exact provider-call-to-Sophia-session mapping; session-specific signal/context reset; removal of fabricated KPI history; cancellable list/dashboard queries with errors; API destination/redirect/timeout controls and coalesced refresh; handoff role/identity and participant ownership guards; unconditional media-query hooks, stable dispatcher, session-scoped stream deduplication, server-confirmed subscriptions, and valid CSS import ordering. The existing workflow/governance domain and visual tokens/components remain the foundation.
 
 Architecture, initial tracked-file map and ten-product desk research preceded initial repairs. See the coordinated master log and file map in REI-AGENT `docs/system-audit`. These are static/source audit evidence, not a claim that every runtime path was exercised.

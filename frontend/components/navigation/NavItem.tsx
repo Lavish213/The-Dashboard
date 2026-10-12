@@ -24,7 +24,7 @@ export function NavItem({ route, active, collapsed, badge }: NavItemProps) {
         'group relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-all duration-100',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active
-          ? 'bg-teal-500/10 text-teal-400 font-medium border-l-2 border-teal-400 pl-[6px]'
+          ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary pl-[6px]'
           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground border-l-2 border-transparent pl-[6px]',
         collapsed && 'justify-center px-0 pl-0 border-l-0'
       )}

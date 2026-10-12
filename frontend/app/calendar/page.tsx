@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -38,23 +38,9 @@ export default function CalendarPage() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Lead[] }>('/api/v1/leads?page_size=200')
-        setLeads(data.items.filter(l => l.follow_up_at))
-      } catch {
-        toast.error('Failed to load calendar')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error } = useQuery({ queryKey: ['scheduled-leads'], queryFn: ({ signal }) => apiFetch<{ items: Lead[]; total: number }>('/api/v1/leads?page_size=200', { signal }) })
+  const leads = (data?.items ?? []).filter(l => l.follow_up_at)
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1) }
@@ -83,17 +69,19 @@ export default function CalendarPage() {
   const today = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : null
 
   return (
-    <PageContainer title="Calendar" description="Follow-up schedule and appointments">
+    <PageContainer title="Calendar" description="Lead follow-up dates — external calendar bookings are not connected here">
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">Calendar data unavailable. Existing dates may be stale.</p>}
+      {data && data.total > data.items.length && <p role="status" className="mb-4 text-sm text-muted-foreground">Showing dates from the first 200 leads. Additional scheduled work may exist.</p>}
       <div className="space-y-4 max-w-content">
         <div className="rounded-lg border bg-card shadow-card p-4">
           <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0" aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <p className="text-sm font-semibold text-foreground font-display">
               {MONTH_NAMES[month]} {year}
             </p>
-            <Button variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0" aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

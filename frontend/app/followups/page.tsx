@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { STATUS_COLORS } from '@/constants/colors'
 import { Bell, AlertCircle, Clock, CheckCircle2 } from 'lucide-react'
@@ -92,28 +91,8 @@ function FollowUpCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
 
 export default function FollowupsPage() {
   const router = useRouter()
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Lead[] }>(
-          '/api/v1/leads?page_size=200'
-        )
-        const withFollowup = data.items.filter(l => l.follow_up_at)
-        withFollowup.sort((a, b) =>
-          new Date(a.follow_up_at!).getTime() - new Date(b.follow_up_at!).getTime()
-        )
-        setLeads(withFollowup)
-      } catch {
-        toast.error('Failed to load follow-ups')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error } = useQuery({ queryKey: ['scheduled-leads'], queryFn: ({ signal }) => apiFetch<{ items: Lead[]; total: number }>('/api/v1/leads?page_size=200', { signal }) })
+  const leads = (data?.items ?? []).filter(l => l.follow_up_at).sort((a, b) => new Date(a.follow_up_at!).getTime() - new Date(b.follow_up_at!).getTime())
 
   const overdue = leads.filter(l => l.follow_up_at && isOverdue(l.follow_up_at) && !isToday(l.follow_up_at))
   const today = leads.filter(l => l.follow_up_at && isToday(l.follow_up_at))
@@ -121,18 +100,20 @@ export default function FollowupsPage() {
 
   return (
     <PageContainer title="Follow-ups" description="Scheduled callbacks and follow-up queue">
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">Follow-ups unavailable. Existing values may be stale.</p>}
+      {data && data.total > data.items.length && <p role="status" className="mb-4 text-sm text-muted-foreground">This queue covers the first 200 leads. Additional scheduled work may exist; review Leads for the complete list.</p>}
       <div className="space-y-6 max-w-content">
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-red-400">{overdue.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-red-400">{data ? overdue.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Overdue</p>
           </div>
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-amber-400">{today.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-amber-400">{data ? today.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Due today</p>
           </div>
           <div className="rounded-lg border bg-card p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-foreground">{upcoming.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-foreground">{data ? upcoming.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Upcoming</p>
           </div>
         </div>
@@ -143,7 +124,7 @@ export default function FollowupsPage() {
               <div key={i} className="h-24 rounded-lg border bg-card animate-pulse" />
             ))}
           </div>
-        ) : leads.length === 0 ? (
+        ) : !error && leads.length === 0 ? (
           <div className="rounded-lg border bg-card p-10 text-center shadow-card">
             <CheckCircle2 className="h-8 w-8 text-teal-400 mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">All caught up</p>

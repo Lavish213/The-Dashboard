@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch } from '@/services/api'
 
@@ -33,35 +34,18 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function TranscriptsPage() {
-  const [transcripts, setTranscripts] = useState<Transcript[]>([])
-  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
-  const [chunks, setChunks] = useState<Chunk[]>([])
-  const [chunksLoading, setChunksLoading] = useState(false)
-  const [total, setTotal] = useState(0)
-
-  useEffect(() => {
-    apiFetch<{ items: Transcript[]; total: number }>('/api/v1/transcripts?page_size=100')
-      .then((r) => { setTranscripts(r.items ?? []); setTotal(r.total ?? 0) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  async function loadChunks(id: string) {
-    setSelected(id)
-    setChunksLoading(true)
-    try {
-      const result = await apiFetch<Chunk[]>(`/api/v1/transcripts/${id}/chunks?page_size=200`)
-      setChunks(Array.isArray(result) ? result : [])
-    } catch {
-      setChunks([])
-    } finally {
-      setChunksLoading(false)
-    }
-  }
+  const listQuery = useQuery({ queryKey: ['transcripts'], queryFn: ({ signal }) => apiFetch<{ items: Transcript[]; total: number }>('/api/v1/transcripts?page_size=100', { signal }) })
+  const chunkQuery = useQuery({ queryKey: ['transcript-chunks', selected], queryFn: ({ signal }) => apiFetch<Chunk[]>(`/api/v1/transcripts/${selected}/chunks?page_size=200`, { signal }), enabled: Boolean(selected) })
+  const transcripts = listQuery.data?.items ?? []
+  const total = listQuery.data?.total ?? 0
+  const loading = listQuery.isPending
+  const chunks = chunkQuery.data ?? []
+  const chunksLoading = chunkQuery.isPending
 
   return (
     <PageContainer title="Transcripts" description={`${total} transcripts`}>
+      {listQuery.isError && <p role="alert" className="mb-4 text-sm text-destructive">Transcripts unavailable. Existing records may be stale.</p>}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground px-1">
@@ -70,7 +54,7 @@ export default function TranscriptsPage() {
           {loading && [...Array(3)].map((_, i) => (
             <div key={i} className="h-16 rounded-lg border bg-card animate-pulse" />
           ))}
-          {!loading && transcripts.length === 0 && (
+          {!loading && !listQuery.isError && transcripts.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No transcripts yet
             </div>
@@ -78,7 +62,7 @@ export default function TranscriptsPage() {
           {!loading && transcripts.map((t) => (
             <button
               key={t.id}
-              onClick={() => loadChunks(t.id)}
+              onClick={() => setSelected(t.id)}
               className={`w-full text-left rounded-lg border p-3 transition-colors hover:bg-muted/30 ${selected === t.id ? 'border-teal-500/30 bg-teal-500/5' : 'bg-card'}`}
             >
               <div className="flex items-center justify-between gap-2">
@@ -115,7 +99,8 @@ export default function TranscriptsPage() {
               {chunksLoading && [...Array(4)].map((_, i) => (
                 <div key={i} className="h-12 rounded bg-muted animate-pulse" />
               ))}
-              {!chunksLoading && chunks.length === 0 && (
+              {chunkQuery.isError && <p role="alert" className="text-sm text-destructive">Transcript chunks unavailable.</p>}
+              {!chunksLoading && !chunkQuery.isError && chunks.length === 0 && (
                 <p className="text-xs text-muted-foreground">No chunks yet</p>
               )}
               {!chunksLoading && chunks.map((chunk) => (

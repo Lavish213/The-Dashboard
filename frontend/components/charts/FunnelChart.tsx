@@ -33,7 +33,7 @@ function AnimatedBar({ bar, delay }: { bar: FunnelBar; delay: number }) {
           style={{ width: `${width}%` }}
         >
           {width > 20 && (
-            <span className="text-xs font-semibold text-white tabular-nums">
+            <span className="text-xs font-semibold text-slate-950 tabular-nums">
               {bar.value}
             </span>
           )}

@@ -5,6 +5,7 @@ import { PageContainer } from '@/components/workspace/PageContainer'
 import { Search, Home, User, DollarSign, Calendar, Landmark, ArrowRight, Bookmark, BookmarkCheck, Calculator, MapPin } from 'lucide-react'
 import { apiFetch } from '@/services/api'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth.store'
 
 const savedPropertyKey = 'karpathys_saved_properties'
 const emptySavedSnapshot = '[]'
@@ -16,8 +17,9 @@ function subscribeSavedProperties(notify: () => void) {
     window.removeEventListener('saved-properties-change', notify)
   }
 }
-function savedPropertiesSnapshot() {
-  try { return localStorage.getItem(savedPropertyKey) ?? emptySavedSnapshot }
+function savedPropertiesSnapshot(owner: string | undefined) {
+  if (!owner) return emptySavedSnapshot
+  try { return localStorage.getItem(`${savedPropertyKey}:${owner}`) ?? emptySavedSnapshot }
   catch { return emptySavedSnapshot }
 }
 
@@ -131,6 +133,7 @@ function ARVCalculator({ arv }: { arv: number | null }) {
 }
 
 export default function PropertiesPage() {
+  const owner = useAuthStore(s => s.user?.id)
   const [tab, setTab] = useState<'search' | 'saved'>('search')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -139,7 +142,7 @@ export default function PropertiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [creatingLead, setCreatingLead] = useState(false)
   const [leadCreated, setLeadCreated] = useState(false)
-  const snapshot = useSyncExternalStore(subscribeSavedProperties, savedPropertiesSnapshot, () => emptySavedSnapshot)
+  const snapshot = useSyncExternalStore(subscribeSavedProperties, () => savedPropertiesSnapshot(owner), () => emptySavedSnapshot)
   let saved: SavedProperty[] = []
   try {
     const parsed: unknown = JSON.parse(snapshot)
@@ -147,8 +150,9 @@ export default function PropertiesPage() {
       typeof entry === 'object' && entry !== null && typeof entry.attomId === 'string' && typeof entry.address === 'string')
   } catch {}
   function setSaved(properties: SavedProperty[]): boolean {
+    if (!owner) return false
     try {
-      localStorage.setItem(savedPropertyKey, JSON.stringify(properties))
+      localStorage.setItem(`${savedPropertyKey}:${owner}`, JSON.stringify(properties))
       window.dispatchEvent(new Event('saved-properties-change'))
       return true
     } catch {
@@ -392,6 +396,7 @@ export default function PropertiesPage() {
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && search()}
                   placeholder="1234 Main St, Stockton CA"
+                  aria-label="Property address"
                   className="w-full rounded-lg border border-border bg-card pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500/50"
                 />
               </div>
@@ -405,7 +410,7 @@ export default function PropertiesPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
+              <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
@@ -414,7 +419,7 @@ export default function PropertiesPage() {
               <div className="rounded-lg border border-dashed border-border p-12 text-center">
                 <Home className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">Search an address to pull property data</p>
-                <p className="text-xs text-muted-foreground mt-1 opacity-60">Owner info, AVM, tax records, equity analysis</p>
+                <p className="text-xs text-muted-foreground mt-1">Owner info, AVM, tax records, equity analysis</p>
               </div>
             )}
 
@@ -444,7 +449,7 @@ export default function PropertiesPage() {
               <div className="rounded-lg border border-dashed border-border p-12 text-center">
                 <Bookmark className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">No saved properties yet</p>
-                <p className="text-xs text-muted-foreground mt-1 opacity-60">Search an address and click Save property</p>
+                <p className="text-xs text-muted-foreground mt-1">Search an address and click Save property</p>
               </div>
             ) : (
               saved.map(prop => (

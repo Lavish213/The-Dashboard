@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --experimental-vm-modules scripts/verify-frontend.mjs"
+    "test": "node --experimental-vm-modules scripts/verify-frontend.mjs",
+    "test:browser": "node scripts/browser-audit.mjs after"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -57,12 +58,14 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.0",
+    "playwright": "1.64.0",
     "postcss": "^8.4.0",
     "prettier": "^3.4.0",
     "prettier-plugin-tailwindcss": "^0.6.0",

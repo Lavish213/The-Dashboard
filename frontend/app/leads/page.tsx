@@ -218,7 +218,7 @@ export default function LeadsPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 overflow-x-auto pb-4">
+          <div className="flex gap-3 overflow-x-auto pb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Lead pipeline">
             {STAGES.map((stage) => (
               <KanbanColumn key={stage.key} stage={stage} leads={byStage(stage.key)} />
             ))}

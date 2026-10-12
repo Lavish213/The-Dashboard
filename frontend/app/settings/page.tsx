@@ -1,104 +1,62 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { PageContainer } from '@/components/workspace/PageContainer'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/stores/auth.store'
+import { useTheme } from '@/hooks/ui/useTheme'
+import { logout } from '@/services/auth'
 
-const TABS = ['Sophia', 'Notifications', 'Users', 'Security'] as const
-type Tab = typeof TABS[number]
-
-function SettingRow({ label, description, value, toggle }: {
-  label: string
-  description: string
-  value?: string
-  toggle?: boolean
-}) {
-  const [on, setOn] = useState(true)
-  return (
-    <div className="flex items-center gap-4 py-3 border-b border-border last:border-0">
-      <div className="flex-1">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-      </div>
-      {value && (
-        <span className="rounded border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-xs text-teal-400 font-medium">
-          {value}
-        </span>
-      )}
-      {toggle && (
-        <button
-          onClick={() => setOn(!on)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${on ? 'bg-teal-500' : 'bg-muted'}`}
-        >
-          <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform ${on ? 'translate-x-4' : ''}`} />
-        </button>
-      )}
-    </div>
-  )
-}
+const tabs = ['Sophia', 'Notifications', 'Users', 'Security'] as const
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>('Sophia')
+  const user = useAuthStore(s => s.user)
+  const { isDark, toggleTheme, mounted } = useTheme()
+  const [signingOut, setSigningOut] = useState(false)
 
   return (
-    <PageContainer title="Settings" description="System configuration and preferences">
-      <div className="flex gap-1 mb-6 bg-card border border-border rounded-lg p-1 w-fit">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${tab === t ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {t}
-          </button>
-        ))}
+    <PageContainer title="Settings" description="Your workspace preferences and configuration status">
+      <div className="max-w-3xl space-y-6">
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-5" aria-labelledby="appearance-heading">
+          <div>
+            <h2 id="appearance-heading" className="text-base font-semibold">Appearance</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Saved in this browser.</p>
+          </div>
+          {mounted && <Button variant="outline" onClick={toggleTheme}>{isDark ? 'Use light theme' : 'Use dark theme'}</Button>}
+        </section>
+        <Tabs defaultValue="Sophia">
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4" aria-label="Settings categories">
+            {tabs.map(tab => <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>)}
+          </TabsList>
+          <TabsContent value="Sophia" className="rounded-lg border bg-card p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Voice configuration</h2>
+            <p className="text-sm text-muted-foreground">The server does not currently expose voice configuration to this dashboard. Model, speech providers, approval policy and cost limits cannot be verified or changed here.</p>
+            <Link href="/realtime" className="inline-block text-sm font-medium text-foreground underline underline-offset-4">Open Sophia live</Link>
+          </TabsContent>
+          <TabsContent value="Notifications" className="rounded-lg border bg-card p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Notification preferences unavailable</h2>
+            <p className="text-sm text-muted-foreground">Notification delivery and escalation preferences are not connected to a settings API.</p>
+            <Link href="/approvals" className="inline-block text-sm font-medium text-foreground underline underline-offset-4">Review pending approvals</Link>
+          </TabsContent>
+          <TabsContent value="Users" className="rounded-lg border bg-card p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Signed-in account</h2>
+            {user ? <dl className="grid gap-3 text-sm">
+              <div><dt className="text-muted-foreground">Name</dt><dd className="break-words">{user.name}</dd></div>
+              <div><dt className="text-muted-foreground">Email</dt><dd className="break-words">{user.email}</dd></div>
+              <div><dt className="text-muted-foreground">Role</dt><dd>{user.role}</dd></div>
+            </dl> : <p className="text-sm text-muted-foreground">Account information unavailable.</p>}
+            <p className="text-sm text-muted-foreground">Team administration is not connected here.</p>
+            <Button variant="outline" disabled={signingOut} onClick={async () => { setSigningOut(true); await logout() }}>{signingOut ? 'Signing out…' : 'Sign out'}</Button>
+          </TabsContent>
+          <TabsContent value="Security" className="rounded-lg border bg-card p-5 space-y-3">
+            <h2 className="text-lg font-semibold">Server-managed security</h2>
+            <p className="text-sm text-muted-foreground">Token lifetimes and session policy are managed by the server. This dashboard does not expose their configured values.</p>
+            <Link href="/audit" className="inline-block text-sm font-medium text-foreground underline underline-offset-4">Open audit log</Link>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {tab === 'Sophia' && (
-        <div className="rounded-lg border bg-card p-4 space-y-0">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-2">Voice agent</p>
-          <SettingRow label="LLM model" description="Primary language model powering Sophia" value="claude-sonnet-4-6" />
-          <SettingRow label="STT provider" description="Speech-to-text transcription engine" value="Deepgram Nova-2" />
-          <SettingRow label="TTS provider" description="Voice synthesis for Sophia responses" value="ElevenLabs" />
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-2 mt-4">Behavior</p>
-          <SettingRow label="Require offer approval" description="All offers must pass approval gate before dispatch" toggle />
-          <SettingRow label="Auto-confirm appointments" description="Skip approval gate for appointment confirmations" toggle />
-          <SettingRow label="Max cost per call" description="Hard ceiling — call terminates at this amount" value="$8.00" />
-        </div>
-      )}
-
-      {tab === 'Notifications' && (
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-2">Alerts</p>
-          <SettingRow label="Call failure alerts" description="Notify when call failure rate exceeds threshold" toggle />
-          <SettingRow label="Cost threshold alerts" description="Notify when daily cost exceeds limit" toggle />
-          <SettingRow label="Approval escalation" description="Notify when approvals are approaching expiry" toggle />
-        </div>
-      )}
-
-      {tab === 'Users' && (
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Team members</p>
-          </div>
-          <div className="flex items-center gap-3 py-3 border-b border-border">
-            <div className="h-8 w-8 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-xs font-semibold text-teal-400">AA</div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Angelo Alcarez</p>
-              <p className="text-xs text-muted-foreground">admin@karpathys.dev</p>
-            </div>
-            <span className="rounded border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">Admin</span>
-          </div>
-        </div>
-      )}
-
-      {tab === 'Security' && (
-        <div className="rounded-lg border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-2">Authentication</p>
-          <SettingRow label="JWT token expiry" description="Access token lifetime" value="24 hours" />
-          <SettingRow label="Refresh token expiry" description="Refresh token lifetime" value="7 days" />
-          <SettingRow label="Session timeout warning" description="Warn before session expires" toggle />
-        </div>
-      )}
     </PageContainer>
   )
 }
