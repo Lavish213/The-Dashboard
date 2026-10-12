@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,16 +10,9 @@ from db.session import get_session
 from models.call import Call
 from models.enums import CallProvider, CallStatus, LeadStatus
 from models.lead import Lead
+from security.webhooks import verify_karpathys_secret as _verify_secret
 
 router = APIRouter()
-
-_WEBHOOK_SECRET = os.environ.get("KARPATHYS_WEBHOOK_SECRET", "")
-
-
-def _verify_secret(x_karpathys_secret: str = Header(default="")) -> None:
-    if _WEBHOOK_SECRET and x_karpathys_secret != _WEBHOOK_SECRET:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid secret")
-
 
 @router.post("/call")
 async def ingest_call(

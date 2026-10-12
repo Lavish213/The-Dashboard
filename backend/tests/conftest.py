@@ -13,10 +13,13 @@ between every test so state cannot leak across test boundaries.
 """
 
 import asyncio
-import subprocess
+import os
+from uuid import UUID
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import text
+from testing.database import validate_disposable_database
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -63,16 +66,20 @@ import models.workflow_snapshot  # noqa: F401
 # Import all models to populate Base.metadata before create_all
 from db.base import Base
 
-TEST_DB_URL = "postgresql+asyncpg://angelowashington@localhost:5432/karpathys_test"
-PSQL = "/opt/homebrew/Cellar/postgresql@16/16.11_1/bin/psql"
-PSQL_ARGS = [PSQL, "-h", "localhost", "-U", "angelowashington", "-d", "karpathys_test"]
+TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", "")
 
 
 def _nuke() -> None:
-    subprocess.run(
-        PSQL_ARGS + ["-c", "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"],
-        check=True, capture_output=True,
-    )
+    validate_disposable_database(TEST_DB_URL)
+    async def reset():
+        engine = create_async_engine(TEST_DB_URL)
+        try:
+            async with engine.begin() as connection:
+                await connection.execute(text("DROP SCHEMA public CASCADE"))
+                await connection.execute(text("CREATE SCHEMA public"))
+        finally:
+            await engine.dispose()
+    asyncio.run(reset())
 
 
 def _create_tables_sync() -> None:
@@ -138,7 +145,7 @@ def client():
     from security.auth import get_current_active_user
 
     class _FakeUser:
-        id = "00000000-0000-0000-0000-000000000001"
+        id = UUID("00000000-0000-0000-0000-000000000001")
         email = "test@internal"
         role = UserRole.admin
         status = UserStatus.active

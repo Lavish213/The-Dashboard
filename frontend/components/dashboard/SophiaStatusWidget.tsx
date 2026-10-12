@@ -6,7 +6,7 @@ import { TrustScore } from '@/components/sophia/TrustScore'
 import { useSophiaStore } from '@/stores/sophia.store'
 
 interface ActiveCall {
-  session_id: string
+  session_id: string | null
   caller_name: string | null
   phone: string | null
   duration_seconds: number

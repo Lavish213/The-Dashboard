@@ -1,7 +1,9 @@
 'use client'
 
 import { useTheme as useNextTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+
+const subscribeToMount = () => () => {}
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -21,9 +23,7 @@ export interface UseThemeReturn {
  */
 export function useTheme(): UseThemeReturn {
   const { theme, resolvedTheme, setTheme } = useNextTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
+  const mounted = useSyncExternalStore(subscribeToMount, () => true, () => false)
 
   const resolved = (resolvedTheme ?? 'dark') as 'light' | 'dark'
 

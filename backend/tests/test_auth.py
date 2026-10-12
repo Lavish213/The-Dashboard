@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import AsyncMock
 
 from security.auth import (
     create_access_token,
@@ -21,33 +22,33 @@ def test_hash_is_different_each_time():
     assert h1 != h2  # bcrypt uses random salt
 
 
-def test_create_and_decode_token():
+async def test_create_and_decode_token():
     token = create_access_token("user-123")
-    payload = decode_access_token(token)
+    payload = await decode_access_token(token, AsyncMock(exists=AsyncMock(return_value=0)))
     assert payload["sub"] == "user-123"
     assert "exp" in payload
     assert "iat" in payload
     assert "jti" in payload
 
 
-def test_token_with_extra_claims():
+async def test_token_with_extra_claims():
     token = create_access_token("user-456", {"role": "admin"})
-    payload = decode_access_token(token)
+    payload = await decode_access_token(token, AsyncMock(exists=AsyncMock(return_value=0)))
     assert payload["sub"] == "user-456"
     assert payload["role"] == "admin"
 
 
-def test_decode_invalid_token_raises():
+async def test_decode_invalid_token_raises():
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        decode_access_token("not.a.valid.token")
+        await decode_access_token("not.a.valid.token", AsyncMock())
     assert exc_info.value.status_code == 401
 
 
-def test_decode_tampered_token_raises():
+async def test_decode_tampered_token_raises():
     from fastapi import HTTPException
     token = create_access_token("user-789")
     tampered = token[:-5] + "XXXXX"
     with pytest.raises(HTTPException) as exc_info:
-        decode_access_token(tampered)
+        await decode_access_token(tampered, AsyncMock())
     assert exc_info.value.status_code == 401

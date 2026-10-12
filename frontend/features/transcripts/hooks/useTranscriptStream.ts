@@ -9,11 +9,12 @@
  * Duplicate protection: tracks seen chunk_index values.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useWebSocketContext } from '@/providers/WebsocketProvider'
 import type { RealtimeEvent } from '@/types/websocket'
 import type { TranscriptChunk } from '@/types/transcript'
+import { useRealtimeStore } from '@/stores/realtime.store'
 
 interface UseTranscriptStreamResult {
   streamChunks: TranscriptChunk[]
@@ -25,33 +26,28 @@ export function useTranscriptStream(transcriptId: string): UseTranscriptStreamRe
   const { send, registry } = useWebSocketContext()
   const qc = useQueryClient()
 
-  const [streamChunks, setStreamChunks] = useState<TranscriptChunk[]>([])
-  const [isSubscribed, setIsSubscribed] = useState(false)
-
-  // Track seen indexes to prevent duplicates
-  const seenIndexes = useRef<Set<number>>(new Set())
-  const lastChunkIndex = useRef<number>(-1)
+  const [stream, setStream] = useState<{ id: string; chunks: TranscriptChunk[] }>({ id: transcriptId, chunks: [] })
 
   const channel = `transcript:${transcriptId}`
+  const isSubscribed = useRealtimeStore((state) => state.subscribedChannels.has(channel))
+  const streamChunks = stream.id === transcriptId ? stream.chunks : []
 
   const appendChunk = useCallback((chunk: TranscriptChunk) => {
-    if (seenIndexes.current.has(chunk.chunk_index)) return
-    seenIndexes.current.add(chunk.chunk_index)
-    lastChunkIndex.current = Math.max(lastChunkIndex.current, chunk.chunk_index)
-    setStreamChunks((prev) => {
+    if (!Number.isInteger(chunk.chunk_index) || chunk.chunk_index < 0 || chunk.transcript_id !== transcriptId) return
+    setStream((state) => {
+      const prev = state.id === transcriptId ? state.chunks : []
+      if (prev.some((entry) => entry.chunk_index === chunk.chunk_index)) return state
       // Insert in sorted order by chunk_index
       const idx = prev.findIndex((c) => c.chunk_index > chunk.chunk_index)
-      if (idx === -1) return [...prev, chunk]
-      return [...prev.slice(0, idx), chunk, ...prev.slice(idx)]
+      return { id: transcriptId, chunks: idx === -1 ? [...prev, chunk] : [...prev.slice(0, idx), chunk, ...prev.slice(idx)] }
     })
-  }, [])
+  }, [transcriptId])
 
   useEffect(() => {
     if (!transcriptId) return
 
     // Subscribe to channel
     send({ type: 'subscribe', channel })
-    setIsSubscribed(true)
 
     const unregister = registry.register(channel, (event: RealtimeEvent) => {
       if (event.event_type === 'transcript.chunk_added') {
@@ -89,13 +85,12 @@ export function useTranscriptStream(transcriptId: string): UseTranscriptStreamRe
     return () => {
       send({ type: 'unsubscribe', channel })
       unregister()
-      setIsSubscribed(false)
     }
   }, [transcriptId, channel, send, registry, appendChunk, qc])
 
   return {
     streamChunks,
-    lastChunkIndex: lastChunkIndex.current,
+    lastChunkIndex: streamChunks.at(-1)?.chunk_index ?? -1,
     isSubscribed,
   }
 }

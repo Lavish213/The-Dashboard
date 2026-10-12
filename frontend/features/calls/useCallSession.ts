@@ -9,12 +9,13 @@
  * Deduplication: server sequence numbers prevent double-processing.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWebSocketContext } from '@/providers/WebsocketProvider'
 import type { RealtimeEvent } from '@/types/websocket'
 import type { CallEvent, JoinSessionBody } from '@/types/call'
 import { callsApi } from './api'
+import { useRealtimeStore } from '@/stores/realtime.store'
 
 const KEYS = {
   detail: (id: string) => ['calls', id] as const,
@@ -116,31 +117,27 @@ export function useCallStream(sessionId: string): UseCallStreamResult {
   const { send, registry } = useWebSocketContext()
   const qc = useQueryClient()
 
-  const [streamEvents, setStreamEvents] = useState<CallEvent[]>([])
-  const [isSubscribed, setIsSubscribed] = useState(false)
-
-  const seenSequences = useRef<Set<number>>(new Set())
-  const lastSequence = useRef<number>(-1)
+  const [stream, setStream] = useState<{ id: string; events: CallEvent[] }>({ id: sessionId, events: [] })
 
   const channel = `call:${sessionId}`
+  const isSubscribed = useRealtimeStore((state) => state.subscribedChannels.has(channel))
+  const streamEvents = stream.id === sessionId ? stream.events : []
 
   const appendEvent = useCallback((event: CallEvent) => {
-    if (seenSequences.current.has(event.sequence)) return
-    seenSequences.current.add(event.sequence)
-    lastSequence.current = Math.max(lastSequence.current, event.sequence)
-    setStreamEvents((prev) => {
+    if (!Number.isInteger(event.sequence) || event.sequence < 0 || event.session_id !== sessionId) return
+    setStream((state) => {
+      const prev = state.id === sessionId ? state.events : []
+      if (prev.some((entry) => entry.sequence === event.sequence)) return state
       // Insert in sequence order
       const idx = prev.findIndex((e) => e.sequence > event.sequence)
-      if (idx === -1) return [...prev, event]
-      return [...prev.slice(0, idx), event, ...prev.slice(idx)]
+      return { id: sessionId, events: idx === -1 ? [...prev, event] : [...prev.slice(0, idx), event, ...prev.slice(idx)] }
     })
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     if (!sessionId) return
 
     send({ type: 'subscribe', channel })
-    setIsSubscribed(true)
 
     const unregister = registry.register(channel, (wsEvent: RealtimeEvent) => {
       // Synthesise a CallEvent from WS payload
@@ -182,13 +179,12 @@ export function useCallStream(sessionId: string): UseCallStreamResult {
     return () => {
       send({ type: 'unsubscribe', channel })
       unregister()
-      setIsSubscribed(false)
     }
   }, [sessionId, channel, send, registry, appendEvent, qc])
 
   return {
     streamEvents,
-    lastSequence: lastSequence.current,
+    lastSequence: streamEvents.at(-1)?.sequence ?? -1,
     isSubscribed,
   }
 }

@@ -38,7 +38,7 @@ interface SophiaState {
   transferError: string | null
   setSessionId: (id: string | null) => void
   setMode: (mode: SophiaMode) => void
-  setSignals: (signals: TurnSignals) => void
+  setSignals: (signals: TurnSignals | null) => void
   setContextPacket: (packet: ContextPacket) => void
   setTransferring: (val: boolean) => void
   setTransferError: (err: string | null) => void
@@ -56,7 +56,9 @@ const initialState = {
 
 export const useSophiaStore = create<SophiaState>((set) => ({
   ...initialState,
-  setSessionId: (sessionId) => set({ sessionId }),
+  setSessionId: (sessionId) => set((state) => state.sessionId === sessionId
+    ? state
+    : { ...initialState, sessionId }),
   setMode: (mode) => set({ mode }),
   setSignals: (signals) => set({ signals }),
   setContextPacket: (contextPacket) => set({ contextPacket }),

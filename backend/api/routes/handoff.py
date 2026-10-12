@@ -17,13 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
 from security.auth import get_current_active_user
+from security.permissions import require_permission
+from security.rbac import Permission
 from sophia.confidence_engine import SophiaConfidenceEngine
 from sophia.context_packet import ContextPacketBuilder
 from sophia.contracts import ContextPacket, HandoffPayload, TransferReason, TurnSignals
 from sophia.handoff import SophiaHandoffRuntime
 from sophia.shadow_logger import SophiaShadowLogger
 
-router = APIRouter(prefix="/handoff", tags=["handoff"])
+router = APIRouter(prefix="/handoff", tags=["handoff"], dependencies=[Depends(require_permission(Permission.CALLS_READ))])
 
 
 class InitiateHandoffRequest(BaseModel):
@@ -57,7 +59,7 @@ class LogOutcomeRequest(BaseModel):
 )
 async def initiate_handoff(
     body: InitiateHandoffRequest,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     """
@@ -65,6 +67,8 @@ async def initiate_handoff(
     switch session mode to HUMAN_TAKEOVER, and fire handoff events.
     Returns the full context packet for the operator.
     """
+    if body.operator_user_id is not None and body.operator_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Operator identity must match the authenticated user")
     runtime = SophiaHandoffRuntime(session)
     try:
         payload: HandoffPayload = await runtime.initiate_warm_transfer(
@@ -173,14 +177,16 @@ async def get_signals(
 async def accept_handoff(
     session_id: UUID,
     body: AcceptHandoffRequest,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    if body.accepted_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Operator identity must match the authenticated user")
     runtime = SophiaHandoffRuntime(session)
     try:
         record = await runtime.accept(
             session_id=session_id,
-            accepted_by=body.accepted_by,
+            accepted_by=current_user.id,
         )
         await session.commit()
     except Exception as exc:
@@ -204,14 +210,16 @@ async def accept_handoff(
 async def reject_handoff(
     session_id: UUID,
     body: RejectHandoffRequest,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    if body.rejected_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Operator identity must match the authenticated user")
     runtime = SophiaHandoffRuntime(session)
     try:
         await runtime.reject(
             session_id=session_id,
-            rejected_by=body.rejected_by,
+            rejected_by=current_user.id,
             reason=body.reason,
         )
         await session.commit()
@@ -232,7 +240,7 @@ async def reject_handoff(
 async def log_outcome(
     session_id: UUID,
     body: LogOutcomeRequest,
-    current_user=Depends(get_current_active_user),
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     logger = SophiaShadowLogger(session)

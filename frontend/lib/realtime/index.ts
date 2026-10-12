@@ -257,7 +257,7 @@ export function useRealtime(channels: string[] = []) {
       clearTimeout(timer)
       client.disconnect()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return { status, realtimeClient }
 }

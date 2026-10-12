@@ -1,23 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 /**
  * Tracks whether a CSS media query matches.
  */
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return window.matchMedia(query).matches
-  })
-
-  useEffect(() => {
+  const subscribe = useCallback((notify: () => void) => {
     const mq = window.matchMedia(query)
-    setMatches(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    mq.addEventListener('change', notify)
+    return () => mq.removeEventListener('change', notify)
   }, [query])
-
-  return matches
+  const snapshot = useCallback(() => window.matchMedia(query).matches, [query])
+  return useSyncExternalStore(subscribe, snapshot, () => false)
 }
 
 /** Tailwind breakpoint shorthands */
@@ -30,5 +23,9 @@ export const breakpoints = {
 } as const
 
 export function useIsMobile()  { return !useMediaQuery(breakpoints.md) }
-export function useIsTablet()  { return useMediaQuery(breakpoints.md) && !useMediaQuery(breakpoints.lg) }
+export function useIsTablet() {
+  const medium = useMediaQuery(breakpoints.md)
+  const large = useMediaQuery(breakpoints.lg)
+  return medium && !large
+}
 export function useIsDesktop() { return useMediaQuery(breakpoints.lg) }

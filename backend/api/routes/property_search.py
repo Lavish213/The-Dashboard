@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
@@ -85,7 +85,7 @@ async def search_properties(
     session: AsyncSession = Depends(get_session),
 ) -> list[dict]:
     if not _BATCHDATA_KEY:
-        return _mock_results(address)
+        raise HTTPException(status_code=503, detail="Property search is not configured")
 
     street, city, state, zip_code = _split_address(address)
 
@@ -114,35 +114,15 @@ async def search_properties(
                 headers=_headers(),
             )
             if not res.is_success:
-                return _mock_results(address)
+                raise HTTPException(status_code=502, detail="Property provider unavailable")
             data = res.json()
             properties = data.get("results", {}).get("properties") or []
             if not properties:
-                return _mock_results(address)
+                return []
             return [_parse(p) for p in properties]
-    except Exception:
-        return _mock_results(address)
+    except HTTPException:
+        raise
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(status_code=502, detail="Property provider unavailable") from exc
 
 
-def _mock_results(address: str) -> list[dict]:
-    return [
-        {
-            "attomId": "mock-001",
-            "address": address,
-            "city": "Stockton",
-            "state": "CA",
-            "zip": "95202",
-            "bedrooms": 3,
-            "bathrooms": 2,
-            "squareFeet": 1450,
-            "yearBuilt": 1978,
-            "estimatedValue": 285000,
-            "lastSalePrice": 190000,
-            "lastSaleDate": "2019-03-15",
-            "ownerName": "John & Mary Smith",
-            "lotSize": 6500,
-            "propertyType": "Single Family Residence",
-            "taxAssessment": 210000,
-            "taxDelinquent": False,
-        }
-    ]

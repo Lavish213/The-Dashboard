@@ -34,6 +34,8 @@ async function _attemptRefresh(): Promise<string | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: AbortSignal.timeout(15_000),
+      redirect: 'error',
     })
 
     if (!res.ok) {
@@ -59,19 +61,23 @@ export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
+    throw new ApiError(400, 'API paths must be relative to the configured service')
+  }
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('karpathys_token')
     : null
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(init.headers as Record<string, string> ?? {}),
-  }
+  const headers = new Headers(init.headers)
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
 
-  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const url = path.startsWith('http') ? path : `${env.apiUrl}${path}`
-  let res = await fetch(url, { ...init, headers })
+  const url = `${env.apiUrl}${path}`
+  const request = { ...init, headers, redirect: 'error' as const, signal: init.signal
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(20_000)])
+    : AbortSignal.timeout(20_000) }
+  let res = await fetch(url, request)
 
   if (res.status === 401) {
     let newToken: string | null = null
@@ -82,14 +88,17 @@ export async function apiFetch<T = unknown>(
       })
     } else {
       _isRefreshing = true
-      newToken = await _attemptRefresh()
-      _notifyQueue(newToken)
-      _isRefreshing = false
+      try {
+        newToken = await _attemptRefresh()
+      } finally {
+        _notifyQueue(newToken)
+        _isRefreshing = false
+      }
     }
 
     if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`
-      res = await fetch(url, { ...init, headers })
+      headers.set('Authorization', `Bearer ${newToken}`)
+      res = await fetch(url, request)
     } else {
       throw new ApiError(401, 'Session expired')
     }

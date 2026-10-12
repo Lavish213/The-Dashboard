@@ -1,10 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { Search, Home, User, DollarSign, Calendar, Landmark, ArrowRight, Bookmark, BookmarkCheck, Calculator, MapPin } from 'lucide-react'
 import { apiFetch } from '@/services/api'
 import { toast } from 'sonner'
+
+const savedPropertyKey = 'karpathys_saved_properties'
+const emptySavedSnapshot = '[]'
+function subscribeSavedProperties(notify: () => void) {
+  window.addEventListener('storage', notify)
+  window.addEventListener('saved-properties-change', notify)
+  return () => {
+    window.removeEventListener('storage', notify)
+    window.removeEventListener('saved-properties-change', notify)
+  }
+}
+function savedPropertiesSnapshot() {
+  try { return localStorage.getItem(savedPropertyKey) ?? emptySavedSnapshot }
+  catch { return emptySavedSnapshot }
+}
 
 interface PropertyResult {
   attomId: string
@@ -124,14 +139,19 @@ export default function PropertiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [creatingLead, setCreatingLead] = useState(false)
   const [leadCreated, setLeadCreated] = useState(false)
-  const [saved, setSaved] = useState<SavedProperty[]>([])
-
-  useEffect(() => {
-    const raw = localStorage.getItem('karpathys_saved_properties')
-    if (raw) {
-      try { setSaved(JSON.parse(raw)) } catch {}
-    }
-  }, [])
+  const snapshot = useSyncExternalStore(subscribeSavedProperties, savedPropertiesSnapshot, () => emptySavedSnapshot)
+  let saved: SavedProperty[] = []
+  try {
+    const parsed: unknown = JSON.parse(snapshot)
+    if (Array.isArray(parsed)) saved = parsed.filter((entry): entry is SavedProperty =>
+      typeof entry === 'object' && entry !== null && typeof entry.attomId === 'string' && typeof entry.address === 'string')
+  } catch {}
+  function setSaved(properties: SavedProperty[]) {
+    try {
+      localStorage.setItem(savedPropertyKey, JSON.stringify(properties))
+      window.dispatchEvent(new Event('saved-properties-change'))
+    } catch { toast.error('Saved properties could not be stored') }
+  }
 
   function saveProperty(prop: PropertyResult) {
     const already = saved.find(s => s.attomId === prop.attomId)
@@ -141,14 +161,12 @@ export default function PropertiesPage() {
     }
     const updated = [{ ...prop, savedAt: new Date().toISOString() }, ...saved]
     setSaved(updated)
-    localStorage.setItem('karpathys_saved_properties', JSON.stringify(updated))
     toast.success('Property saved')
   }
 
   function unsaveProperty(attomId: string) {
     const updated = saved.filter(s => s.attomId !== attomId)
     setSaved(updated)
-    localStorage.setItem('karpathys_saved_properties', JSON.stringify(updated))
     toast.success('Removed from saved')
   }
 
@@ -199,7 +217,7 @@ export default function PropertiesPage() {
     }
   }
 
-  function PropertyDetail({ prop }: { prop: PropertyResult }) {
+  function renderPropertyDetail(prop: PropertyResult) {
     return (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
@@ -257,7 +275,7 @@ export default function PropertiesPage() {
             ))}
           </div>
 
-          <ARVCalculator arv={prop.estimatedValue} />
+          <ARVCalculator key={prop.attomId} arv={prop.estimatedValue} />
         </div>
 
         <div className="space-y-4">
@@ -414,7 +432,7 @@ export default function PropertiesPage() {
               </div>
             )}
 
-            {selected && <PropertyDetail prop={selected} />}
+            {selected && renderPropertyDetail(selected)}
           </>
         )}
 
