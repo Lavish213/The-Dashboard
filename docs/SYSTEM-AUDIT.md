@@ -6,7 +6,9 @@ Architecture, initial tracked-file map and ten-product desk research preceded in
 
 Current recovered checks: 20 isolated backend safety cases; 20 frontend fault/concurrency/store cases; frontend type checking, lint and production build; runtime dependency audit with zero advisories. Evidence is saved under `docs/test-evidence/system-audit`. The restored dashboard polling uses existing TanStack Query instead of overlapping manual intervals. No generated historical data is shown as real performance.
 
-The embedded full SQL harness was unreliable on duplicate-event error/transaction handling; it is not a full-suite pass. CI provisions disposable PostgreSQL 17 and Redis 8 with no production credentials. Its result must be checked separately. Full migration head/upgrade, independent concurrency, event receipts/deduplication, cross-database lead mapping and classification-triggered follow-up governance remain open.
+The embedded full SQL harness was unreliable on duplicate-event error/transaction handling; that run is not counted as a pass. Hosted CI run 38282015032 on cf3292812f011288fc8b74a296460d334243ae70 subsequently passed 1,042 backend tests against disposable PostgreSQL 17 and Redis 8, plus the frontend checks. Exact/ambiguous/absent call mapping is included. Full migration head/upgrade, independent production concurrency, event receipts/deduplication, cross-database lead mapping and classification-triggered follow-up governance remain open.
+
+The second review also caught a success toast after local storage failure; save/remove now reports success only after storage accepts the update.
 
 The screenshot-backed visual overhaul remains unverified. Cloud browser capture timed out and the workspace reset; recovered code was committed and rerun. No actual desktop/mobile/keyboard/contrast screenshots were obtained. No A grade, deployment, live call, or completed full-system overhaul is claimed.
 

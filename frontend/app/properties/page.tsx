@@ -146,11 +146,15 @@ export default function PropertiesPage() {
     if (Array.isArray(parsed)) saved = parsed.filter((entry): entry is SavedProperty =>
       typeof entry === 'object' && entry !== null && typeof entry.attomId === 'string' && typeof entry.address === 'string')
   } catch {}
-  function setSaved(properties: SavedProperty[]) {
+  function setSaved(properties: SavedProperty[]): boolean {
     try {
       localStorage.setItem(savedPropertyKey, JSON.stringify(properties))
       window.dispatchEvent(new Event('saved-properties-change'))
-    } catch { toast.error('Saved properties could not be stored') }
+      return true
+    } catch {
+      toast.error('Saved properties could not be stored')
+      return false
+    }
   }
 
   function saveProperty(prop: PropertyResult) {
@@ -160,14 +164,12 @@ export default function PropertiesPage() {
       return
     }
     const updated = [{ ...prop, savedAt: new Date().toISOString() }, ...saved]
-    setSaved(updated)
-    toast.success('Property saved')
+    if (setSaved(updated)) toast.success('Property saved')
   }
 
   function unsaveProperty(attomId: string) {
     const updated = saved.filter(s => s.attomId !== attomId)
-    setSaved(updated)
-    toast.success('Removed from saved')
+    if (setSaved(updated)) toast.success('Removed from saved')
   }
 
   const isSaved = (prop: PropertyResult) => saved.some(s => s.attomId === prop.attomId)
