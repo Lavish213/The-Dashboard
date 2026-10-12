@@ -19,6 +19,19 @@
   "lint": "passed",
   "productionBuild": "passed after clean build",
   "runtimeDependencyAdvisories": 0,
-  "ci": "pending publication",
-  "deployment": "none"
+  "ci": {
+    "status": "passed",
+    "run": 38288551534,
+    "testedCommit": "06f7a063323dd96b91a929bb88e7e8ff987fc750",
+    "backendTestsPassed": 1042,
+    "frontendTestsPassed": 22,
+    "browserChecks": "passed with matched CI browser"
+  },
+  "deployment": "none",
+  "developmentDependencyAudit": {
+    "high": 9,
+    "moderate": 1,
+    "runtime": 0,
+    "status": "open toolchain migration/patch work; not hidden by runtime-only audit"
+  }
 }

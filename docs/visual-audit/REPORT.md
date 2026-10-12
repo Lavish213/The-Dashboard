@@ -34,12 +34,15 @@ Pass 1 captured dashboard, Settings, mobile menu and outage. Pass 2 covered all 
 | UI-20 | Medium | Error toast used wrong theme and 4.34:1 text contrast | ToastProvider matches theme and uses contrast-safe tokens; social outage axe |
 | UI-21 | High, partial | Calendar/Follow-ups only load first 200 leads; Deals first 200 per status | Truncation explicitly disclosed. Complete server-side scheduling queries/pagination OPEN |
 | UI-22 | Medium, open | Runtime contracts reference missing GOVERNANCE_RULES.md | Missing canonical document logged; authoritative policy must be restored |
+| UI-23 | High, open | Development tooling dependency advisories: braces/glob/Tailwind lint chain, brace-expansion, browserslist and selector parser | Full dependency audit records 9 high and 1 moderate finding. Runtime audit is zero. Compatible leaf patches and a verified toolchain migration remain required; do not blindly downgrade Next lint config or migrate Tailwind to silence counts. Raw evidence: development-dependency-audit.json |
 
 State/data defects came from treating local defaults, empty arrays and hardcoded values as backend truth. Request lifetime, polling, reload and identity defects explain rendering/performance failures. Swallowed errors, fabricated zeros, stale context, unbounded authentication and inaccessible/clipped content explain edge failures. Repairs preserve existing domain operations and server authority; no governance gate is represented by a cosmetic switch. New/replacement screens introduce no any types.
 
 ## Verification and limits
 
 Final measurements: [VALIDATION.json](VALIDATION.json) and [browser evidence](after/evidence.json). Commands: typecheck, lint, frontend API/store tests, clean production build, runtime dependency audit, and test:browser. Regression assertions exercise destination denial, HTTP faults, malformed JSON, bounded signals, 20/200 simultaneous 401s, failed refresh waiters, session isolation, user changes and logout.
+
+Hosted CI [38288551534](https://github.com/Lavish213/The-Dashboard/actions/runs/38288551534) passed on source commit 06f7a063323dd96b91a929bb88e7e8ff987fc750: 1,042 PostgreSQL/Redis backend tests, 22 frontend tests, build/typecheck/lint, runtime audit and all 31 browser states with a matched installed browser. These counts are separate; screen states are not additional backend tests. Subsequent edits only record evidence and findings.
 
 Local Chromium is 134.0.6998.35 because current archives failed through the download proxy. The pinned current Playwright drives an isolated fixture-only browser. CI installs a matched browser and repeats verification; local results do not prove current Chrome, Safari or physical iPhone compatibility. Screenshots show viewport-visible content with inner scrolling. Axe results cover tested states, not accessibility certification.
 
