@@ -56,8 +56,7 @@ services:
         NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-}
     restart: unless-stopped
     ports: !reset []
-    env_file: !override
-      - .env.production
+    env_file: !reset []
     environment: !override
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}

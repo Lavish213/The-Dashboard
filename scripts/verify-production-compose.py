@@ -12,6 +12,7 @@ with tempfile.TemporaryDirectory() as scratch:
         shutil.copyfile(root / name, target / name)
     for name in (".env", ".env.production"):
         (target / name).write_text("")
+    (target / ".env.production").write_text("SECRET_KEY=synthetic-file-secret\nPROVIDER_PRIVATE_KEY=synthetic-provider-secret\n")
     environment = {**os.environ, "SECRET_KEY": "synthetic-production-validation-key-only", "DATABASE_URL": "postgresql+asyncpg://prod:synthetic@postgres:5432/platform", "REDIS_URL": "redis://:synthetic@redis:6379/0", "REDIS_PASSWORD": "synthetic", "POSTGRES_USER": "prod", "POSTGRES_PASSWORD": "synthetic", "CORS_ORIGINS": '["https://example.invalid"]', "DOMAIN": "example.invalid", "NEXT_PUBLIC_API_URL": "", "NEXT_PUBLIC_WS_URL": ""}
     result = subprocess.run(["docker", "compose", "--env-file", str(target / ".env.production"), "-f", str(target / "docker-compose.yml"), "-f", str(target / "docker-compose.prod.yml"), "config", "--format", "json"], env=environment, capture_output=True, text=True, timeout=30, check=True)
     services = json.loads(result.stdout)["services"]
@@ -26,6 +27,8 @@ with tempfile.TemporaryDirectory() as scratch:
     assert backend["build"]["target"] == "production"
     assert services["frontend"]["build"]["target"] == "runner"
     assert services["frontend"]["build"]["args"]["NEXT_PUBLIC_API_URL"] == ""
+    assert "SECRET_KEY" not in services["frontend"]["environment"]
+    assert "PROVIDER_PRIVATE_KEY" not in services["frontend"]["environment"]
     assert services["redis"]["environment"]["REDISCLI_AUTH"] == "synthetic"
     assert services["proxy"]["environment"]["DOMAIN"] == "example.invalid"
     assert {port["published"] for port in services["proxy"]["ports"]} == {"80", "443"}
