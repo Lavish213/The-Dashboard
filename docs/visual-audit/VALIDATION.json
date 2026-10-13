@@ -1,8 +1,8 @@
 {
-  "capturedAt": "2026-10-12T17:59:54.900Z",
+  "capturedAt": "2026-10-13T00:39:04.743Z",
   "browser": "134.0.6998.35",
   "fixtureOnly": true,
-  "screenStates": 31,
+  "screenStates": 37,
   "automatedAccessibilityViolations": 0,
   "runtimeErrors": [],
   "interactions": [
@@ -12,26 +12,36 @@
     "Command palette opens and dismisses",
     "Mobile navigation selects Calls and closes",
     "Logout clears credentials and redirects to login",
-    "Structured sign-in rejection remains readable without crashing"
+    "Structured sign-in rejection remains readable without crashing",
+    "Follow-ups reach record 201 through real pagination",
+    "Calendar reaches the complete month-filtered dataset",
+    "Deal totals cover unloaded pages and both statuses",
+    "Notification failure preserves unread state; acknowledged retry updates it",
+    "Operator UI does not expose the admin roster",
+    "Delayed first transcript cannot overwrite the second selection",
+    "Persisted saved properties remain isolated across two accounts"
   ],
-  "frontendFaultAndStoreTests": 22,
+  "frontendFaultAndStoreTests": 25,
   "typecheck": "passed",
   "lint": "passed",
-  "productionBuild": "passed after clean build",
+  "productionBuild": "passed",
   "runtimeDependencyAdvisories": 0,
+  "developmentDependencyAdvisories": {
+    "high": 7,
+    "moderate": 1
+  },
   "ci": {
     "status": "passed",
-    "run": 38288551534,
-    "testedCommit": "06f7a063323dd96b91a929bb88e7e8ff987fc750",
-    "backendTestsPassed": 1042,
-    "frontendTestsPassed": 22,
-    "browserChecks": "passed with matched CI browser"
+    "run": 38328389520,
+    "testedCommit": "fef426224ae434d348ed9dc3fe16f121ad97adc6",
+    "backendTests": 1095,
+    "tables": 44,
+    "enums": 46
   },
-  "deployment": "none",
-  "developmentDependencyAudit": {
-    "high": 9,
-    "moderate": 1,
-    "runtime": 0,
-    "status": "open toolchain migration/patch work; not hidden by runtime-only audit"
-  }
+  "limits": [
+    "Synthetic APIs and disposable databases, no production rehearsal",
+    "No real phone audio, external reservations or approved action execution",
+    "No arbitrary legacy database upgrade proof",
+    "Manual multi-browser/assistive technology and development dependency fixes remain open"
+  ]
 }

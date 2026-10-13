@@ -64,3 +64,38 @@ For this dashboard, complete configuration/team/notification APIs, full schedule
 | 4 | Analytics/social/list errors | Tested repairs; complete pagination remains partial |
 | 5 | Settings/operator identity | Truthful and accessible; configuration integration open |
 | 6 | Production voice/approvals/appointments | Open integration gates |
+
+
+## Enhancement and integration pass — 2026-10-13
+
+This supersedes the earlier open configuration/pagination/populated-fixture statements for the specific repairs below. The original pass and its exact historical evidence remain above. This is an operator dashboard enhancement, not proof of external appointments or human-quality voice.
+
+| ID | Severity | File/boundary; root cause | Repair and verification |
+|---|---|---|---|
+| UI-24 | High | leads API / Follow-ups / Calendar; first 200 records silently looked complete | Server scheduling/month filters, stable pages and load-more; 201-record fixtures and SQL page-2 checks |
+| UI-25 | High | Deals; totals and average were calculated from loaded pages | SQL full-set counts/score sums with correctly weighted total; 203-record populated check |
+| UI-26 | High | notifications routes; caller could select another user | Own feed/read counts; cross-account 403/404 and administrator-only creation; SQL and denial-before-DB cases |
+| UI-27 | High | settings routes/components; server/team/notification panels unwired | Actual read-only configuration, own acknowledged feed and admin-only paginated roster; permitted/operator browser checks |
+| UI-28 | High | lead mutations; malformed/past/naive dates and read-only role writes | LEADS_WRITE enforcement, strict dates, explicit cancellation and server acknowledgement; safety and SQL tests |
+| UI-29 | High | realtime endpoint/subscriptions; JWT role trusted and user channels unscoped | Current active DB identity, own-channel enforcement, missing/deleted/inactive denial |
+| UI-30 | High | WebSocket URL / proxy logs; reusable JWT in request URI | Authenticated 20-second one-use tickets, atomic Redis consume, reconnect refresh and destroyed-client tests |
+| UI-31 | High | production Compose/Docker; inherited development credentials, ports and mounts; localhost browser build | Explicit production env, reset ports/mounts, build-time or same-origin browser URLs, authenticated Redis health/domain; hosted merge check |
+| UI-32 | High | backend Docker and schema initialization; no production startup command; fresh schema drift | Guarded frozen snapshot initialization, exact model/enum verification, preserved historical head; 44-table/46-enum disposable roundtrip |
+| UI-33 | High | REI ingest / Sophia bridge; wrong prefix/fields, false success, cross-DB IDs and unsafe classification actions | Persisted receipts, mapped external IDs, exact call sessions, chunks, dedup/conflict rejection, advisory-only proposals; SQL regressions |
+| UI-34 | Medium | redis logger / readiness route; credential URL and exception details exposed | Remove URL logging and public exception detail; source checked |
+
+Enhanced fixture browser runner covers 37 states across all 16 navigation routes and 14 interactions, including page 2, notification failed-write/retry, operator/admin separation, delayed transcript races and persisted account isolation. Exact latest results are in `enhanced/evidence.json`; fixture screenshots are synthetic and are not production seller data. Automated accessibility checks supplement visual inspection; they do not prove manual assistive-technology usability. Screenshot audit inspected populated Calendar, Deals, Settings and Follow-ups views.
+
+Latest backend/Compose verified CI: [38328169737](https://github.com/Lavish213/The-Dashboard/actions/runs/38328169737) on `82fb9af6e7fe6d08695e277ce3b77dc9702ef275`: 1,094 backend cases and schema gates passed; frontend 25 cases/type/lint/build/runtime audit passed. An additional actual producer-contract test is tracked on the subsequent source commit. Runtime advisories: 0. Full development graph: 7 high, 1 moderate; do not interpret runtime zero as a clean whole toolchain.
+
+| Journey step | Description | Current health |
+|---|---|---|
+| Sign-in and identity | Login/logout, role-scoped APIs and isolated account state | Verified in code/fixtures/disposable SQL; live deployment open |
+| Overview | Honest readiness, idle state and all-time totals | Fixture verified |
+| Navigation and access | Desktop/mobile/light/error states and keyboard-accessible controls | 37-state automation; manual multi-browser/a11y open |
+| Scheduled work | Server pages/month ranges, acknowledged follow-up dates and all-page deal totals | Populated fixture and SQL verified; external bookings open |
+| Settings | Read-only server/security/team and own notification feed | Role/ownership and mutation failure/retry verified |
+| Voice and execution | Exact persisted bridge and advisory disposition proposals | SQL/producer contracts; durable delivery, approved execution and real calls open |
+
+
+Final source verification: [Dashboard CI 38328389520](https://github.com/Lavish213/The-Dashboard/actions/runs/38328389520) on `fef426224ae434d348ed9dc3fe16f121ad97adc6` is fully green: **1,095 backend cases**, including the actual pinned REI producer through webhook authentication and persisted SQL receipts; 44-table/46-enum initialization/schema gates; production Compose checks; 25 frontend cases, type/lint/build/runtime audit and 37 browser states/14 interactions with no automated accessibility or runtime errors. This supersedes the pending producer/browser status above. No real provider calls, production deployment or historical data upgrade was tested.
