@@ -102,3 +102,14 @@ Final source verification: [Dashboard CI 38328389520](https://github.com/Lavish2
 
 
 Final production-secret refinement verified: [CI 38328837255](https://github.com/Lavish213/The-Dashboard/actions/runs/38328837255) on `bfb85a45d67d6946c004d73d715c8511b1c35a36` is fully green, retaining 1,095 backend cases and all schema/frontend/browser gates. The Compose check now also verifies that production backend/provider secrets are absent from the frontend container environment. Subsequent report commits change only documentation/evidence.
+
+
+## Recovery and approval verification — 2026-10-13
+
+Latest source `f1227830231869533f5c433d1b62fdf196b93d08` passes [CI 38346907132](https://github.com/Lavish213/The-Dashboard/actions/runs/38346907132). The completed backend job reports **1,120 passed**; the frontend job reports **28 passed**, with typecheck, lint, production build, runtime dependency audit and browser verification successful. Production configuration checks also pass. Vercel reports success for this source; that status does not establish a deployed backend, configured providers or real caller readiness.
+
+The boundary job uses the actual pinned REI producer at `44e3b54ae8537d80d7c3896bc2f43b4b54e66101` through HTTP and PostgreSQL. It passes two producer restarts, an outage before the receiver writes, and lost acknowledgement after commit. This closes those specific delivery tests; extended outages, dead-letter operation, multi-host durability and deployment drills still require evidence.
+
+Approval repairs bind authenticated actors and workflow authorization, serialize decisions, process escalated/expired approvals and preserve errors until acknowledged writes. The browser runner adds operator/reviewer/expired authority scenarios. Actual campaign/calendar execution remains an open integration gate. Long-lived socket reauthorization has source regressions; live provider recovery remains open.
+
+At this checkpoint all three PRs remain unmerged. REI regression CI passes but its Vercel status fails; standalone Sophia previously had no PR workflow and now receives an automated regression workflow. This is a repair-readiness checkpoint, not an overall A grade. Earlier counts and open statuses above are historical and are superseded only for the named boundaries.
