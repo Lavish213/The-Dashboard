@@ -38,6 +38,7 @@ jobs:
       REDIS_URL: redis://127.0.0.1:6379/0
       APP_ENV: development
       SECRET_KEY: test-only-secret-with-no-production-access-123456
+      REI_REPO: ${{ github.workspace }}/_rei-contract
     defaults:
       run:
         working-directory: backend
@@ -47,6 +48,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt -r requirements-dev.txt
+      - uses: actions/checkout@v4
+        with:
+          repository: Lavish213/REI-AGENT
+          ref: 7b9338d268b809b570fef99dd3c61620b9cabc5b
+          path: _rei-contract
       - run: pytest tests tests_safety -q --junitxml=test-results.xml
       - run: PYTHONPATH=. python scripts/initialize_database.py --roundtrip-test
       - run: PYTHONPATH=. python scripts/verify_schema.py
