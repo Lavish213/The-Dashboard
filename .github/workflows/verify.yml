@@ -1,7 +1,7 @@
 name: Dashboard verification
 on:
   push:
-    branches: [repair/system-reliability]
+    branches: [phase6-transcript-runtime, repair/system-reliability]
   pull_request:
 permissions:
   contents: read
