@@ -167,7 +167,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     from models.user import User
-    result = await session.execute(select(User).where(User.id == user_id))
+    result = await session.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
@@ -211,7 +211,7 @@ async def get_current_user_ws(
     except ValueError:
         raise WebSocketException(code=4001, reason="Invalid token subject")
     from models.user import User
-    result = await session.execute(select(User).where(User.id == user_id))
+    result = await session.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
     user = result.scalar_one_or_none()
     if user is None:
         raise WebSocketException(code=4001, reason="User not found")

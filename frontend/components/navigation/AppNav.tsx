@@ -56,7 +56,7 @@ export function AppNav({ collapsed = false, onCollapseToggle, className }: AppNa
           return (
             <div key={group.id} className="mb-4">
               {!collapsed && (
-                <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                <p className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {group.label}
                 </p>
               )}

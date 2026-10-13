@@ -18,6 +18,8 @@ async function tryRefresh(refreshToken: string): Promise<string | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: AbortSignal.timeout(15_000),
+      redirect: 'error',
     })
     if (!res.ok) return null
     const data = await res.json()
@@ -31,6 +33,7 @@ async function tryRefresh(refreshToken: string): Promise<string | null> {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, clearUser, setStatus } = useAuthStore()
+  const status = useAuthStore(s => s.status)
   const router = useRouter()
   const pathname = usePathname()
   const [hydrated, setHydrated] = useState(false)
@@ -41,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const token = localStorage.getItem('karpathys_token')
       const refreshToken = localStorage.getItem('karpathys_refresh_token')
-      const userRaw = localStorage.getItem('karpathys_user')
 
       if (!token && !refreshToken) {
         clearUser()
@@ -65,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (newToken) {
           try {
             const freshUser = await getMe()
-            const parsedUser = userRaw ? JSON.parse(userRaw) : null
             setUser(freshUser, newToken, localStorage.getItem('karpathys_refresh_token') ?? '')
             setHydrated(true)
             return
@@ -84,13 +85,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return
-    const { status } = useAuthStore.getState()
     if (status === 'unauthenticated' && !isPublicPath(pathname)) {
       router.replace('/login')
     }
-  }, [hydrated, pathname, router])
+  }, [hydrated, pathname, router, status])
 
   if (!hydrated) return null
+  if (status === 'unauthenticated' && !isPublicPath(pathname)) return null
 
   return <>{children}</>
 }

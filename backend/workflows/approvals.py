@@ -6,7 +6,7 @@ Pauses workflow when approval is requested. Resumes on approval.
 Fails/cancels workflow on rejection (caller decides).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,7 +69,7 @@ class WorkflowApprovalGate:
         # Check no existing pending approval of same type
         existing = await self._approvals.get_by_workflow(workflow_id)
         for appr in existing:
-            if appr.approval_type == approval_type and appr.approval_status == ApprovalStatus.pending:
+            if appr.approval_type == approval_type and appr.approval_status in _RESOLVABLE_STATUSES:
                 raise ApprovalGateError(
                     f"Workflow {workflow_id} already has pending {approval_type} approval"
                 )
@@ -115,12 +115,19 @@ class WorkflowApprovalGate:
         On approval: resumes workflow.
         On rejection: fails workflow.
         """
-        approval = await self._approvals.get_by_id_or_raise(approval_id)
+        approval = await self._approvals.get_for_update_or_raise(approval_id)
 
         if approval.approval_status not in _RESOLVABLE_STATUSES:
             raise ApprovalGateError(
                 f"Approval {approval_id} is {approval.approval_status} — not resolvable"
             )
+        if approval.expires_at is not None and (approval.expires_at.tzinfo is None or approval.expires_at <= datetime.now(UTC)):
+            raise ApprovalGateError("Approval authorization has expired")
+        workflow = await self._workflows.get_for_update_or_raise(approval.workflow_id)
+        if workflow.workflow_status != WorkflowStatus.paused:
+            raise ApprovalGateError("Approval workflow is no longer paused")
+        if workflow.expires_at is not None and (workflow.expires_at.tzinfo is None or workflow.expires_at <= datetime.now(UTC)):
+            raise ApprovalGateError("Approval workflow authorization has expired")
 
         new_status = ApprovalStatus.approved if approved else ApprovalStatus.rejected
         approval.approval_status = new_status
@@ -128,8 +135,6 @@ class WorkflowApprovalGate:
         approval.resolution_notes = notes
         self._session.add(approval)
         await self._session.flush()
-
-        workflow = await self._workflows.get_by_id_or_raise(approval.workflow_id)
 
         if approved:
             workflow.workflow_status = WorkflowStatus.active
@@ -158,4 +163,4 @@ class WorkflowApprovalGate:
     async def has_pending_approval(self, workflow_id: UUID) -> bool:
         """Return True if any approval is currently pending for this workflow."""
         existing = await self._approvals.get_by_workflow(workflow_id)
-        return any(a.approval_status == ApprovalStatus.pending for a in existing)
+        return any(a.approval_status in _RESOLVABLE_STATUSES for a in existing)

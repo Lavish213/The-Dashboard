@@ -49,6 +49,6 @@ export interface ApprovalCreateBody {
 
 export interface ApprovalResolveBody {
   approval_status: 'approved' | 'rejected'
-  resolved_by: string
+  resolved_by?: string | null
   resolution_notes?: string | null
 }

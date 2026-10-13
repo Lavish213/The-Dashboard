@@ -12,6 +12,9 @@
     }
 
     # API + realtime
+    handle /api/metrics {
+        respond "Not found" 404
+    }
     handle /api/* {
         reverse_proxy backend:8000
     }

@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useRef } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import env from '@/config/environment'
+import { apiFetch } from '@/services/api'
 import { buildWsUrl, WebSocketClient } from '@/lib/websocket/client'
 import { MessageDispatcher } from '@/lib/realtime/dispatcher'
 import { HandlerRegistry } from '@/lib/realtime/registry'
@@ -24,11 +25,7 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
     useRealtimeStore()
 
   const clientRef = useRef<WebSocketClient | null>(null)
-  const dispatcherRef = useRef<MessageDispatcher | null>(null)
-
-  // Initialise dispatcher once
-  if (!dispatcherRef.current) {
-    dispatcherRef.current = new MessageDispatcher({
+  const [dispatcher] = useState(() => new MessageDispatcher({
       onConnected: (connectionId) => {
         setConnectionId(connectionId)
         setLastError(null)
@@ -40,16 +37,15 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
       onSubscribed: addChannel,
       onUnsubscribed: removeChannel,
       onError: (code, message) => setLastError(`${code}: ${message}`),
-    })
-  }
+    }))
 
   useEffect(() => {
     if (!token) return
 
-    const url = buildWsUrl(env.wsUrl, token)
-    const dispatcher = dispatcherRef.current!
-
-    const client = new WebSocketClient(url, {
+    const client = new WebSocketClient(async () => {
+      const { ticket } = await apiFetch<{ ticket: string }>('/api/v1/auth/ws-ticket', { method: 'POST' })
+      return buildWsUrl(env.wsUrl, ticket)
+    }, {
       onStatusChange: (status) => {
         setStatus(status)
         if (status === 'reconnecting') {
@@ -89,16 +85,16 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
   }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Intercept subscribe/unsubscribe to track intended channels
-  const send = (msg: ClientMessage): void => {
+  const send = useCallback((msg: ClientMessage): void => {
     if (msg.type === 'subscribe') intendChannel(msg.channel)
     else if (msg.type === 'unsubscribe') unintendChannel(msg.channel)
     clientRef.current?.send(msg)
-  }
+  }, [intendChannel, unintendChannel])
 
-  const value: WebSocketContextValue = {
+  const value: WebSocketContextValue = useMemo(() => ({
     send,
-    registry: dispatcherRef.current.registry,
-  }
+    registry: dispatcher.registry,
+  }), [send, dispatcher])
 
   return (
     <WebSocketContext.Provider value={value}>

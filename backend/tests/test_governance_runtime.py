@@ -207,10 +207,12 @@ class TestApprovalExpiry:
         assert approval.id not in result.approval_ids
 
     async def test_expire_skips_already_resolved(self, db: AsyncSession) -> None:
-        past = datetime.now(UTC) - timedelta(hours=1)
-        wf, approval = await _pending_approval(db, expires_at=past)
+        future = datetime.now(UTC) + timedelta(hours=1)
+        wf, approval = await _pending_approval(db, expires_at=future)
         gate = WorkflowApprovalGate(db)
         await gate.resolve(approval.id, resolved_by=None, approved=True)
+        approval.expires_at = datetime.now(UTC) - timedelta(hours=1)
+        await db.flush()
 
         runtime = ApprovalExpiryRuntime(db)
         result = await runtime.expire_pending()

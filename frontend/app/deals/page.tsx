@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
-import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { scoreColor, STATUS_COLORS } from '@/constants/colors'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
-import { TrendingUp, DollarSign, Home, Clock } from 'lucide-react'
+import { TrendingUp, DollarSign, Home, Clock, type LucideIcon } from 'lucide-react'
 
 interface Deal {
   id: string
@@ -34,9 +33,9 @@ function DealCard({ deal, onClick }: { deal: Deal; onClick: () => void }) {
   const address = [deal.address, deal.city, deal.state].filter(Boolean).join(', ')
 
   return (
-    <div
+    <button type="button"
       onClick={onClick}
-      className="rounded-lg border bg-card shadow-card p-4 space-y-3 cursor-pointer hover:border-teal-500/30 hover:shadow-card-hover transition-all"
+      className="w-full text-left rounded-lg border bg-card shadow-card p-4 space-y-3 cursor-pointer hover:border-teal-500/30 hover:shadow-card-hover transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="flex items-start gap-3">
         <LeadAvatar name={deal.full_name} score={deal.ai_score} size="md" />
@@ -66,12 +65,12 @@ function DealCard({ deal, onClick }: { deal: Deal; onClick: () => void }) {
           {formatDate(deal.updated_at)}
         </span>
       </div>
-    </div>
+    </button>
   )
 }
 
 function StatTile({ icon: Icon, label, value, color }: {
-  icon: any; label: string; value: string | number; color: string
+  icon: LucideIcon; label: string; value: string | number; color: string
 }) {
   return (
     <div className="rounded-lg border bg-card shadow-card p-4 flex items-center gap-3">
@@ -88,51 +87,39 @@ function StatTile({ icon: Icon, label, value, color }: {
 
 export default function DealsPage() {
   const router = useRouter()
-  const [deals, setDeals] = useState<Deal[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Deal[] }>(
-          '/api/v1/leads?status=qualified&page_size=200'
-        )
-        const converted = await apiFetch<{ items: Deal[] }>(
-          '/api/v1/leads?status=converted&page_size=200'
-        )
-        setDeals([...data.items, ...converted.items])
-      } catch {
-        toast.error('Failed to load deals')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useLeadPages<Deal>({ statuses: 'qualified' })
+  const convertedQuery = useLeadPages<Deal>({ statuses: 'converted' })
+  const deals = [...(data?.pages.flatMap(page => page.items) ?? []), ...(convertedQuery.data?.pages.flatMap(page => page.items) ?? [])]
 
   const qualified = deals.filter(d => d.lead_status === 'qualified')
   const converted = deals.filter(d => d.lead_status === 'converted')
-  const avgScore = deals.length
-    ? Math.round(deals.reduce((s, d) => s + (d.ai_score ?? 0), 0) / deals.length)
-    : 0
+  const qualifiedTotal = data?.pages[0].total
+  const convertedTotal = convertedQuery.data?.pages[0].total
+  const completeTotals = qualifiedTotal !== undefined && convertedTotal !== undefined
+  const total = (qualifiedTotal ?? 0) + (convertedTotal ?? 0)
+  const avgScore = total ? Math.round(((data?.pages[0].summary?.score_total ?? 0) + (convertedQuery.data?.pages[0].summary?.score_total ?? 0)) / total) : 0
 
   return (
     <PageContainer title="Deals" description="Active pipeline — qualified leads and closed deals">
+      {(error || convertedQuery.error) && <p role="alert" className="mb-4 text-sm text-destructive">Deals unavailable. Existing values may be stale.</p>}
+      {completeTotals && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {deals.length} of {total} deals. Totals cover all matching records.</p>}
+      {hasNextPage && <Button variant="outline" className="mb-4 mr-2" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>Load more qualified deals</Button>}
+      {convertedQuery.hasNextPage && <Button variant="outline" className="mb-4" disabled={convertedQuery.isFetchingNextPage} onClick={() => void convertedQuery.fetchNextPage()}>Load more converted deals</Button>}
       <div className="space-y-6 max-w-content">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile icon={TrendingUp} label="Total deals" value={deals.length} color="bg-teal-500/10 text-teal-400" />
-          <StatTile icon={Home} label="Qualified" value={qualified.length} color="bg-amber-500/10 text-amber-400" />
-          <StatTile icon={DollarSign} label="Converted" value={converted.length} color="bg-green-500/10 text-green-400" />
-          <StatTile icon={Clock} label="Avg score" value={avgScore} color="bg-blue-500/10 text-blue-400" />
+          <StatTile icon={TrendingUp} label="Total deals" value={completeTotals ? total : '—'} color="bg-teal-500/10 text-teal-400" />
+          <StatTile icon={Home} label="Qualified" value={qualifiedTotal ?? '—'} color="bg-amber-500/10 text-amber-400" />
+          <StatTile icon={DollarSign} label="Converted" value={convertedTotal ?? '—'} color="bg-green-500/10 text-green-400" />
+          <StatTile icon={Clock} label="Avg score" value={completeTotals ? avgScore : '—'} color="bg-blue-500/10 text-blue-400" />
         </div>
 
-        {loading ? (
+        {loading || convertedQuery.isPending ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="h-32 rounded-lg border bg-card animate-pulse" />
             ))}
           </div>
-        ) : deals.length === 0 ? (
+        ) : !error && !convertedQuery.error && deals.length === 0 ? (
           <div className="rounded-lg border bg-card p-10 text-center shadow-card">
             <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">No deals yet</p>

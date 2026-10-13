@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { KPIGrid } from '@/components/dashboard/KPIGrid'
 import { FunnelChart } from '@/components/charts/FunnelChart'
 import { DonutChart } from '@/components/charts/DonutChart'
-import { TrendLine } from '@/components/charts/TrendLine'
 import { apiFetch } from '@/services/api'
 
 interface Analytics {
@@ -36,15 +35,7 @@ function formatDuration(s: number): string {
 }
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<Analytics | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    apiFetch<Analytics>('/api/v1/analytics')
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, isPending: loading, error, refetch } = useQuery({ queryKey: ['dashboard-analytics'], queryFn: ({ signal }) => apiFetch<Analytics>('/api/v1/analytics', { signal }), refetchInterval: 30_000 })
 
   if (loading) {
     return (
@@ -66,7 +57,8 @@ export default function AnalyticsPage() {
 
   if (!data) return (
     <PageContainer title="Analytics" description="Performance metrics">
-      <p className="text-sm text-muted-foreground">Failed to load analytics</p>
+      <p role="alert" className="text-sm text-destructive">Analytics unavailable.</p>
+      <button onClick={() => void refetch()} className="mt-3 text-sm underline">Retry analytics</button>
     </PageContainer>
   )
 
@@ -75,27 +67,23 @@ export default function AnalyticsPage() {
       label: 'Total leads',
       value: data.leads.total,
       sub: `${data.leads.by_status.new ?? 0} new`,
-      trend: [2, 4, 3, 6, 5, 8, data.leads.total],
     },
     {
       label: 'Total calls',
       value: data.calls.total,
       sub: `${data.calls.completed} completed`,
-      trend: [1, 3, 2, 5, 4, 7, data.calls.total],
     },
     {
       label: 'Contact rate',
       value: `${data.calls.contact_rate}%`,
       sub: 'calls answered',
       highlight: data.calls.contact_rate >= 50,
-      trend: [40, 45, 52, 48, 55, 58, data.calls.contact_rate],
     },
     {
       label: 'Avg duration',
       value: formatDuration(data.calls.avg_duration_seconds),
       sub: 'per completed call',
       gold: data.calls.avg_duration_seconds >= 300,
-      trend: [120, 180, 200, 250, 300, 350, data.calls.avg_duration_seconds],
     },
   ]
 
@@ -114,16 +102,6 @@ export default function AnalyticsPage() {
     { name: 'Failed', value: data.calls.failed, color: '#ef4444' },
   ].filter(d => d.value > 0)
 
-  const trendData = [
-    { label: 'Mon', value: 2 },
-    { label: 'Tue', value: 4 },
-    { label: 'Wed', value: 3 },
-    { label: 'Thu', value: 6 },
-    { label: 'Fri', value: 5 },
-    { label: 'Sat', value: 8 },
-    { label: 'Sun', value: data.calls.total },
-  ]
-
   const workflowTiles = [
     { label: 'Active workflows', value: data.workflows.active, highlight: data.workflows.active > 0 },
     { label: 'Completed', value: data.workflows.completed, gold: data.workflows.completed > 0 },
@@ -132,14 +110,15 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <PageContainer title="Analytics" description="Conversion funnel, call performance, workflow health">
+    <PageContainer title="Analytics" description="All-time lead status, call outcomes and workflow totals">
       <div className="space-y-6 max-w-content">
+        {error && <p role="alert" className="text-sm text-destructive">Analytics refresh failed. Displayed values may be stale.</p>}
         <KPIGrid tiles={kpiTiles} cols={4} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-lg border bg-card shadow-card p-4 space-y-4">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Lead funnel
+              Lead status distribution
             </p>
             <FunnelChart bars={funnelBars} />
           </div>
@@ -156,13 +135,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card shadow-card p-4">
-          <TrendLine
-            data={trendData}
-            label="Calls this week"
-            height={140}
-          />
-        </div>
+        <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">Historical trends are unavailable. The analytics API currently provides totals without daily observations.</p>
 
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">

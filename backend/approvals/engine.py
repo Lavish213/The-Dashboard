@@ -12,9 +12,11 @@ WorkflowApprovalGate remains the deterministic core.
 This layer adds persistence and realtime fan-out only.
 """
 
+import asyncio
 from datetime import datetime
 from uuid import UUID
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from events.contracts import DomainEvent
@@ -46,6 +48,7 @@ class ApprovalEngine:
         requested_by: UUID | None = None,
         risk_level: RiskLevel = RiskLevel.low,
         expires_at: datetime | None = None,
+        commit_before_publish: bool = False,
     ) -> Approval:
         """
         Request an approval via the workflow gate.
@@ -78,7 +81,9 @@ class ApprovalEngine:
             ),
         )
 
-        await broadcast_service.publish(RealtimeEvent(
+        if commit_before_publish:
+            await self._session.commit()
+        await self._publish(RealtimeEvent(
             channel=APPROVAL_CHANNEL,
             event_type=EVT_APPROVAL_REQUESTED,
             payload=payload,
@@ -93,6 +98,7 @@ class ApprovalEngine:
         resolved_by: UUID,
         approved: bool,
         notes: str = "",
+        commit_before_publish: bool = False,
     ) -> Approval:
         """
         Approve or reject a pending/escalated approval via the workflow gate.
@@ -126,7 +132,9 @@ class ApprovalEngine:
             ),
         )
 
-        await broadcast_service.publish(RealtimeEvent(
+        if commit_before_publish:
+            await self._session.commit()
+        await self._publish(RealtimeEvent(
             channel=APPROVAL_CHANNEL,
             event_type=EVT_APPROVAL_RESOLVED,
             payload=payload,
@@ -134,6 +142,12 @@ class ApprovalEngine:
         ))
 
         return approval
+
+    async def _publish(self, event: RealtimeEvent) -> None:
+        try:
+            await asyncio.wait_for(broadcast_service.publish(event), timeout=3)
+        except Exception:
+            structlog.get_logger(__name__).warning("approval.realtime_unavailable", event_type=event.event_type)
 
     async def has_pending(self, workflow_id: UUID) -> bool:
         """Return True if any approval is currently pending for this workflow."""

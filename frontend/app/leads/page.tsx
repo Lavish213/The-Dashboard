@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useQueryState, parseAsString } from 'nuqs'
 import {
@@ -139,8 +140,6 @@ function KanbanColumn({ stage, leads }: { stage: { key: LeadStatus; label: strin
 }
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [stageFilter] = useQueryState('stage', parseAsString.withDefault(''))
 
@@ -148,15 +147,18 @@ export default function LeadsPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
-  useEffect(() => {
-    setLoading(true)
+  const queryClient = useQueryClient()
+  const listKey = ['lead-list', stageFilter]
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: listKey,
+    queryFn: ({ signal }) => {
     const params = new URLSearchParams({ page_size: '200' })
     if (stageFilter) params.set('status', stageFilter)
-    apiFetch<{ items: Lead[] }>(`/api/v1/leads?${params}`)
-      .then((r) => setLeads(r.items))
-      .catch((e: Error) => toast.error('Failed to load leads', { description: e.message }))
-      .finally(() => setLoading(false))
-  }, [stageFilter])
+    return apiFetch<{ items: Lead[] }>(`/api/v1/leads?${params}`, { signal })
+    },
+  })
+  const leads = data?.items ?? []
+  const setLeads = (update: (previous: Lead[]) => Lead[]) => queryClient.setQueryData<{ items: Lead[] }>(listKey, (previous) => ({ items: update(previous?.items ?? []) }))
 
   const activeLead = activeId ? leads.find((l) => l.id === activeId) : null
 
@@ -206,6 +208,7 @@ export default function LeadsPage() {
 
   return (
     <PageContainer title="Lead Pipeline" description={`${leads.length} total leads`}>
+      {error && <p role="alert" className="text-sm text-destructive">Leads could not be loaded.</p>}
       {loading ? (
         <SkeletonKanban />
       ) : (
@@ -215,7 +218,7 @@ export default function LeadsPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 overflow-x-auto pb-4">
+          <div className="flex gap-3 overflow-x-auto pb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Lead pipeline">
             {STAGES.map((stage) => (
               <KanbanColumn key={stage.key} stage={stage} leads={byStage(stage.key)} />
             ))}

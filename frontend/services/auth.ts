@@ -1,8 +1,9 @@
 import { apiFetch } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import type { AuthUser } from '@/stores/auth.store'
+import env from '@/config/environment'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
+const API_BASE = env.apiUrl
 
 interface LoginPayload {
   email: string
@@ -33,11 +34,13 @@ export async function login(payload: LoginPayload): Promise<void> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15_000),
+    redirect: 'error',
   })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail ?? `Login failed (${res.status})`)
+    throw new Error(typeof body.detail === 'string' ? body.detail : `Login failed (${res.status})`)
   }
 
   const data: LoginResponse = await res.json()

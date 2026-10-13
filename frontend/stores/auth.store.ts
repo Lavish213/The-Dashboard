@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { useSophiaStore } from '@/stores/sophia.store'
+import { useApprovalStore } from '@/stores/approval.store'
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -27,6 +29,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
   refreshToken: null,
 
   setUser: (user, token, refreshToken) => {
+    if (useAuthStore.getState().user?.id !== user.id) {
+      useSophiaStore.getState().reset()
+      useApprovalStore.getState().setPendingCount(0)
+      useApprovalStore.getState().clearPendingItems()
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('karpathys_token', token)
       localStorage.setItem('karpathys_refresh_token', refreshToken)
@@ -36,6 +43,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   clearUser: () => {
+    useSophiaStore.getState().reset()
+    useApprovalStore.getState().setPendingCount(0)
+    useApprovalStore.getState().clearPendingItems()
     if (typeof window !== 'undefined') {
       localStorage.removeItem('karpathys_token')
       localStorage.removeItem('karpathys_refresh_token')

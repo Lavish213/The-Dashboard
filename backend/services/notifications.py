@@ -38,9 +38,10 @@ def _user_channel(user_id: UUID) -> str:
 
 
 class NotificationRuntime:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, *, commit_before_publish: bool = False) -> None:
         self._session = session
         self._repo = NotificationRepository(session)
+        self._commit_before_publish = commit_before_publish
 
     async def create(
         self,
@@ -56,6 +57,8 @@ class NotificationRuntime:
             title=title,
             body=body,
         )
+        if self._commit_before_publish:
+            await self._session.commit()
         logger.info(
             "notification.created",
             notification_id=str(notif.id),
@@ -78,6 +81,8 @@ class NotificationRuntime:
     async def mark_read(self, notification_id: UUID, user_id: UUID) -> Notification | None:
         notif = await self._repo.mark_read(notification_id, user_id)
         if notif is not None:
+            if self._commit_before_publish:
+                await self._session.commit()
             await broadcast_service.publish(
                 RealtimeEvent(
                     channel=_user_channel(user_id),
@@ -90,6 +95,8 @@ class NotificationRuntime:
     async def mark_all_read(self, user_id: UUID) -> int:
         count = await self._repo.mark_all_read(user_id)
         if count > 0:
+            if self._commit_before_publish:
+                await self._session.commit()
             await broadcast_service.publish(
                 RealtimeEvent(
                     channel=_user_channel(user_id),

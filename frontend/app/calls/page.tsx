@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsInteger, parseAsString } from 'nuqs'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { SkeletonTable } from '@/components/ui/skeleton-states'
@@ -45,25 +45,24 @@ function formatDuration(seconds: number | null): string {
 }
 
 export default function CallsPage() {
-  const [calls, setCalls] = useState<Call[]>([])
-  const [loading, setLoading] = useState(true)
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1))
   const [callStatus, setCallStatus] = useQueryState('status', parseAsString.withDefault(''))
 
-  useEffect(() => {
-    setLoading(true)
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: ['call-list', page, callStatus],
+    queryFn: ({ signal }) => {
     const params = new URLSearchParams({ page: String(page), page_size: '50' })
     if (callStatus) params.set('call_status', callStatus)
-    apiFetch<{ items: Call[]; total: number; total_pages: number }>(`/api/v1/calls?${params}`)
-      .then((r) => { setCalls(r.items ?? []); setTotal(r.total ?? 0); setTotalPages(r.total_pages ?? 1) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [page, callStatus])
+    return apiFetch<{ items: Call[]; total: number; total_pages: number }>(`/api/v1/calls?${params}`, { signal })
+    },
+  })
+  const calls = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.total_pages ?? 1
 
   return (
     <PageContainer title="Calls" description={`${total} total calls`}>
+      {error && <p role="alert" className="text-sm text-destructive">Calls could not be loaded.</p>}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         {STATUSES.map((s) => (
           <button
@@ -83,7 +82,7 @@ export default function CallsPage() {
       {loading ? (
         <SkeletonTable rows={8} cols={5} />
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Call history table">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -95,7 +94,7 @@ export default function CallsPage() {
               </tr>
             </thead>
             <tbody>
-              {calls.length === 0 && (
+              {!error && calls.length === 0 && (
                 <tr><td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">No calls found</td></tr>
               )}
               {calls.map((call) => (

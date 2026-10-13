@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
-import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { STATUS_COLORS } from '@/constants/colors'
 import { Bell, AlertCircle, Clock, CheckCircle2 } from 'lucide-react'
@@ -41,9 +40,9 @@ function FollowUpCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
   const today = lead.follow_up_at && isToday(lead.follow_up_at)
 
   return (
-    <div
+    <button type="button"
       onClick={onClick}
-      className={`rounded-lg border p-4 cursor-pointer transition-all hover:shadow-card-hover space-y-3 ${
+      className={`w-full text-left rounded-lg border p-4 cursor-pointer transition-all hover:shadow-card-hover space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         overdue
           ? 'border-red-500/25 bg-red-500/5 hover:border-red-500/40'
           : today
@@ -86,34 +85,14 @@ function FollowUpCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
           {lead.notes.split('\n')[0].replace(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\] /, '')}
         </p>
       )}
-    </div>
+    </button>
   )
 }
 
 export default function FollowupsPage() {
   const router = useRouter()
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Lead[] }>(
-          '/api/v1/leads?page_size=200'
-        )
-        const withFollowup = data.items.filter(l => l.follow_up_at)
-        withFollowup.sort((a, b) =>
-          new Date(a.follow_up_at!).getTime() - new Date(b.follow_up_at!).getTime()
-        )
-        setLeads(withFollowup)
-      } catch {
-        toast.error('Failed to load follow-ups')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useLeadPages<Lead>({ scheduled_only: 'true' })
+  const leads = data?.pages.flatMap(page => page.items) ?? []
 
   const overdue = leads.filter(l => l.follow_up_at && isOverdue(l.follow_up_at) && !isToday(l.follow_up_at))
   const today = leads.filter(l => l.follow_up_at && isToday(l.follow_up_at))
@@ -121,18 +100,21 @@ export default function FollowupsPage() {
 
   return (
     <PageContainer title="Follow-ups" description="Scheduled callbacks and follow-up queue">
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">Follow-ups unavailable. Existing values may be stale.</p>}
+      {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} scheduled follow-ups. Counts below cover loaded records.</p>}
+      {hasNextPage && <Button className="mb-4" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more follow-ups'}</Button>}
       <div className="space-y-6 max-w-content">
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-red-400">{overdue.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-red-400">{data ? overdue.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Overdue</p>
           </div>
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-amber-400">{today.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-amber-400">{data ? today.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Due today</p>
           </div>
           <div className="rounded-lg border bg-card p-4 text-center shadow-card">
-            <p className="text-2xl font-semibold tabular-nums text-foreground">{upcoming.length}</p>
+            <p className="text-2xl font-semibold tabular-nums text-foreground">{data ? upcoming.length : '—'}</p>
             <p className="text-xs text-muted-foreground mt-1">Upcoming</p>
           </div>
         </div>
@@ -143,7 +125,7 @@ export default function FollowupsPage() {
               <div key={i} className="h-24 rounded-lg border bg-card animate-pulse" />
             ))}
           </div>
-        ) : leads.length === 0 ? (
+        ) : !error && leads.length === 0 ? (
           <div className="rounded-lg border bg-card p-10 text-center shadow-card">
             <CheckCircle2 className="h-8 w-8 text-teal-400 mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">All caught up</p>

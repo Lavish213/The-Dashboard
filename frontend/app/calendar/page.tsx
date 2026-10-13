@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
-import { apiFetch } from '@/services/api'
-import { toast } from 'sonner'
+import Link from 'next/link'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -38,23 +38,13 @@ export default function CalendarPage() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await apiFetch<{ items: Lead[] }>('/api/v1/leads?page_size=200')
-        setLeads(data.items.filter(l => l.follow_up_at))
-      } catch {
-        toast.error('Failed to load calendar')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isPending: loading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useLeadPages<Lead>({
+    scheduled_only: 'true',
+    follow_up_start: new Date(year, month, 1).toISOString(),
+    follow_up_end: new Date(year, month + 1, 1).toISOString(),
+  })
+  const leads = data?.pages.flatMap(page => page.items) ?? []
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1) }
@@ -83,17 +73,20 @@ export default function CalendarPage() {
   const today = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : null
 
   return (
-    <PageContainer title="Calendar" description="Follow-up schedule and appointments">
+    <PageContainer title="Calendar" description="Lead follow-up dates — external calendar bookings are not connected here">
+      {error && <p role="alert" className="mb-4 text-sm text-destructive">Calendar data unavailable. Existing dates may be stale.</p>}
+      {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} follow-ups for this month.</p>}
+      {hasNextPage && <Button variant="outline" className="mb-4" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more calendar dates'}</Button>}
       <div className="space-y-4 max-w-content">
         <div className="rounded-lg border bg-card shadow-card p-4">
           <div className="flex items-center justify-between mb-4">
-            <Button variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0" aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <p className="text-sm font-semibold text-foreground font-display">
               {MONTH_NAMES[month]} {year}
             </p>
-            <Button variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0" aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -119,6 +112,8 @@ export default function CalendarPage() {
               return (
                 <button
                   key={day}
+                  aria-label={`${MONTH_NAMES[month]} ${day}, ${year}: ${dayLeads.length} loaded follow-ups`}
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
                   className={`relative rounded-md p-1.5 text-center text-xs transition-all min-h-[36px] ${
                     isSelected
@@ -147,16 +142,16 @@ export default function CalendarPage() {
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               {MONTH_NAMES[month]} {selectedDay} — {selectedLeads.length} follow-up{selectedLeads.length !== 1 ? 's' : ''}
             </p>
-            {selectedLeads.length === 0 ? (
+            {!error && selectedLeads.length === 0 ? (
               <div className="rounded-lg border bg-card p-6 text-center">
                 <CalendarDays className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No follow-ups scheduled</p>
               </div>
             ) : (
               selectedLeads.map(lead => (
-                <div
+                <Link
                   key={lead.id}
-                  onClick={() => router.push(`/leads/${lead.id}`)}
+                  href={`/leads/${lead.id}`}
                   className="flex items-center gap-3 rounded-lg border bg-card shadow-card px-4 py-3 cursor-pointer hover:border-teal-500/30 transition-all"
                 >
                   <LeadAvatar name={lead.full_name} score={lead.ai_score} size="sm" />
@@ -167,7 +162,7 @@ export default function CalendarPage() {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">{lead.lead_status}</span>
-                </div>
+                </Link>
               ))
             )}
           </div>

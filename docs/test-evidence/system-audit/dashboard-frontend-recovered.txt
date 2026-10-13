@@ -1,0 +1,35 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> karpathys-platform@0.1.0 test
+> node --experimental-vm-modules scripts/verify-frontend.mjs
+
+✔ deny bearer destination https://evil.invalid (93.950549ms)
+✔ deny bearer destination http://evil.invalid (21.201498ms)
+✔ deny bearer destination //evil.invalid (17.768202ms)
+✔ deny bearer destination /\evil.invalid (11.053008ms)
+✔ HTTP 400 remains failure (14.065389ms)
+✔ HTTP 403 remains failure (10.440778ms)
+✔ HTTP 404 remains failure (12.946869ms)
+✔ HTTP 409 remains failure (9.38323ms)
+✔ HTTP 429 remains failure (16.445077ms)
+✔ HTTP 500 remains failure (10.114386ms)
+✔ HTTP 502 remains failure (11.929815ms)
+✔ HTTP 503 remains failure (15.367073ms)
+✔ empty successful response (21.261775ms)
+✔ malformed successful JSON fails (8.718035ms)
+✔ Headers, redirect rejection and bounded signal survive (7.959107ms)
+(node:43) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 20 concurrent 401 requests use one refresh (14.53916ms)
+✔ refresh denied releases all waiters (11.865432ms)
+✔ refresh network releases all waiters (12.279919ms)
+✔ refresh missing releases all waiters (9.803805ms)
+✔ real Zustand store resets session-specific evidence (7.356846ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 349.183905

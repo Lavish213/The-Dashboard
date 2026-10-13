@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsInteger } from 'nuqs'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { SkeletonTable } from '@/components/ui/skeleton-states'
@@ -17,28 +17,23 @@ interface AuditLog {
 }
 
 export default function AuditPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([])
-  const [loading, setLoading] = useState(true)
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1))
 
-  useEffect(() => {
-    setLoading(true)
-    apiFetch<{ items: AuditLog[]; total: number; total_pages: number }>(
-      `/api/v1/audit?page=${page}&page_size=50`
-    )
-      .then((r) => { setLogs(r.items ?? []); setTotal(r.total ?? 0); setTotalPages(r.total_pages ?? 1) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [page])
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: ['audit', page],
+    queryFn: ({ signal }) => apiFetch<{ items: AuditLog[]; total: number; total_pages: number }>(`/api/v1/audit?page=${page}&page_size=50`, { signal }),
+  })
+  const logs = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.total_pages ?? 1
 
   return (
     <PageContainer title="Audit Log" description={`${total} total events — immutable record`}>
+      {error && <p role="alert" className="text-sm text-destructive">Audit records could not be loaded.</p>}
       {loading ? (
         <SkeletonTable rows={10} cols={4} />
       ) : (
-        <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" tabIndex={0} role="region" aria-label="Audit events table">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -49,7 +44,7 @@ export default function AuditPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.length === 0 && (
+              {!error && logs.length === 0 && (
                 <tr><td colSpan={4} className="px-4 py-12 text-center text-sm text-muted-foreground">No audit events yet</td></tr>
               )}
               {logs.map((log) => (

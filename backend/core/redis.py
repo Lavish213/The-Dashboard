@@ -25,7 +25,7 @@ async def init_redis() -> None:
     client = aioredis.Redis(connection_pool=_pool)
     try:
         await client.ping()
-        logger.info("redis.connected", url=settings.redis_url)
+        logger.info("redis.connected")
     except Exception as exc:
         logger.error("redis.ping_failed", error=str(exc))
         raise

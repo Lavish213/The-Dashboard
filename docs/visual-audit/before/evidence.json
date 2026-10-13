@@ -1,0 +1,404 @@
+{
+  "phase": "before",
+  "fixtureOnly": true,
+  "screens": [
+    {
+      "name": "01-dashboard-desktop",
+      "path": "/dashboard",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDashboard\nSearch\n⌘K\nDashboard\n\nOperational overview\n\nSophia\n\nIdle — waiting for calls\n\nAI Active\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nready for offer\n\nConverted\n\n6\n\nclosed deals\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSOCIAL\n\nView all\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [
+                ".mb-4:nth-child(1) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(2) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(3) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(4) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "kbd"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.69 (foreground color: #515965, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-settings-desktop",
+      "path": "/settings",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nSettings\nSearch\n⌘K\nSettings\n\nSystem configuration and preferences\n\nSophia\nNotifications\nUsers\nSecurity\n\nVOICE AGENT\n\nLLM model\n\nPrimary language model powering Sophia\n\nclaude-sonnet-4-6\n\nSTT provider\n\nSpeech-to-text transcription engine\n\nDeepgram Nova-2\n\nTTS provider\n\nVoice synthesis for Sophia responses\n\nElevenLabs\n\nBEHAVIOR\n\nRequire offer approval\n\nAll offers must pass approval gate before dispatch\n\nAuto-confirm appointments\n\nSkip approval gate for appointment confirmations\n\nMax cost per call\n\nHard ceiling — call terminates at this amount\n\n$8.00",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "nodes": [
+            {
+              "target": [
+                ".last\\:border-0.gap-4.py-3:nth-child(6) > .w-9.bg-teal-500.rounded-full"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            },
+            {
+              "target": [
+                ".last\\:border-0.gap-4.py-3:nth-child(7) > .w-9.bg-teal-500.rounded-full"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [
+                ".mb-4:nth-child(1) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(2) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(3) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(4) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "kbd"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.69 (foreground color: #515965, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-dashboard-mobile",
+      "path": "/dashboard",
+      "width": 390,
+      "text": "Skip to main content\nDashboard\n\nOperational overview\n\nSophia\n\nIdle — waiting for calls\n\nAI Active\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nready for offer\n\nConverted\n\n6\n\nclosed deals\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSOCIAL\n\nView all\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "04-mobile-menu",
+      "path": "/dashboard",
+      "width": 390,
+      "text": "Skip to main content\nDashboard\n\nOperational overview\n\nSophia\n\nIdle — waiting for calls\n\nAI Active\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nready for offer\n\nConverted\n\n6\n\nclosed deals\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSOCIAL\n\nView all\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4\nDashboard\nLeads\nCalls\nApprovals\nSettings\nClose\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\nApprovals\nSophia Live\nAudit Log\nAnalytics\nActivity\nTranscripts\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "05-settings-mobile",
+      "path": "/settings",
+      "width": 390,
+      "text": "Skip to main content\nSettings\n\nSystem configuration and preferences\n\nSophia\nNotifications\nUsers\nSecurity\n\nVOICE AGENT\n\nLLM model\n\nPrimary language model powering Sophia\n\nclaude-sonnet-4-6\n\nSTT provider\n\nSpeech-to-text transcription engine\n\nDeepgram Nova-2\n\nTTS provider\n\nVoice synthesis for Sophia responses\n\nElevenLabs\n\nBEHAVIOR\n\nRequire offer approval\n\nAll offers must pass approval gate before dispatch\n\nAuto-confirm appointments\n\nSkip approval gate for appointment confirmations\n\nMax cost per call\n\nHard ceiling — call terminates at this amount\n\n$8.00\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": [
+        {
+          "id": "button-name",
+          "impact": "critical",
+          "description": "Ensure buttons have discernible text",
+          "nodes": [
+            {
+              "target": [
+                ".last\\:border-0.gap-4.py-3:nth-child(6) > .w-9.bg-teal-500.rounded-full"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            },
+            {
+              "target": [
+                ".last\\:border-0.gap-4.py-3:nth-child(7) > .w-9.bg-teal-500.rounded-full"
+              ],
+              "summary": "Fix any of the following:\n  Element does not have inner text that is visible to screen readers\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06-dashboard-outage",
+      "path": "/dashboard",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDashboard\nOffline\nSearch\n⌘K\nDashboard\n\nOperational overview\n\nSophia\n\nIdle — waiting for calls\n\nAI Active\n\nNo active signals\n\nSOCIAL\n\nView all\n\n0\n\nPosts queued\n\n0\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "nodes": [
+            {
+              "target": [
+                ".mb-4:nth-child(1) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(2) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(3) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".mb-4:nth-child(4) > .px-3.pb-1\\.5.text-muted-foreground\\/50"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.23 (foreground color: #464d58, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "kbd"
+              ],
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.69 (foreground color: #515965, background color: #0d1016, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": true
+    }
+  ]
+}

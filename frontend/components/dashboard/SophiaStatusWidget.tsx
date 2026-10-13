@@ -6,7 +6,7 @@ import { TrustScore } from '@/components/sophia/TrustScore'
 import { useSophiaStore } from '@/stores/sophia.store'
 
 interface ActiveCall {
-  session_id: string
+  session_id: string | null
   caller_name: string | null
   phone: string | null
   duration_seconds: number
@@ -14,6 +14,7 @@ interface ActiveCall {
 
 interface SophiaStatusWidgetProps {
   activeCall?: ActiveCall | null
+  availability?: 'loading' | 'error' | 'ready'
 }
 
 function formatDuration(s: number): string {
@@ -22,7 +23,7 @@ function formatDuration(s: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export function SophiaStatusWidget({ activeCall }: SophiaStatusWidgetProps) {
+export function SophiaStatusWidget({ activeCall, availability = 'ready' }: SophiaStatusWidgetProps) {
   const { signals, sessionId } = useSophiaStore()
 
   return (
@@ -31,14 +32,14 @@ export function SophiaStatusWidget({ activeCall }: SophiaStatusWidgetProps) {
         <div>
           <p className="text-sm font-semibold text-foreground font-display">Sophia</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {activeCall
+            {availability === 'error' ? 'Call status unavailable' : availability === 'loading' ? 'Checking call status…' : activeCall
               ? `Call in progress · ${formatDuration(activeCall.duration_seconds)}`
               : sessionId
               ? `Session ${sessionId.slice(0, 8)}…`
               : 'Idle — waiting for calls'}
           </p>
         </div>
-        <ModeIndicator />
+        {availability === 'ready' ? <ModeIndicator active={Boolean(activeCall)} /> : <span className="text-xs text-muted-foreground">{availability === 'error' ? 'Unknown' : 'Checking'}</span>}
       </div>
 
       {activeCall && (
@@ -63,7 +64,7 @@ export function SophiaStatusWidget({ activeCall }: SophiaStatusWidgetProps) {
         </div>
       )}
 
-      {!signals && !activeCall && (
+      {availability === 'ready' && !signals && !activeCall && (
         <div className="text-center py-2">
           <p className="text-xs text-muted-foreground">No active signals</p>
         </div>

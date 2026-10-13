@@ -1,0 +1,3 @@
+# Enhanced browser evidence
+
+These 37 local Chrome 134 viewport captures use the actual Next production build with synthetic API data. `evidence.json` records all states, 14 interactions and zero automated accessibility/runtime errors. The production fixture runner blocks external actions. CI on the same source also passed with its current matched Chromium; workflow artifacts are available in Dashboard run 38328389520. Populated follow-up/deal datasets extend beyond 200 records; Calendar uses a separate current-month fixture. These are not live seller records, actual bookings, or production phone evidence.

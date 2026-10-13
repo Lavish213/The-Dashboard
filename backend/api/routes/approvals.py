@@ -6,28 +6,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from approvals.engine import ApprovalEngine, ApprovalEngineError
 from db.session import get_session
 from models.enums import ApprovalType
+from models.user import User
 from repositories.approval import ApprovalRepository
 from schemas.approval import ApprovalCreate, ApprovalResolve, ApprovalResponse
-from security.auth import get_current_active_user
+from security.permissions import require_permission
+from security.rbac import Permission
 from workflows.approvals import ApprovalGateError
 from workflows.transitions import TransitionError
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_permission(Permission.APPROVALS_READ))])
 
 
 @router.post("/request", response_model=ApprovalResponse, status_code=status.HTTP_201_CREATED)
 async def request_approval(
     body: ApprovalCreate,
+    user: User = Depends(require_permission(Permission.WORKFLOWS_WRITE)),
     session: AsyncSession = Depends(get_session),
 ) -> ApprovalResponse:
+    if body.requested_by is not None and body.requested_by != user.id:
+        raise HTTPException(403, "Approval actor must match authenticated identity")
     try:
         engine = ApprovalEngine(session)
         approval = await engine.request(
             workflow_id=body.workflow_id,
             approval_type=body.approval_type,
-            requested_by=body.requested_by,
+            requested_by=user.id,
             risk_level=body.risk_level,
             expires_at=body.expires_at,
+            commit_before_publish=True,
         )
         return ApprovalResponse.model_validate(approval)
     except (TransitionError, ApprovalGateError) as exc:
@@ -38,8 +44,11 @@ async def request_approval(
 async def resolve_approval(
     approval_id: UUID,
     body: ApprovalResolve,
+    user: User = Depends(require_permission(Permission.APPROVALS_RESOLVE)),
     session: AsyncSession = Depends(get_session),
 ) -> ApprovalResponse:
+    if body.resolved_by is not None and body.resolved_by != user.id:
+        raise HTTPException(403, "Approval actor must match authenticated identity")
     from models.enums import ApprovalStatus
     if body.approval_status not in (ApprovalStatus.approved, ApprovalStatus.rejected):
         raise HTTPException(
@@ -50,9 +59,10 @@ async def resolve_approval(
         engine = ApprovalEngine(session)
         approval = await engine.resolve(
             approval_id=approval_id,
-            resolved_by=body.resolved_by,
+            resolved_by=user.id,
             approved=(body.approval_status == ApprovalStatus.approved),
             notes=body.resolution_notes or "",
+            commit_before_publish=True,
         )
         return ApprovalResponse.model_validate(approval)
     except (ApprovalGateError, ApprovalEngineError) as exc:

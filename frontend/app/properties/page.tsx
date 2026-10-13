@@ -1,10 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { Search, Home, User, DollarSign, Calendar, Landmark, ArrowRight, Bookmark, BookmarkCheck, Calculator, MapPin } from 'lucide-react'
 import { apiFetch } from '@/services/api'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth.store'
+
+const savedPropertyKey = 'karpathys_saved_properties'
+const emptySavedSnapshot = '[]'
+function subscribeSavedProperties(notify: () => void) {
+  window.addEventListener('storage', notify)
+  window.addEventListener('saved-properties-change', notify)
+  return () => {
+    window.removeEventListener('storage', notify)
+    window.removeEventListener('saved-properties-change', notify)
+  }
+}
+function savedPropertiesSnapshot(owner: string | undefined) {
+  if (!owner) return emptySavedSnapshot
+  try { return localStorage.getItem(`${savedPropertyKey}:${owner}`) ?? emptySavedSnapshot }
+  catch { return emptySavedSnapshot }
+}
 
 interface PropertyResult {
   attomId: string
@@ -116,6 +133,7 @@ function ARVCalculator({ arv }: { arv: number | null }) {
 }
 
 export default function PropertiesPage() {
+  const owner = useAuthStore(s => s.user?.id)
   const [tab, setTab] = useState<'search' | 'saved'>('search')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -124,14 +142,24 @@ export default function PropertiesPage() {
   const [error, setError] = useState<string | null>(null)
   const [creatingLead, setCreatingLead] = useState(false)
   const [leadCreated, setLeadCreated] = useState(false)
-  const [saved, setSaved] = useState<SavedProperty[]>([])
-
-  useEffect(() => {
-    const raw = localStorage.getItem('karpathys_saved_properties')
-    if (raw) {
-      try { setSaved(JSON.parse(raw)) } catch {}
+  const snapshot = useSyncExternalStore(subscribeSavedProperties, () => savedPropertiesSnapshot(owner), () => emptySavedSnapshot)
+  let saved: SavedProperty[] = []
+  try {
+    const parsed: unknown = JSON.parse(snapshot)
+    if (Array.isArray(parsed)) saved = parsed.filter((entry): entry is SavedProperty =>
+      typeof entry === 'object' && entry !== null && typeof entry.attomId === 'string' && typeof entry.address === 'string')
+  } catch {}
+  function setSaved(properties: SavedProperty[]): boolean {
+    if (!owner) return false
+    try {
+      localStorage.setItem(`${savedPropertyKey}:${owner}`, JSON.stringify(properties))
+      window.dispatchEvent(new Event('saved-properties-change'))
+      return true
+    } catch {
+      toast.error('Saved properties could not be stored')
+      return false
     }
-  }, [])
+  }
 
   function saveProperty(prop: PropertyResult) {
     const already = saved.find(s => s.attomId === prop.attomId)
@@ -140,16 +168,12 @@ export default function PropertiesPage() {
       return
     }
     const updated = [{ ...prop, savedAt: new Date().toISOString() }, ...saved]
-    setSaved(updated)
-    localStorage.setItem('karpathys_saved_properties', JSON.stringify(updated))
-    toast.success('Property saved')
+    if (setSaved(updated)) toast.success('Property saved')
   }
 
   function unsaveProperty(attomId: string) {
     const updated = saved.filter(s => s.attomId !== attomId)
-    setSaved(updated)
-    localStorage.setItem('karpathys_saved_properties', JSON.stringify(updated))
-    toast.success('Removed from saved')
+    if (setSaved(updated)) toast.success('Removed from saved')
   }
 
   const isSaved = (prop: PropertyResult) => saved.some(s => s.attomId === prop.attomId)
@@ -199,7 +223,7 @@ export default function PropertiesPage() {
     }
   }
 
-  function PropertyDetail({ prop }: { prop: PropertyResult }) {
+  function renderPropertyDetail(prop: PropertyResult) {
     return (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
@@ -257,7 +281,7 @@ export default function PropertiesPage() {
             ))}
           </div>
 
-          <ARVCalculator arv={prop.estimatedValue} />
+          <ARVCalculator key={prop.attomId} arv={prop.estimatedValue} />
         </div>
 
         <div className="space-y-4">
@@ -372,6 +396,7 @@ export default function PropertiesPage() {
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && search()}
                   placeholder="1234 Main St, Stockton CA"
+                  aria-label="Property address"
                   className="w-full rounded-lg border border-border bg-card pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-teal-500/50"
                 />
               </div>
@@ -385,7 +410,7 @@ export default function PropertiesPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
+              <div role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
@@ -394,7 +419,7 @@ export default function PropertiesPage() {
               <div className="rounded-lg border border-dashed border-border p-12 text-center">
                 <Home className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">Search an address to pull property data</p>
-                <p className="text-xs text-muted-foreground mt-1 opacity-60">Owner info, AVM, tax records, equity analysis</p>
+                <p className="text-xs text-muted-foreground mt-1">Owner info, AVM, tax records, equity analysis</p>
               </div>
             )}
 
@@ -414,7 +439,7 @@ export default function PropertiesPage() {
               </div>
             )}
 
-            {selected && <PropertyDetail prop={selected} />}
+            {selected && renderPropertyDetail(selected)}
           </>
         )}
 
@@ -424,7 +449,7 @@ export default function PropertiesPage() {
               <div className="rounded-lg border border-dashed border-border p-12 text-center">
                 <Bookmark className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">No saved properties yet</p>
-                <p className="text-xs text-muted-foreground mt-1 opacity-60">Search an address and click Save property</p>
+                <p className="text-xs text-muted-foreground mt-1">Search an address and click Save property</p>
               </div>
             ) : (
               saved.map(prop => (

@@ -29,10 +29,10 @@ async def readiness() -> dict:
         async with async_session_factory() as session:
             await session.execute(text("SELECT 1"))
         return {"status": "ready", "db": "ok"}
-    except Exception as exc:
+    except Exception:
         return JSONResponse(
             status_code=503,
-            content={"status": "not_ready", "db": "unreachable", "detail": str(exc)},
+            content={"status": "not_ready", "db": "unreachable"},
         )
 
 

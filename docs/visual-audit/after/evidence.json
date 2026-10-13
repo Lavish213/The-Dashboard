@@ -1,0 +1,1158 @@
+{
+  "phase": "after",
+  "fixtureOnly": true,
+  "browserExecutableOverride": true,
+  "capturedAt": "2026-10-12T17:59:54.900Z",
+  "browserVersion": "134.0.6998.35",
+  "screens": [
+    {
+      "name": "01-dashboard-desktop",
+      "path": "/dashboard",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDashboard\nAPI online\nSearch\n⌘K\nDashboard\n\nYour pipeline, conversations and next steps\n\nContinue your work\n\nReview decisions and keep seller conversations moving.\n\nReview approvals →\nInspect pending decisions\nFollow up with sellers →\nReview upcoming follow-ups\nOpen calendar →\nReview scheduled work\nOperations\n\nAll-time totals · Refreshes every 30 seconds\n\nSophia\n\nIdle — waiting for calls\n\nIdle\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nmarked qualified\n\nConverted\n\n6\n\nmarked converted\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSocial activity\nView social\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "02-settings-desktop",
+      "path": "/settings",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nSettings\nAPI online\nSearch\n⌘K\nSettings\n\nYour workspace preferences and configuration status\n\nAppearance\n\nSaved in this browser.\n\nUse light theme\nSophia\nNotifications\nUsers\nSecurity\nVoice configuration\n\nThe server does not currently expose voice configuration to this dashboard. Model, speech providers, approval policy and cost limits cannot be verified or changed here.\n\nOpen Sophia live",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "03-dashboard-mobile",
+      "path": "/dashboard",
+      "width": 390,
+      "text": "Skip to main content\nDashboard\n\nYour pipeline, conversations and next steps\n\nContinue your work\n\nReview decisions and keep seller conversations moving.\n\nReview approvals →\nFollow up with sellers →\nOpen calendar →\nOperations\n\nAll-time totals · Refreshes every 30 seconds\n\nSophia\n\nIdle — waiting for calls\n\nIdle\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nmarked qualified\n\nConverted\n\n6\n\nmarked converted\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSocial activity\nView social\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "04-mobile-menu",
+      "path": "/dashboard",
+      "width": 390,
+      "text": "Skip to main content\nDashboard\n\nYour pipeline, conversations and next steps\n\nContinue your work\n\nReview decisions and keep seller conversations moving.\n\nReview approvals →\nFollow up with sellers →\nOpen calendar →\nOperations\n\nAll-time totals · Refreshes every 30 seconds\n\nSophia\n\nIdle — waiting for calls\n\nIdle\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nmarked qualified\n\nConverted\n\n6\n\nmarked converted\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSocial activity\nView social\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4\nDashboard\nLeads\nCalls\nApprovals\nSettings\nClose\nWorkspace navigation\n\nChoose a workspace page.\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\nApprovals\nSophia Live\nAudit Log\nAnalytics\nActivity\nTranscripts\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "05-settings-mobile",
+      "path": "/settings",
+      "width": 390,
+      "text": "Skip to main content\nSettings\n\nYour workspace preferences and configuration status\n\nAppearance\n\nSaved in this browser.\n\nUse light theme\nSophia\nNotifications\nUsers\nSecurity\nVoice configuration\n\nThe server does not currently expose voice configuration to this dashboard. Model, speech providers, approval policy and cost limits cannot be verified or changed here.\n\nOpen Sophia live\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "06-dashboard-outage",
+      "path": "/dashboard",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDashboard\nAPI unavailable\nSearch\n⌘K\nDashboard\n\nYour pipeline, conversations and next steps\n\nContinue your work\n\nReview decisions and keep seller conversations moving.\n\nReview approvals →\nInspect pending decisions\nFollow up with sellers →\nReview upcoming follow-ups\nOpen calendar →\nReview scheduled work\nOperations\n\nAll-time totals · Refreshes every 30 seconds\n\nAnalytics unavailable. Last successful values, if present, may be stale.\n\nLive call or conversation signals unavailable.\n\nSophia\n\nCall status unavailable\n\nUnknown\n\nAnalytics could not be loaded.\n\nSocial activity\nView social\n\nSocial data unavailable. Existing values may be stale; — means unavailable.\n\nRetry social data\n\n—\n\nPosts queued\n\n—\n\nPosts live\n\n—\n\nSocial leads\n\n—\n\nReddit matches",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "07-dashboard-light",
+      "path": "/dashboard",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDashboard\nAPI online\nSearch\n⌘K\nDashboard\n\nYour pipeline, conversations and next steps\n\nContinue your work\n\nReview decisions and keep seller conversations moving.\n\nReview approvals →\nInspect pending decisions\nFollow up with sellers →\nReview upcoming follow-ups\nOpen calendar →\nReview scheduled work\nOperations\n\nAll-time totals · Refreshes every 30 seconds\n\nSophia\n\nIdle — waiting for calls\n\nIdle\n\nNo active signals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg call duration\n\n2m 45s\n\nper completed call\n\nQualified leads\n\n10\n\nmarked qualified\n\nConverted\n\n6\n\nmarked converted\n\nActive workflows\n\n7\n\n17 completed\n\nWorkflows done\n\n17\n\n24 total\n\nSocial activity\nView social\n\n5\n\nPosts queued\n\n3\n\nPosts live\n\n0\n\nSocial leads\n\n0\n\nReddit matches\n\nfacebook: 4\ninstagram: 4",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-leads",
+      "path": "/leads",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nLeads\nAPI online\nSearch\n⌘K\nLead Pipeline\n\n0 total leads\n\nNEW\n0\nDrop here\nCONTACTED\n0\nDrop here\nQUALIFIED\n0\nDrop here\nDISQUALIFIED\n0\nDrop here\nCONVERTED\n0\nDrop here\nDEAD\n0\nDrop here",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-deals",
+      "path": "/deals",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDeals\nAPI online\nSearch\n⌘K\nDeals\n\nActive pipeline — qualified leads and closed deals\n\nTotal deals\n\n0\n\nQualified\n\n0\n\nConverted\n\n0\n\nAvg score\n\n0\n\nNo deals yet\n\nLeads move here when Sophia qualifies them",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-followups",
+      "path": "/followups",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nFollow-ups\nAPI online\nSearch\n⌘K\nFollow-ups\n\nScheduled callbacks and follow-up queue\n\n0\n\nOverdue\n\n0\n\nDue today\n\n0\n\nUpcoming\n\nAll caught up\n\nNo follow-ups scheduled. Set follow-up dates on lead detail pages.",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-calendar",
+      "path": "/calendar",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nCalendar\nAPI online\nSearch\n⌘K\nCalendar\n\nLead follow-up dates — external calendar bookings are not connected here\n\nOctober 2026\n\nSun\nMon\nTue\nWed\nThu\nFri\nSat\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n\nClick a day to see scheduled follow-ups",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-social",
+      "path": "/social",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nSocial\nAPI online\nSearch\n⌘K\nSocial\n\nContent queue, lead capture, and group intelligence\n\nQueue\nCompose\nLeads\nReddit\nAnalytics\n\n0 total posts\n\nNew post\n\nNo posts yet\n\nUse the Compose tab to create your first post",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-properties",
+      "path": "/properties",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nProperties\nAPI online\nSearch\n⌘K\nProperties\n\nSearch, analyze, and save properties for acquisition\n\nSearch\nSaved (0)\nSearch\n\nSearch an address to pull property data\n\nOwner info, AVM, tax records, equity analysis",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-calls",
+      "path": "/calls",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nCalls\nAPI online\nSearch\n⌘K\nCalls\n\n0 total calls\n\nAll\nCompleted\nConnected\nNo answer\nVoicemail\nFailed\nSTATUS\tPROVIDER\tDURATION\tSTARTED\tLEAD\nNo calls found",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-workflows",
+      "path": "/workflows",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nWorkflows\nAPI online\nSearch\n⌘K\nWorkflows\n\nLead acquisition workflow execution\n\nAll\nActive\nCompleted\nPaused\nFailed\nCancelled\n\n0 WORKFLOWS\n\nNo workflows found\nSelect a workflow to view events",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-approvals",
+      "path": "/approvals",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nApprovals\nAPI online\nSearch\n⌘K\nApprovals\n\nGovernance approval queue\n\n0 pending\nRefresh\n\nNo pending approvals",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-realtime",
+      "path": "/realtime",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nSophia Live\nAPI online\nSearch\n⌘K\nSophia Live\n\nReal-time call monitoring and agent health\n\nIdle\n\nNo active call\n\nSophia is idle\n\nRECENT CALLS\n\nNo recent calls",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-audit",
+      "path": "/audit",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nAudit Log\nAPI online\nSearch\n⌘K\nAudit Log\n\n0 total events — immutable record\n\nTIME\tACTOR\tACTION\tTARGET\nNo audit events yet",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-analytics",
+      "path": "/analytics",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nAnalytics\nAPI online\nSearch\n⌘K\nAnalytics\n\nAll-time lead status, call outcomes and workflow totals\n\nTotal leads\n\n42\n\n14 new\n\nTotal calls\n\n120\n\n96 completed\n\nContact rate\n\n80%\n\ncalls answered\n\nAvg duration\n\n2m 45s\n\nper completed call\n\nLEAD STATUS DISTRIBUTION\n\nNew\n14\nContacted\n12\nQualified\n10\nConverted\n6\nDead\n\nCALL OUTCOMES\n\nCompletedFailedNo answerVoicemail\n\nHistorical trends are unavailable. The analytics API currently provides totals without daily observations.\n\nWORKFLOWS\n\nActive workflows\n\n7\n\nCompleted\n\n17\n\nFailed\n\n0\n\nTotal\n\n24",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-activity",
+      "path": "/activity",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nActivity\nAPI online\nSearch\n⌘K\nActivity\n\n0 domain events\n\nAll\nSophia\nLeads\nWorkflows\nApprovals\nNo activity yet",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "route-transcripts",
+      "path": "/transcripts",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nTranscripts\nAPI online\nSearch\n⌘K\nTranscripts\n\n0 transcripts\n\n0 TRANSCRIPTS\n\nNo transcripts yet\nSelect a transcript to view chunks",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "mobile-calendar",
+      "path": "/calendar",
+      "width": 390,
+      "text": "Skip to main content\nCalendar\n\nLead follow-up dates — external calendar bookings are not connected here\n\nOctober 2026\n\nSun\nMon\nTue\nWed\nThu\nFri\nSat\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n\nClick a day to see scheduled follow-ups\n\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "mobile-calls",
+      "path": "/calls",
+      "width": 390,
+      "text": "Skip to main content\nCalls\n\n0 total calls\n\nAll\nCompleted\nConnected\nNo answer\nVoicemail\nFailed\nSTATUS\tPROVIDER\tDURATION\tSTARTED\tLEAD\nNo calls found\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "mobile-leads",
+      "path": "/leads",
+      "width": 390,
+      "text": "Skip to main content\nLead Pipeline\n\n0 total leads\n\nNEW\n0\nDrop here\nCONTACTED\n0\nDrop here\nQUALIFIED\n0\nDrop here\nDISQUALIFIED\n0\nDrop here\nCONVERTED\n0\nDrop here\nDEAD\n0\nDrop here\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "mobile-approvals",
+      "path": "/approvals",
+      "width": 390,
+      "text": "Skip to main content\nApprovals\n\nGovernance approval queue\n\n0 pending\nRefresh\n\nNo pending approvals\n\nDashboard\nLeads\nCalls\nApprovals\nSettings",
+      "overflow": {
+        "viewport": 390,
+        "document": 390,
+        "main": 390
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-analytics",
+      "path": "/analytics",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nAnalytics\nAPI unavailable\nSearch\n⌘K\nAnalytics\n\nPerformance metrics\n\nAnalytics unavailable.\n\nRetry analytics",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-transcripts",
+      "path": "/transcripts",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nTranscripts\nAPI unavailable\nSearch\n⌘K\nTranscripts\n\n0 transcripts\n\nTranscripts unavailable. Existing records may be stale.\n\n0 TRANSCRIPTS\n\nSelect a transcript to view chunks",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-deals",
+      "path": "/deals",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nDeals\nAPI unavailable\nSearch\n⌘K\nDeals\n\nActive pipeline — qualified leads and closed deals\n\nDeals unavailable. Existing values may be stale.\n\nTotal deals\n\n—\n\nQualified\n\n—\n\nConverted\n\n—\n\nAvg score\n\n—",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-followups",
+      "path": "/followups",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nFollow-ups\nAPI unavailable\nSearch\n⌘K\nFollow-ups\n\nScheduled callbacks and follow-up queue\n\nFollow-ups unavailable. Existing values may be stale.\n\n—\n\nOverdue\n\n—\n\nDue today\n\n—\n\nUpcoming",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-calendar",
+      "path": "/calendar",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nCalendar\nAPI unavailable\nSearch\n⌘K\nCalendar\n\nLead follow-up dates — external calendar bookings are not connected here\n\nCalendar data unavailable. Existing dates may be stale.\n\nOctober 2026\n\nSun\nMon\nTue\nWed\nThu\nFri\nSat\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n\nClick a day to see scheduled follow-ups",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    },
+    {
+      "name": "outage-social",
+      "path": "/social",
+      "width": 1440,
+      "text": "Skip to main content\nK\nKarpathys\n\nOPERATIONS\n\nDashboard\nLeads\nDeals\nFollow-ups\nCalendar\nSocial\nProperties\nCalls\nWorkflows\n\nGOVERNANCE\n\nApprovals\nSophia Live\nAudit Log\n\nINSIGHTS\n\nAnalytics\nActivity\nTranscripts\n\nSYSTEM\n\nSettings\nCollapse\nSocial\nAPI unavailable\nSearch\n⌘K\nSocial\n\nContent queue, lead capture, and group intelligence\n\nSocial data unavailable. Displayed records may be stale.\nRetry social data\nQueue\nCompose\nLeads\nReddit\nAnalytics\n\n0 total posts\n\nNew post\nFailed to load social data",
+      "overflow": {
+        "viewport": 1440,
+        "document": 1440,
+        "main": 1160
+      },
+      "violations": []
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/workflows",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/approvals/pending",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/realtime/active-call",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/audit",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/activity",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/transcripts",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/calls",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/approvals/pending",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/transcripts",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/transcripts",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/leads",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/reddit/matches",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/social/posts/analytics",
+      "outage": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "outage": false
+    },
+    {
+      "method": "GET",
+      "path": "/api/ready",
+      "outage": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "outage": false
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "outage": false
+    }
+  ],
+  "interactions": [
+    "Settings displays authenticated account",
+    "Security audit destination",
+    "Sidebar collapses and expands",
+    "Command palette opens and dismisses",
+    "Mobile navigation selects Calls and closes",
+    "Logout clears credentials and redirects to login",
+    "Structured sign-in rejection remains readable without crashing"
+  ]
+}

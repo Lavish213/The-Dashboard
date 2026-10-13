@@ -35,6 +35,9 @@ import models.user  # noqa: E402, F401
 import models.workflow  # noqa: E402, F401
 import models.workflow_event  # noqa: E402, F401
 from db.base import Base  # noqa: E402
+from models.registry import load_all_models  # noqa: E402
+
+load_all_models()
 
 target_metadata = Base.metadata
 

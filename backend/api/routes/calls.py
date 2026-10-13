@@ -23,10 +23,24 @@ from calls.schemas import (
 )
 from db.session import get_session
 from models.call import Call
-from models.enums import CallStatus
-from security.auth import get_current_active_user
+from models.call_participant import CallParticipant
+from models.sophia_session import SophiaSession
+from models.enums import CallStatus, UserRole
+from security.permissions import require_permission
+from security.rbac import Permission
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_permission(Permission.CALLS_READ))])
+
+
+async def _require_participant_actor(session, session_id, participant_id, user):
+    result = await session.execute(select(CallParticipant).where(
+        CallParticipant.id == participant_id, CallParticipant.session_id == session_id,
+    ))
+    participant = result.scalar_one_or_none()
+    if participant is None:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    if user.role != UserRole.admin and participant.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Participant belongs to another operator")
 
 
 @router.get("")
@@ -43,10 +57,20 @@ async def list_calls(
     total = (await session.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
     result = await session.execute(q.offset((page - 1) * page_size).limit(page_size))
     calls = result.scalars().all()
+    session_ids = {}
+    provider_ids = [call.provider_call_id for call in calls if call.provider_call_id]
+    if provider_ids:
+        matched = await session.execute(select(SophiaSession).where(
+            SophiaSession.channel_metadata["call_sid"].astext.in_(provider_ids)
+        ))
+        for conversation in matched.scalars():
+            sid = conversation.channel_metadata["call_sid"]
+            session_ids.setdefault(sid, []).append(str(conversation.id))
     return {
         "items": [
             {
                 "id": str(c.id),
+                "sophia_session_id": session_ids[c.provider_call_id][0] if len(session_ids.get(c.provider_call_id, [])) == 1 else None,
                 "lead_id": str(c.lead_id) if c.lead_id else None,
                 "workflow_id": str(c.workflow_id) if c.workflow_id else None,
                 "call_status": c.call_status.value,
@@ -66,7 +90,7 @@ async def list_calls(
     }
 
 
-@router.post("", response_model=CallSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CallSessionResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission(Permission.CALLS_INITIATE))])
 async def create_session(
     body: CallSessionCreate,
     session: AsyncSession = Depends(get_session),
@@ -86,7 +110,7 @@ async def get_session_detail(
     return CallSessionResponse.model_validate(call_session)
 
 
-@router.post("/{session_id}/complete", response_model=CallSessionResponse)
+@router.post("/{session_id}/complete", response_model=CallSessionResponse, dependencies=[Depends(require_permission(Permission.CALLS_INITIATE))])
 async def complete_session(
     session_id: UUID,
     session: AsyncSession = Depends(get_session),
@@ -99,7 +123,7 @@ async def complete_session(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
-@router.post("/{session_id}/fail", response_model=CallSessionResponse)
+@router.post("/{session_id}/fail", response_model=CallSessionResponse, dependencies=[Depends(require_permission(Permission.CALLS_INITIATE))])
 async def fail_session(
     session_id: UUID,
     reason: str = Query(""),
@@ -121,14 +145,18 @@ async def fail_session(
 async def join_session(
     session_id: UUID,
     body: CallParticipantJoin,
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> CallParticipantResponse:
+    from models.enums import ParticipantRole
+    if body.user_id not in (None, current_user.id) or body.role != ParticipantRole.operator:
+        raise HTTPException(status_code=403, detail="Participant identity and role must match the authenticated operator")
     try:
         rt = CallSessionRuntime(session)
         _, participant = await rt.join(
             session_id=session_id,
             role=body.role,
-            user_id=body.user_id,
+            user_id=current_user.id,
             connection_id=body.connection_id,
         )
         return CallParticipantResponse.model_validate(participant)
@@ -143,8 +171,10 @@ async def join_session(
 async def leave_session(
     session_id: UUID,
     participant_id: UUID,
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> CallParticipantResponse:
+    await _require_participant_actor(session, session_id, participant_id, current_user)
     rt = CallSessionRuntime(session)
     participant = await rt.leave(session_id, participant_id)
     return CallParticipantResponse.model_validate(participant)
@@ -157,8 +187,10 @@ async def leave_session(
 async def heartbeat(
     session_id: UUID,
     participant_id: UUID,
+    current_user=Depends(require_permission(Permission.CALLS_INITIATE)),
     session: AsyncSession = Depends(get_session),
 ) -> None:
+    await _require_participant_actor(session, session_id, participant_id, current_user)
     rt = CallSessionRuntime(session)
     await rt.heartbeat(session_id, participant_id)
 

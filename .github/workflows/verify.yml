@@ -1,0 +1,98 @@
+name: Dashboard verification
+on:
+  push:
+    branches: [repair/system-reliability]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  production-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python scripts/verify-production-compose.py
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karpathys_test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d karpathys_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8
+        ports: [6379:6379]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/karpathys_test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/karpathys_test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      APP_ENV: development
+      SECRET_KEY: test-only-secret-with-no-production-access-123456
+      REI_REPO: ${{ github.workspace }}/_rei-contract
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - uses: actions/checkout@v4
+        with:
+          repository: Lavish213/REI-AGENT
+          ref: 44e3b54ae8537d80d7c3896bc2f43b4b54e66101
+          path: _rei-contract
+      - run: pytest tests tests_safety -q --junitxml=test-results.xml
+      - run: PYTHONPATH=. python scripts/initialize_database.py --roundtrip-test
+      - run: PYTHONPATH=. python scripts/verify_schema.py
+      - run: alembic current
+      - name: Install isolated REI bridge runtime
+        run: |
+          python -m venv /tmp/rei-bridge-runtime
+          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0
+      - name: Real HTTP voice outbox restart and receipt recovery
+        run: PYTHONPATH=. REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_voice_outbox_boundary.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dashboard-backend-results
+          path: |
+            backend/test-results.xml
+            backend/voice-outbox-boundary-results.json
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dashboard-browser-evidence
+          path: docs/visual-audit/enhanced

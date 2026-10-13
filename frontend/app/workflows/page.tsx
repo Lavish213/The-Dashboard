@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsString } from 'nuqs'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch } from '@/services/api'
@@ -43,22 +44,20 @@ const STATUSES = [
 ]
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<Workflow[]>([])
-  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<string | null>(null)
   const [events, setEvents] = useState<WorkflowEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useQueryState('status', parseAsString.withDefault(''))
 
-  useEffect(() => {
-    setLoading(true)
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: ['workflow-list', statusFilter],
+    queryFn: ({ signal }) => {
     const params = new URLSearchParams({ page_size: '100' })
     if (statusFilter) params.set('workflow_status', statusFilter)
-    apiFetch<{ items: Workflow[] }>(`/api/v1/workflows?${params}`)
-      .then((r) => setWorkflows(r.items ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [statusFilter])
+    return apiFetch<{ items: Workflow[] }>(`/api/v1/workflows?${params}`, { signal })
+    },
+  })
+  const workflows = data?.items ?? []
 
   async function loadEvents(id: string) {
     setSelected(id)
@@ -77,6 +76,7 @@ export default function WorkflowsPage() {
 
   return (
     <PageContainer title="Workflows" description="Lead acquisition workflow execution">
+      {error && <p role="alert" className="text-sm text-destructive">Workflows could not be loaded.</p>}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         {STATUSES.map((s) => (
           <button
@@ -101,7 +101,7 @@ export default function WorkflowsPage() {
           {loading && [...Array(4)].map((_, i) => (
             <div key={i} className="rounded-lg border bg-card p-4 h-20 animate-pulse" />
           ))}
-          {!loading && workflows.length === 0 && (
+          {!loading && !error && workflows.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No workflows found
             </div>

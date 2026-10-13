@@ -95,6 +95,7 @@ export default function SocialPage() {
   const [redditMatches, setRedditMatches] = useState<RedditMatch[]>([])
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [composing, setComposing] = useState(false)
   const [curatorInput, setCuratorInput] = useState('')
   const [curatorType, setCuratorType] = useState('text')
@@ -123,7 +124,9 @@ export default function SocialPage() {
       setLeads(leadsData.items)
       setRedditMatches(redditData.items)
       setAnalytics(analyticsData)
+      setLoadError(false)
     } catch {
+      setLoadError(true)
       toast.error('Failed to load social data')
     } finally {
       setLoading(false)
@@ -214,6 +217,7 @@ export default function SocialPage() {
 
   return (
     <PageContainer title="Social" description="Content queue, lead capture, and group intelligence">
+      {loadError && <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 text-sm text-destructive">Social data unavailable. Displayed records may be stale.<Button variant="outline" disabled={loading} onClick={() => void loadAll()}>Retry social data</Button></div>}
       <div className="space-y-4 max-w-content">
         <div className="flex items-center gap-2 border-b border-border pb-3 flex-wrap">
           {tabs.map(t => (
@@ -248,7 +252,7 @@ export default function SocialPage() {
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => <div key={i} className="h-20 rounded-lg border bg-card animate-pulse" />)}
               </div>
-            ) : posts.length === 0 ? (
+            ) : !loadError && posts.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-10 text-center">
                 <Share2 className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">No posts yet</p>
@@ -394,7 +398,7 @@ export default function SocialPage() {
               <div className="space-y-2">
                 {[...Array(3)].map((_, i) => <div key={i} className="h-20 rounded-lg border bg-card animate-pulse" />)}
               </div>
-            ) : leads.length === 0 ? (
+            ) : !loadError && leads.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-10 text-center">
                 <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">No social leads yet</p>
@@ -459,7 +463,7 @@ export default function SocialPage() {
                 {scanning ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Scanning…</> : <><Radio className="h-3.5 w-3.5" /> Scan now</>}
               </Button>
             </div>
-            {redditMatches.length === 0 ? (
+            {!loadError && redditMatches.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border p-10 text-center">
                 <Radio className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">No Reddit matches yet</p>

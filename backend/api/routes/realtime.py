@@ -2,8 +2,8 @@
 Realtime WebSocket endpoint and HTTP observability routes.
 
 WS connect flow:
-  1. Client connects: /api/v1/realtime/ws?token=<jwt>
-  2. Server validates JWT, extracts user_id + role
+  1. Client connects using a single-use, 20-second websocket ticket
+  2. Server consumes ticket and loads current active database identity
   3. Registers connection, sends ConnectedAck
   4. Starts heartbeat task
   5. Receives messages in loop, dispatches handlers
@@ -17,6 +17,8 @@ import json
 import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from core.redis import get_redis
+from db.session import async_session_factory
 from observability.correlation import generate_correlation_id
 from observability.metrics import metrics
 from realtime.manager import connection_manager
@@ -32,18 +34,37 @@ from realtime.protocol import (
 )
 from realtime.reconnect import HEARTBEAT_INTERVAL_SECONDS, heartbeat_tracker
 from realtime.subscriptions import channel_allowed, subscription_manager
-from security.auth import decode_access_token
-from core.redis import get_redis
+from security.websocket_tickets import redeem_ticket, validate_principal
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 logger = structlog.get_logger(__name__)
 
 
-async def _heartbeat_loop(connection_id: str) -> None:
+async def _check_identity(connection_id: str, principal: dict, role: str) -> bool:
+    try:
+        validated = False
+        async with asyncio.timeout(5):
+            async for redis in get_redis():
+                async with async_session_factory() as session:
+                    await validate_principal(principal, session, redis, expected_role=role)
+                    validated = True
+        if not validated:
+            raise RuntimeError("Realtime identity store unavailable")
+        return True
+    except Exception:
+        subscription_manager.unsubscribe_all(connection_id)
+        heartbeat_tracker.record_disconnect(connection_id)
+        await connection_manager.close_connection(connection_id, code=4001)
+        return False
+
+
+async def _heartbeat_loop(connection_id: str, principal: dict, role: str) -> None:
     """Ping every HEARTBEAT_INTERVAL_SECONDS until connection is gone."""
     while connection_manager.is_connected(connection_id):
         await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
         if not connection_manager.is_connected(connection_id):
+            break
+        if not await _check_identity(connection_id, principal, role):
             break
         ping = PingMessage()
         ok = await connection_manager.send_json(connection_id, ping.model_dump())
@@ -54,12 +75,12 @@ async def _heartbeat_loop(connection_id: str) -> None:
 @router.websocket("/ws")
 async def websocket_endpoint(
     ws: WebSocket,
-    token: str | None = Query(default=None),
+    ticket: str | None = Query(default=None),
 ) -> None:
     # --- Auth gate — reject immediately if no token or invalid token ---
-    if token is None:
+    if ticket is None:
         await ws.accept()
-        err = RealtimeError(code="authentication_error", message="Missing authentication token")
+        err = RealtimeError(code="authentication_error", message="Missing websocket ticket")
         await ws.send_json(err.model_dump())
         await ws.close(code=4001)
         return
@@ -69,9 +90,11 @@ async def websocket_endpoint(
 
     try:
         async for redis in get_redis():
-            payload = await decode_access_token(token, redis)
-            user_id = payload.get("sub")
-            role = payload.get("role", "operator")
+            async with asyncio.timeout(5):
+                async with async_session_factory() as session:
+                    user, principal = await redeem_ticket(ticket, session, redis, return_claims=True)
+                    user_id = str(user.id)
+                    role = user.role.value
     except Exception:
         await ws.accept()
         err = RealtimeError(code="authentication_error", message="Invalid or expired token")
@@ -88,7 +111,7 @@ async def websocket_endpoint(
     ack = ConnectedAck(connection_id=connection_id, user_id=user_id)
     await connection_manager.send_json(connection_id, ack.model_dump())
 
-    heartbeat_task = asyncio.create_task(_heartbeat_loop(connection_id))
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(connection_id, principal, role))
 
     logger.info(
         "realtime.ws.connected",
@@ -100,12 +123,21 @@ async def websocket_endpoint(
     try:
         while True:
             raw = await ws.receive_text()
+            if len(raw.encode()) > 65536:
+                await connection_manager.close_connection(connection_id, code=1009)
+                break
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
                 err = RealtimeError(code="parse_error", message="Invalid JSON")
                 await connection_manager.send_json(connection_id, err.model_dump())
                 continue
+            if not isinstance(data, dict):
+                err = RealtimeError(code="parse_error", message="Message must be a JSON object")
+                await connection_manager.send_json(connection_id, err.model_dump())
+                continue
+            if not await _check_identity(connection_id, principal, role):
+                break
 
             msg = parse_client_message(data)
             if msg is None:
@@ -121,7 +153,7 @@ async def websocket_endpoint(
                     heartbeat_tracker.record_pong(connection_id)
 
                 case "subscribe":
-                    if not channel_allowed(msg.channel, role):
+                    if not channel_allowed(msg.channel, role, user_id):
                         err = RealtimeError(
                             code="permission_denied",
                             message=f"Not allowed to subscribe to {msg.channel}",
@@ -142,7 +174,7 @@ async def websocket_endpoint(
                     await connection_manager.send_json(connection_id, unsub_ack.model_dump())
 
                 case "replay":
-                    if not channel_allowed(msg.channel, role):
+                    if not channel_allowed(msg.channel, role, user_id):
                         err = RealtimeError(
                             code="permission_denied",
                             message=f"Not allowed to replay {msg.channel}",
@@ -150,7 +182,6 @@ async def websocket_endpoint(
                         )
                         await connection_manager.send_json(connection_id, err.model_dump())
                     else:
-                        from db.session import async_session_factory
                         from events.replay import replay_channel
 
                         async with async_session_factory() as session:
@@ -181,6 +212,7 @@ async def websocket_endpoint(
         logger.error("realtime.ws.error", connection_id=connection_id, error=str(exc))
     finally:
         heartbeat_task.cancel()
+        await asyncio.gather(heartbeat_task, return_exceptions=True)
         subscription_manager.unsubscribe_all(connection_id)
         heartbeat_tracker.record_disconnect(connection_id)
         await connection_manager.disconnect(connection_id)

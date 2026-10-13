@@ -1,6 +1,6 @@
 /**
  * Native WebSocket client with:
- * - JWT token auth via ?token= query param
+ * - Single-use ticket auth
  * - Automatic reconnect with exponential backoff
  * - Heartbeat ping/pong
  * - Typed message dispatch via callbacks
@@ -29,7 +29,7 @@ export class WebSocketClient {
   private status: ConnectionStatus = "disconnected";
 
   constructor(
-    private readonly url: string,
+    private readonly url: string | (() => Promise<string>),
     private readonly callbacks: WebSocketClientCallbacks,
   ) {
     this.reconnect = new ReconnectStrategy();
@@ -55,8 +55,16 @@ export class WebSocketClient {
     }
   }
 
-  private _openSocket(): void {
-    const ws = new WebSocket(this.url);
+  private async _openSocket(): Promise<void> {
+    let ws: WebSocket;
+    try {
+      const url = typeof this.url === 'function' ? await this.url() : this.url;
+      if (this.destroyed) return;
+      ws = new WebSocket(url);
+    } catch {
+      if (!this.destroyed) this._scheduleReconnect();
+      return;
+    }
     this.ws = ws;
 
     ws.onopen = () => {
@@ -125,8 +133,15 @@ export class WebSocketClient {
   }
 }
 
-/** Build WebSocket URL from API base URL and JWT token. */
-export function buildWsUrl(apiBaseUrl: string, token: string): string {
-  const wsBase = apiBaseUrl.replace(/^http/, "ws");
-  return `${wsBase}/api/v1/realtime/ws?token=${encodeURIComponent(token)}`;
+/** Build an absolute socket URL; empty configuration uses the current origin. */
+export function buildWsUrl(apiBaseUrl: string, ticket: string): string {
+  const url = new URL(apiBaseUrl || window.location.origin);
+  if (url.username || url.password || !['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol)) throw new Error('Invalid websocket origin');
+  url.protocol = url.protocol === 'https:' || url.protocol === 'wss:' ? 'wss:' : 'ws:';
+  if (window.location.protocol === 'https:' && url.protocol !== 'wss:') throw new Error('Insecure websocket origin');
+  url.pathname = '/api/v1/realtime/ws';
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('ticket', ticket);
+  return url.toString();
 }

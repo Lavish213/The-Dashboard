@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/services/api'
 import { Share2, Users, FileText, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 interface SocialStats {
   total_posts: number
@@ -12,81 +13,39 @@ interface SocialStats {
   by_platform: Record<string, number>
 }
 
-interface SocialLeadCount {
-  total: number
-}
-
-interface RedditCount {
-  total: number
-}
-
 export function SocialWidget() {
-  const [stats, setStats] = useState<SocialStats | null>(null)
-  const [leadCount, setLeadCount] = useState(0)
-  const [redditCount, setRedditCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const [s, l, r] = await Promise.all([
-          apiFetch<SocialStats>('/api/v1/social/posts/analytics'),
-          apiFetch<SocialLeadCount>('/api/v1/social/leads?page_size=1'),
-          apiFetch<RedditCount>('/api/v1/reddit/matches?page_size=1'),
-        ])
-        setStats(s)
-        setLeadCount((l as any).total ?? 0)
-        setRedditCount((r as any).total ?? 0)
-      } catch {}
-      finally { setLoading(false) }
-    }
-    load()
-    const id = setInterval(load, 60_000)
-    return () => clearInterval(id)
-  }, [])
-
+  const stats = useQuery({ queryKey: ['social-summary'], queryFn: ({ signal }) => apiFetch<SocialStats>('/api/v1/social/posts/analytics', { signal }), refetchInterval: 60_000, retry: 1 })
+  const leads = useQuery({ queryKey: ['social-lead-count'], queryFn: ({ signal }) => apiFetch<{ total: number }>('/api/v1/social/leads?page_size=1', { signal }), refetchInterval: 60_000, retry: 1 })
+  const reddit = useQuery({ queryKey: ['reddit-match-count'], queryFn: ({ signal }) => apiFetch<{ total: number }>('/api/v1/reddit/matches?page_size=1', { signal }), refetchInterval: 60_000, retry: 1 })
+  const failed = stats.isError || leads.isError || reddit.isError
+  const loading = stats.isPending || leads.isPending || reddit.isPending
   const tiles = [
-    { label: 'Posts queued', value: stats ? stats.total_posts - stats.posted : 0, icon: FileText, color: 'text-blue-400' },
-    { label: 'Posts live', value: stats?.posted ?? 0, icon: Share2, color: 'text-green-400' },
-    { label: 'Social leads', value: leadCount, icon: Users, color: 'text-teal-400' },
-    { label: 'Reddit matches', value: redditCount, icon: TrendingUp, color: 'text-orange-400' },
+    { label: 'Posts queued', value: stats.data ? Math.max(0, stats.data.total_posts - stats.data.posted) : null, icon: FileText },
+    { label: 'Posts live', value: stats.data?.posted ?? null, icon: Share2 },
+    { label: 'Social leads', value: leads.data?.total ?? null, icon: Users },
+    { label: 'Reddit matches', value: reddit.data?.total ?? null, icon: TrendingUp },
   ]
 
   return (
-    <div className="rounded-lg border bg-card shadow-card p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Share2 className="h-4 w-4 text-teal-400" />
-          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Social</p>
-        </div>
-        <Link href="/social" className="text-xs text-teal-400 hover:underline">View all</Link>
+    <section className="rounded-lg border bg-card p-5 space-y-4" aria-labelledby="social-heading" aria-busy={loading}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="social-heading" className="text-base font-semibold">Social activity</h2>
+        <Link href="/social" className="text-sm text-foreground underline underline-offset-4">View social</Link>
       </div>
-      {loading ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-14 rounded-md bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {tiles.map(t => (
-            <div key={t.label} className="rounded-md bg-muted/40 p-3 text-center">
-              <t.icon className={`h-4 w-4 mx-auto mb-1 ${t.color}`} />
-              <p className={`text-xl font-semibold tabular-nums ${t.color}`}>{t.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      {stats && Object.keys(stats.by_platform).length > 0 && (
-        <div className="flex items-center gap-3 pt-1 border-t border-border">
-          {Object.entries(stats.by_platform).map(([platform, count]) => (
-            <span key={platform} className="text-xs text-muted-foreground">
-              {platform}: <span className="text-foreground font-medium">{count}</span>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+      {failed && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+        <p className="text-sm text-destructive">Social data unavailable. Existing values may be stale; — means unavailable.</p>
+        <Button size="sm" variant="outline" disabled={stats.isFetching || leads.isFetching || reddit.isFetching} onClick={() => { void stats.refetch(); void leads.refetch(); void reddit.refetch() }}>Retry social data</Button>
+      </div>}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {tiles.map(tile => <div key={tile.label} className="rounded-md bg-muted/40 p-3">
+          <tile.icon className="h-4 w-4 mb-2 text-muted-foreground" aria-hidden="true" />
+          <p className="text-2xl font-semibold tabular-nums">{tile.value ?? (loading ? '…' : '—')}</p>
+          <p className="text-xs text-muted-foreground mt-1">{tile.label}</p>
+        </div>)}
+      </div>
+      {stats.data && Object.keys(stats.data.by_platform).length > 0 && <div className="flex flex-wrap gap-3 border-t border-border pt-3">
+        {Object.entries(stats.data.by_platform).map(([platform, count]) => <span key={platform} className="text-xs text-muted-foreground">{platform}: <span className="text-foreground font-medium">{count}</span></span>)}
+      </div>}
+    </section>
   )
 }

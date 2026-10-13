@@ -41,10 +41,14 @@ def validate_channel(channel: str) -> bool:
     return any(p.match(channel) for p in _CHANNEL_PATTERNS)
 
 
-def channel_allowed(channel: str, role: str) -> bool:
+def channel_allowed(channel: str, role: str, user_id: str | None = None) -> bool:
     """Check if a role may subscribe to a channel."""
     if not validate_channel(channel):
         return False
+    if role not in {"admin", "operator", "reviewer"}:
+        return False
+    if channel.startswith("user:"):
+        return role == "admin" or channel == f"user:{user_id}"
     base = channel.split(":")[0]
     if base in _RESTRICTED_CHANNELS:
         return role in _RESTRICTED_CHANNELS[base]

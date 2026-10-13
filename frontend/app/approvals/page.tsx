@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch, ApiError } from '@/services/api'
+import { useAuthStore } from '@/stores/auth.store'
 import { CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
 
-type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired'
+type ApprovalStatus = 'pending' | 'escalated' | 'approved' | 'rejected' | 'expired'
 type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
 type ApprovalType = string
 
@@ -40,6 +42,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 
 const STATUS_COLORS: Record<ApprovalStatus, string> = {
   pending: 'text-amber-400',
+  escalated: 'text-amber-400',
   approved: 'text-emerald-400',
   rejected: 'text-red-400',
   expired: 'text-muted-foreground',
@@ -56,15 +59,23 @@ function ApprovalCard({
   approval,
   onResolve,
   resolving,
+  canResolve,
 }: {
   approval: Approval
   onResolve: (id: string, approved: boolean) => void
   resolving: string | null
+  canResolve: boolean
 }) {
-  const isPending = approval.approval_status === 'pending'
+  const isPending = approval.approval_status === 'pending' || approval.approval_status === 'escalated'
   const isResolving = resolving === approval.id
   const expiresAt = approval.expires_at ? new Date(approval.expires_at) : null
-  const isExpiringSoon = expiresAt && expiresAt.getTime() - Date.now() < 1000 * 60 * 30
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(timer)
+  }, [])
+  const isExpiringSoon = expiresAt && expiresAt.getTime() > now && expiresAt.getTime() - now < 1000 * 60 * 30
+  const isExpired = expiresAt !== null && expiresAt.getTime() <= now
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -109,10 +120,10 @@ function ApprovalCard({
         )}
       </div>
 
-      {isPending && (
+      {isPending && canResolve && (
         <div className="flex gap-2 pt-1">
           <button
-            disabled={isResolving}
+            disabled={isResolving || isExpired}
             onClick={() => onResolve(approval.id, true)}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
           >
@@ -120,7 +131,7 @@ function ApprovalCard({
             {isResolving ? 'Approving…' : 'Approve'}
           </button>
           <button
-            disabled={isResolving}
+            disabled={isResolving || isExpired}
             onClick={() => onResolve(approval.id, false)}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-red-500/10 border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
           >
@@ -134,39 +145,28 @@ function ApprovalCard({
 }
 
 export default function ApprovalsPage() {
-  const [data, setData] = useState<PendingResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const role = useAuthStore((s) => s.user?.role)
+  const canResolve = role === 'admin' || role === 'reviewer'
+  const [actionError, setError] = useState<string | null>(null)
   const [resolving, setResolving] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
-  const load = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const res = await apiFetch<PendingResponse>(
-        `/api/v1/approvals/pending?page=${page}&page_size=20`,
-      )
-      setData(res)
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to load approvals')
-    } finally {
-      setLoading(false)
-    }
-  }, [page])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const { data, error: queryError, isFetching: loading, refetch } = useQuery({
+    queryKey: ['pending-approvals', page],
+    queryFn: ({ signal }) => apiFetch<PendingResponse>(`/api/v1/approvals/pending?page=${page}&page_size=20`, { signal }),
+  })
+  const error = actionError ?? (queryError ? 'Failed to load approvals' : null)
+  const load = () => refetch()
 
   const handleResolve = async (approvalId: string, approved: boolean) => {
+    setError(null)
     setResolving(approvalId)
     try {
+      if (!canResolve) throw new Error('Only reviewers and admins can resolve approvals')
       await apiFetch(`/api/v1/approvals/${approvalId}/resolve`, {
         method: 'POST',
         body: JSON.stringify({
           approval_status: approved ? 'approved' : 'rejected',
-          resolved_by: null,
         }),
       })
       await load()
@@ -231,6 +231,7 @@ export default function ApprovalsPage() {
                 key={approval.id}
                 approval={approval}
                 onResolve={handleResolve}
+                canResolve={canResolve}
                 resolving={resolving}
               />
             ))}

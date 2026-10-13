@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryState, parseAsInteger, parseAsString } from 'nuqs'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { SkeletonFeed } from '@/components/ui/skeleton-states'
@@ -22,25 +22,24 @@ const EVENT_FILTERS = [
 ]
 
 export default function ActivityPage() {
-  const [events, setEvents] = useState<ActivityEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1))
   const [eventType, setEventType] = useQueryState('type', parseAsString.withDefault(''))
 
-  useEffect(() => {
-    setLoading(true)
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: ['activity', page, eventType],
+    queryFn: ({ signal }) => {
     const params = new URLSearchParams({ page: String(page), page_size: '50' })
     if (eventType) params.set('event_type', eventType)
-    apiFetch<{ items: ActivityEvent[]; total: number; total_pages: number }>(`/api/v1/activity?${params}`)
-      .then((r) => { setEvents(r.items ?? []); setTotal(r.total ?? 0); setTotalPages(r.total_pages ?? 1) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [page, eventType])
+    return apiFetch<{ items: ActivityEvent[]; total: number; total_pages: number }>(`/api/v1/activity?${params}`, { signal })
+    },
+  })
+  const events = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.total_pages ?? 1
 
   return (
     <PageContainer title="Activity" description={`${total} domain events`}>
+      {error && <p role="alert" className="text-sm text-destructive">Activity could not be loaded.</p>}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         {EVENT_FILTERS.map((f) => (
           <button
@@ -61,7 +60,7 @@ export default function ActivityPage() {
         <SkeletonFeed rows={8} />
       ) : (
         <div className="space-y-2">
-          {events.length === 0 && (
+          {!error && events.length === 0 && (
             <div className="rounded-lg border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
               No activity yet
             </div>

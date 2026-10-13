@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { AppNav } from '@/components/navigation/AppNav'
 import { BottomNav } from '@/components/navigation/BottomNav'
@@ -35,6 +36,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   const openCommand = useCommandStore((s) => s.setOpen)
   const { isActive } = useNavigation()
   const pathname = usePathname()
+  const reducedMotion = useReducedMotion()
 
   const sidebarWidth = collapsed ? 56 : 280
 
@@ -88,7 +90,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
                 >
                   <Search className="h-3.5 w-3.5" />
                   <span>Search</span>
-                  <kbd className="text-[10px] opacity-60">⌘K</kbd>
+                  <kbd className="text-[10px]">⌘K</kbd>
                 </Button>
                 <Button
                   variant="ghost"
@@ -99,14 +101,9 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
                 >
                   <Search className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  aria-label="Notifications"
-                >
+                <Link href="/approvals" className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Review approvals">
                   <Bell className="h-4 w-4" />
-                </Button>
+                </Link>
               </div>
             }
             showThemeToggle
@@ -116,7 +113,7 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         <main
           id="main-content"
           ref={mainRef as React.RefObject<HTMLElement>}
-          className="flex-1 overflow-auto focus:outline-none"
+          className="min-h-0 flex-1 overflow-hidden focus:outline-none"
           role="main"
           tabIndex={-1}
           aria-label="Main content"
@@ -124,10 +121,10 @@ function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={pathname}
-              initial={{ opacity: 0, y: 6 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.1, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -4 }}
+              transition={{ duration: reducedMotion ? 0 : 0.1, ease: 'easeOut' }}
               className="h-full"
             >
               <ErrorBoundary>{children}</ErrorBoundary>

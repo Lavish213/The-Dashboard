@@ -1,0 +1,58 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> karpathys-platform@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+✓ Running next.config.ts took 118ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.6s
+  Running TypeScript ...
+  Finished TypeScript in 3.0s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/21) ...
+  Generating static pages using 8 workers (5/21) 
+  Generating static pages using 8 workers (10/21) 
+  Generating static pages using 8 workers (15/21) 
+✓ Generating static pages using 8 workers (21/21) in 923ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /activity
+├ ○ /analytics
+├ ○ /approvals
+├ ○ /audit
+├ ○ /calendar
+├ ○ /calls
+├ ○ /calls/live
+├ ○ /dashboard
+├ ○ /deals
+├ ○ /followups
+├ ○ /leads
+├ ƒ /leads/[leadId]
+├ ○ /login
+├ ○ /properties
+├ ƒ /properties/[propertyId]
+├ ○ /realtime
+├ ○ /settings
+├ ○ /social
+├ ○ /transcripts
+├ ƒ /transcripts/[callId]
+├ ○ /workflows
+└ ƒ /workflows/[workflowId]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
