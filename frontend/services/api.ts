@@ -10,6 +10,20 @@ export class ApiError extends Error {
   }
 }
 
+function responseError(status: number, body: string): string {
+  try {
+    const value: unknown = JSON.parse(body)
+    if (value && typeof value === 'object' && 'detail' in value) {
+      if (typeof value.detail === 'string' && value.detail.trim()) return value.detail.slice(0, 1000)
+      if (Array.isArray(value.detail)) {
+        const messages = value.detail.map((item: unknown) => item && typeof item === 'object' && 'msg' in item && typeof item.msg === 'string' ? item.msg : '').filter(Boolean).slice(0, 3)
+        if (messages.length) return messages.join('; ').slice(0, 1000)
+      }
+    }
+  } catch {}
+  return `Request failed (${status})`
+}
+
 let _isRefreshing = false
 let _refreshQueue: Array<(token: string | null) => void> = []
 
@@ -106,7 +120,7 @@ export async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     const body = await res.text()
-    throw new ApiError(res.status, body)
+    throw new ApiError(res.status, responseError(res.status, body))
   }
 
   const text = await res.text()

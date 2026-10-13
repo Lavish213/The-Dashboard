@@ -197,3 +197,16 @@ test('destroyed socket does not open after delayed ticket resolves', async () =>
   await new Promise(setImmediate)
   assert.equal(sockets.length, 0)
 })
+
+test('structured API detail is readable', async () => {
+  const { api } = await load(async () => new Response(JSON.stringify({ detail: 'Approval authorization has expired' }), { status: 409 }))
+  await assert.rejects(api('/api/v1/approvals'), { status: 409, message: 'Approval authorization has expired' })
+})
+test('validation errors omit submitted private values', async () => {
+  const { api } = await load(async () => new Response(JSON.stringify({ detail: [{ msg: 'Invalid timestamp', input: 'synthetic-private-value', loc: ['body', 'date'] }] }), { status: 422 }))
+  await assert.rejects(api('/api/v1/approvals'), { status: 422, message: 'Invalid timestamp' })
+})
+test('unexpected HTML errors use a bounded status message', async () => {
+  const { api } = await load(async () => new Response('<html>synthetic-private-server-output</html>', { status: 500 }))
+  await assert.rejects(api('/api/v1/approvals'), { status: 500, message: 'Request failed (500)' })
+})

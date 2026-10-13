@@ -75,6 +75,7 @@ function ApprovalCard({
     return () => clearInterval(timer)
   }, [])
   const isExpiringSoon = expiresAt && expiresAt.getTime() > now && expiresAt.getTime() - now < 1000 * 60 * 30
+  const isExpired = expiresAt !== null && expiresAt.getTime() <= now
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -122,7 +123,7 @@ function ApprovalCard({
       {isPending && canResolve && (
         <div className="flex gap-2 pt-1">
           <button
-            disabled={isResolving}
+            disabled={isResolving || isExpired}
             onClick={() => onResolve(approval.id, true)}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
           >
@@ -130,7 +131,7 @@ function ApprovalCard({
             {isResolving ? 'Approving…' : 'Approve'}
           </button>
           <button
-            disabled={isResolving}
+            disabled={isResolving || isExpired}
             onClick={() => onResolve(approval.id, false)}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-red-500/10 border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
           >

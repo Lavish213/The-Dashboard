@@ -7,6 +7,7 @@ Replay-safe: expiry is idempotent — re-running on already-expired approvals is
 """
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from uuid import UUID
 
 import structlog
@@ -48,7 +49,12 @@ class ApprovalExpiryRuntime:
         candidates = await self._repo.get_expired_pending()
         expired_ids: list[UUID] = []
 
-        for approval in candidates:
+        for candidate in candidates:
+            approval = await self._repo.get_for_update(candidate.id)
+            if approval is None or approval.approval_status not in (ApprovalStatus.pending, ApprovalStatus.escalated):
+                continue
+            if approval.expires_at is None or approval.expires_at > datetime.now(UTC):
+                continue
             approval.approval_status = ApprovalStatus.expired
             self._session.add(approval)
             await self._session.flush()

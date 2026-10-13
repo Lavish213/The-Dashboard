@@ -58,6 +58,9 @@ async def test_escalated_approval_remains_in_pending_operator_queue(db):
     _, approval = await pending(db, status=ApprovalStatus.escalated)
     page = await ApprovalRepository(db).get_pending()
     assert approval.id in [row.id for row in page.items]
+    typed = await ApprovalRepository(db).get_pending_by_type(ApprovalType.outreach)
+    assert approval.id in [row.id for row in typed.items]
+    assert await WorkflowApprovalGate(db).has_pending_approval(approval.workflow_id)
 
 
 async def test_failed_commit_never_broadcasts_approval_success(db, monkeypatch):
@@ -103,3 +106,32 @@ async def test_twenty_concurrent_resolvers_produce_one_state_change_and_one_audi
             await connection.execute(delete(Workflow).where(Workflow.id == workflow_id))
             await connection.execute(delete(User).where(User.id == user_id))
         await engine.dispose()
+
+
+async def test_workflow_expiry_blocks_still_pending_approval(db):
+    workflow, approval = await pending(db)
+    workflow.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+    await db.flush()
+    with pytest.raises(ApprovalGateError, match='workflow authorization has expired'):
+        await WorkflowApprovalGate(db).resolve(approval.id, None, True)
+    assert approval.approval_status == ApprovalStatus.pending
+
+
+async def test_expired_escalated_approval_is_processed_and_removed_from_queue(db):
+    from approvals.expiry import ApprovalExpiryRuntime
+    _, approval = await pending(db, datetime.now(UTC)-timedelta(minutes=1), ApprovalStatus.escalated)
+    result = await ApprovalExpiryRuntime(db).expire_pending()
+    assert approval.id in result.approval_ids
+    assert approval.approval_status == ApprovalStatus.expired
+    assert approval.id not in [row.id for row in (await ApprovalRepository(db).get_pending()).items]
+
+
+async def test_expiry_rechecks_locked_status_before_overwriting_resolved_decision(db, monkeypatch):
+    from approvals.expiry import ApprovalExpiryRuntime
+    _, approval = await pending(db)
+    await WorkflowApprovalGate(db).resolve(approval.id, None, True)
+    runtime = ApprovalExpiryRuntime(db)
+    monkeypatch.setattr(runtime._repo, 'get_expired_pending', AsyncMock(return_value=[approval]))
+    result = await runtime.expire_pending()
+    assert result.expired_count == 0
+    assert approval.approval_status == ApprovalStatus.approved
