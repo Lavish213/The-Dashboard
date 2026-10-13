@@ -51,17 +51,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Lavish213/REI-AGENT
-          ref: 7b9338d268b809b570fef99dd3c61620b9cabc5b
+          ref: 68dd9fa2a258d3e315669de39cd13f0e6f7ec157
           path: _rei-contract
       - run: pytest tests tests_safety -q --junitxml=test-results.xml
       - run: PYTHONPATH=. python scripts/initialize_database.py --roundtrip-test
       - run: PYTHONPATH=. python scripts/verify_schema.py
       - run: alembic current
+      - name: Install isolated REI bridge runtime
+        run: |
+          python -m venv /tmp/rei-bridge-runtime
+          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0
+      - name: Real HTTP voice outbox restart and receipt recovery
+        run: PYTHONPATH=. REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_voice_outbox_boundary.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dashboard-backend-results
-          path: backend/test-results.xml
+          path: |
+            backend/test-results.xml
+            backend/voice-outbox-boundary-results.json
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15

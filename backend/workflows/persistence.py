@@ -16,7 +16,7 @@ class WorkflowRepository(BaseRepository[Workflow]):
     async def get_for_update(self, workflow_id: UUID) -> Workflow | None:
         """Fetch workflow with SELECT FOR UPDATE — holds row lock until transaction end."""
         result = await self.session.execute(
-            select(Workflow).where(Workflow.id == workflow_id).with_for_update()
+            select(Workflow).where(Workflow.id == workflow_id, Workflow.deleted_at.is_(None)).with_for_update().execution_options(populate_existing=True)
         )
         return result.scalar_one_or_none()
 

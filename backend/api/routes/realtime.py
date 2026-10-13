@@ -34,17 +34,37 @@ from realtime.protocol import (
 )
 from realtime.reconnect import HEARTBEAT_INTERVAL_SECONDS, heartbeat_tracker
 from realtime.subscriptions import channel_allowed, subscription_manager
-from security.websocket_tickets import redeem_ticket
+from security.websocket_tickets import redeem_ticket, validate_principal
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 logger = structlog.get_logger(__name__)
 
 
-async def _heartbeat_loop(connection_id: str) -> None:
+async def _check_identity(connection_id: str, principal: dict, role: str) -> bool:
+    try:
+        validated = False
+        async with asyncio.timeout(5):
+            async for redis in get_redis():
+                async with async_session_factory() as session:
+                    await validate_principal(principal, session, redis, expected_role=role)
+                    validated = True
+        if not validated:
+            raise RuntimeError("Realtime identity store unavailable")
+        return True
+    except Exception:
+        subscription_manager.unsubscribe_all(connection_id)
+        heartbeat_tracker.record_disconnect(connection_id)
+        await connection_manager.close_connection(connection_id, code=4001)
+        return False
+
+
+async def _heartbeat_loop(connection_id: str, principal: dict, role: str) -> None:
     """Ping every HEARTBEAT_INTERVAL_SECONDS until connection is gone."""
     while connection_manager.is_connected(connection_id):
         await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
         if not connection_manager.is_connected(connection_id):
+            break
+        if not await _check_identity(connection_id, principal, role):
             break
         ping = PingMessage()
         ok = await connection_manager.send_json(connection_id, ping.model_dump())
@@ -72,7 +92,7 @@ async def websocket_endpoint(
         async for redis in get_redis():
             async with asyncio.timeout(5):
                 async with async_session_factory() as session:
-                    user = await redeem_ticket(ticket, session, redis)
+                    user, principal = await redeem_ticket(ticket, session, redis, return_claims=True)
                     user_id = str(user.id)
                     role = user.role.value
     except Exception:
@@ -91,7 +111,7 @@ async def websocket_endpoint(
     ack = ConnectedAck(connection_id=connection_id, user_id=user_id)
     await connection_manager.send_json(connection_id, ack.model_dump())
 
-    heartbeat_task = asyncio.create_task(_heartbeat_loop(connection_id))
+    heartbeat_task = asyncio.create_task(_heartbeat_loop(connection_id, principal, role))
 
     logger.info(
         "realtime.ws.connected",
@@ -103,12 +123,21 @@ async def websocket_endpoint(
     try:
         while True:
             raw = await ws.receive_text()
+            if len(raw.encode()) > 65536:
+                await connection_manager.close_connection(connection_id, code=1009)
+                break
             try:
                 data = json.loads(raw)
             except json.JSONDecodeError:
                 err = RealtimeError(code="parse_error", message="Invalid JSON")
                 await connection_manager.send_json(connection_id, err.model_dump())
                 continue
+            if not isinstance(data, dict):
+                err = RealtimeError(code="parse_error", message="Message must be a JSON object")
+                await connection_manager.send_json(connection_id, err.model_dump())
+                continue
+            if not await _check_identity(connection_id, principal, role):
+                break
 
             msg = parse_client_message(data)
             if msg is None:
@@ -183,6 +212,7 @@ async def websocket_endpoint(
         logger.error("realtime.ws.error", connection_id=connection_id, error=str(exc))
     finally:
         heartbeat_task.cancel()
+        await asyncio.gather(heartbeat_task, return_exceptions=True)
         subscription_manager.unsubscribe_all(connection_id)
         heartbeat_tracker.record_disconnect(connection_id)
         await connection_manager.disconnect(connection_id)

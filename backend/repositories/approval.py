@@ -19,6 +19,7 @@ class ApprovalRepository(BaseRepository[Approval]):
             select(Approval)
             .where(Approval.id == approval_id, Approval.deleted_at.is_(None))
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return result.scalar_one_or_none()
 
@@ -33,7 +34,7 @@ class ApprovalRepository(BaseRepository[Approval]):
         return await self.list_paginated(
             page=page,
             page_size=page_size,
-            filters=[Approval.approval_status == ApprovalStatus.pending],
+            filters=[Approval.approval_status.in_([ApprovalStatus.pending, ApprovalStatus.escalated])],
         )
 
     async def get_pending_by_type(

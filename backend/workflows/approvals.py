@@ -6,7 +6,7 @@ Pauses workflow when approval is requested. Resumes on approval.
 Fails/cancels workflow on rejection (caller decides).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -115,12 +115,17 @@ class WorkflowApprovalGate:
         On approval: resumes workflow.
         On rejection: fails workflow.
         """
-        approval = await self._approvals.get_by_id_or_raise(approval_id)
+        approval = await self._approvals.get_for_update_or_raise(approval_id)
 
         if approval.approval_status not in _RESOLVABLE_STATUSES:
             raise ApprovalGateError(
                 f"Approval {approval_id} is {approval.approval_status} — not resolvable"
             )
+        if approval.expires_at is not None and (approval.expires_at.tzinfo is None or approval.expires_at <= datetime.now(UTC)):
+            raise ApprovalGateError("Approval authorization has expired")
+        workflow = await self._workflows.get_for_update_or_raise(approval.workflow_id)
+        if workflow.workflow_status != WorkflowStatus.paused:
+            raise ApprovalGateError("Approval workflow is no longer paused")
 
         new_status = ApprovalStatus.approved if approved else ApprovalStatus.rejected
         approval.approval_status = new_status
@@ -128,8 +133,6 @@ class WorkflowApprovalGate:
         approval.resolution_notes = notes
         self._session.add(approval)
         await self._session.flush()
-
-        workflow = await self._workflows.get_by_id_or_raise(approval.workflow_id)
 
         if approved:
             workflow.workflow_status = WorkflowStatus.active

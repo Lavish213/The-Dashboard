@@ -54,3 +54,37 @@ async def test_ticket_loads_current_database_identity():
     session = AsyncMock(scalar=AsyncMock(return_value=user))
     assert await redeem_ticket("x" * 43, session, redis) is user
     redis.getdel.assert_awaited_once_with(ticket_key("x" * 43))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault', ['expired', 'revoked', 'missing', 'inactive', 'role_changed'])
+async def test_connected_identity_revalidation_rejects_changed_authorization(fault):
+    from models.enums import UserRole
+    from security.websocket_tickets import validate_principal
+    payload = {'sub': str(uuid4()), 'jti': 'session-jti', 'exp': time.time() + 20}
+    if fault == 'expired':
+        payload['exp'] = time.time() - 1
+    user = None if fault == 'missing' else SimpleNamespace(status=UserStatus.inactive if fault == 'inactive' else UserStatus.active, role=UserRole.operator if fault == 'role_changed' else UserRole.admin)
+    redis = AsyncMock(exists=AsyncMock(return_value=fault == 'revoked'))
+    session = AsyncMock(scalar=AsyncMock(return_value=user))
+    with pytest.raises(HTTPException):
+        await validate_principal(payload, session, redis, expected_role='admin')
+
+
+@pytest.mark.asyncio
+async def test_failed_connected_authentication_evicts_subscriptions(monkeypatch):
+    from api.routes import realtime
+    from realtime.manager import connection_manager
+    from realtime.subscriptions import subscription_manager
+    ws = AsyncMock()
+    connection = await connection_manager.connect(ws)
+    subscription_manager.subscribe(connection, 'approvals')
+    async def redis():
+        yield AsyncMock()
+    monkeypatch.setattr(realtime, 'get_redis', redis)
+    monkeypatch.setattr(realtime, 'async_session_factory', lambda: AsyncMock())
+    monkeypatch.setattr(realtime, 'validate_principal', AsyncMock(side_effect=HTTPException(401, 'revoked')))
+    assert not await realtime._check_identity(connection, {}, 'admin')
+    assert not connection_manager.is_connected(connection)
+    assert subscription_manager.subscription_count == 0
+    ws.close.assert_awaited_once_with(code=4001)

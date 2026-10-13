@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useApproval, useResolveApproval } from './useApprovals'
 import { ApprovalStatusBadge } from './ApprovalStatusBadge'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface Props {
   approvalId: string
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function ApprovalDetail({ approvalId, resolvedBy }: Props) {
+  const role = useAuthStore((s) => s.user?.role)
+  const canResolve = role === 'admin' || role === 'reviewer'
   const { data: approval, isLoading, error } = useApproval(approvalId)
   const resolve = useResolveApproval()
 
@@ -30,7 +33,7 @@ export function ApprovalDetail({ approvalId, resolvedBy }: Props) {
     )
   }
 
-  const isPending = approval.approval_status === 'pending'
+  const isPending = approval.approval_status === 'pending' || approval.approval_status === 'escalated'
 
   const handleResolve = (approved: boolean) => {
     resolve.mutate({
@@ -69,7 +72,7 @@ export function ApprovalDetail({ approvalId, resolvedBy }: Props) {
         )}
         <Row label="Created" value={new Date(approval.created_at).toLocaleString()} />
 
-        {isPending && (
+        {isPending && canResolve && (
           <div className="flex gap-2 pt-2">
             <Button
               size="sm"

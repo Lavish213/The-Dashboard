@@ -28,16 +28,23 @@ async def issue_ticket(token, user, redis):
     return {"ticket": ticket, "expires_in": ttl}
 
 
-async def redeem_ticket(ticket, session, redis):
+async def validate_principal(payload, session, redis, expected_role=None):
+    if payload["exp"] <= time.time() or await is_blacklisted(payload["jti"], redis):
+        raise HTTPException(401, "Revoked websocket identity")
+    user = await session.scalar(select(User).where(User.id == uuid.UUID(payload["sub"]), User.deleted_at.is_(None)))
+    if user is None or user.status != UserStatus.active:
+        raise HTTPException(401, "Inactive websocket identity")
+    if expected_role is not None and user.role.value != expected_role:
+        raise HTTPException(401, "Websocket permissions changed")
+    return user
+
+
+async def redeem_ticket(ticket, session, redis, return_claims=False):
     if not isinstance(ticket, str) or not 40 <= len(ticket) <= 64:
         raise HTTPException(401, "Invalid websocket ticket")
     raw = await redis.getdel(ticket_key(ticket))
     if raw is None:
         raise HTTPException(401, "Expired or consumed websocket ticket")
     payload = json.loads(raw)
-    if payload["exp"] <= time.time() or await is_blacklisted(payload["jti"], redis):
-        raise HTTPException(401, "Revoked websocket identity")
-    user = await session.scalar(select(User).where(User.id == uuid.UUID(payload["sub"]), User.deleted_at.is_(None)))
-    if user is None or user.status != UserStatus.active:
-        raise HTTPException(401, "Inactive websocket identity")
-    return user
+    user = await validate_principal(payload, session, redis)
+    return (user, payload) if return_claims else user

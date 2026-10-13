@@ -20,6 +20,7 @@ const user = { id: '00000000-0000-4000-8000-000000000001', email: 'audit@example
 const list = { items: [], total: 0, page: 1, page_size: 50, total_pages: 1, summary: null }
 let populated = false, notificationRead = false, notificationFailure = false
 let actorId = user.id, actorRole = 'admin'
+let approvalResolved = false, approvalFailure = false
 function fixture(url) {
   const path = url.pathname
   if (path.endsWith('/auth/me')) return { ...user, id: actorId, role: actorRole }
@@ -27,6 +28,7 @@ function fixture(url) {
   if (path.endsWith('/settings/team')) return { ...list, items: populated ? [{ ...user, status: 'active' }] : [], total: populated ? 1 : 0 }
   if (path.endsWith('/notifications/unread-count')) return { unread_count: populated && !notificationRead ? 1 : 0 }
   if (path.endsWith('/notifications')) return { ...list, items: populated && (!notificationRead || url.searchParams.get('unread_only') !== 'true') ? [{ id: 'notice-one', title: 'Synthetic approval notice', body: 'Review this synthetic decision.', created_at: '2026-10-12T12:00:00Z', read_at: notificationRead ? '2026-10-12T13:00:00Z' : null }] : [] }
+  if (populated && path.endsWith('/approvals/pending')) return { ...list, total: approvalResolved ? 0 : 1, items: approvalResolved ? [] : [{ id: '00000000-0000-4000-8000-000000000301', workflow_id: '00000000-0000-4000-8000-000000000302', approval_type: 'outreach', approval_status: 'escalated', risk_level: 'high', requested_by: user.id, resolved_by: null, expires_at: '2099-01-01T00:00:00Z', resolution_notes: null, created_at: '2026-10-12T12:00:00Z', updated_at: '2026-10-12T12:00:00Z' }] }
   if (populated && path.endsWith('/leads')) {
     const page = Number(url.searchParams.get('page') || 1)
     const status = url.searchParams.get('statuses') || 'new'
@@ -68,6 +70,14 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (populated && route.request().method() === 'POST' && /^\/api\/v1\/approvals\/[^/]+\/resolve$/.test(url.pathname)) {
+        const body = route.request().postDataJSON()
+        if (Object.hasOwn(body, 'resolved_by')) throw new Error('Approval UI supplied an actor instead of relying on authenticated identity')
+        if (!['admin', 'reviewer'].includes(actorRole)) return route.fulfill({ status: 403, json: { detail: 'Synthetic permission rejection' } })
+        if (approvalFailure) return route.fulfill({ status: 503, json: { detail: 'Synthetic approval rejection' } })
+        approvalResolved = true
+        return route.fulfill({ status: 200, json: { approval_status: body.approval_status } })
+      }
       if (populated && route.request().method() === 'POST' && url.pathname.includes('/notifications/')) {
         if (notificationFailure) return route.fulfill({ status: 503, json: { detail: 'Synthetic read failure' } })
         notificationRead = true
@@ -214,6 +224,23 @@ try {
       await page.getByRole('button', { name: 'Saved (0)', exact: true }).click()
       if (await page.getByText('Private saved address', { exact: true }).count()) throw new Error('Saved property crossed account boundary')
       evidence.interactions.push('Persisted saved properties remain isolated across two accounts')
+      actorId = user.id
+      actorRole = 'operator'
+      await capture('38-operator-approval-queue', '/approvals')
+      if (await page.getByRole('button', { name: 'Approve', exact: true }).count()) throw new Error('Operator can resolve approval in UI')
+      evidence.interactions.push('Operator approval queue exposes no resolve controls')
+      actorRole = 'reviewer'
+      approvalFailure = true
+      await capture('39-reviewer-escalated-approval', '/approvals')
+      await page.getByRole('button', { name: 'Approve', exact: true }).click()
+      await page.getByText('Synthetic approval rejection', { exact: true }).waitFor()
+      await page.getByRole('button', { name: 'Approve', exact: true }).waitFor()
+      evidence.interactions.push('Failed approval write preserves actionable escalated decision')
+      approvalFailure = false
+      await page.getByRole('button', { name: 'Approve', exact: true }).click()
+      await page.getByRole('button', { name: 'Approve', exact: true }).waitFor({ state: 'hidden' })
+      await capture('40-approval-acknowledged', '/approvals')
+      evidence.interactions.push('Authenticated reviewer resolves without caller-supplied identity and queue refreshes after acknowledgement')
     }
     const violations = evidence.screens.filter(s => s.violations.length)
     if (violations.length) throw new Error('Accessibility violations: ' + violations.map(s => s.name).join(', '))

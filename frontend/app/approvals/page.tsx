@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { apiFetch, ApiError } from '@/services/api'
+import { useAuthStore } from '@/stores/auth.store'
 import { CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw } from 'lucide-react'
 
-type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired'
+type ApprovalStatus = 'pending' | 'escalated' | 'approved' | 'rejected' | 'expired'
 type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
 type ApprovalType = string
 
@@ -41,6 +42,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 
 const STATUS_COLORS: Record<ApprovalStatus, string> = {
   pending: 'text-amber-400',
+  escalated: 'text-amber-400',
   approved: 'text-emerald-400',
   rejected: 'text-red-400',
   expired: 'text-muted-foreground',
@@ -57,12 +59,14 @@ function ApprovalCard({
   approval,
   onResolve,
   resolving,
+  canResolve,
 }: {
   approval: Approval
   onResolve: (id: string, approved: boolean) => void
   resolving: string | null
+  canResolve: boolean
 }) {
-  const isPending = approval.approval_status === 'pending'
+  const isPending = approval.approval_status === 'pending' || approval.approval_status === 'escalated'
   const isResolving = resolving === approval.id
   const expiresAt = approval.expires_at ? new Date(approval.expires_at) : null
   const [now, setNow] = useState(() => Date.now())
@@ -115,7 +119,7 @@ function ApprovalCard({
         )}
       </div>
 
-      {isPending && (
+      {isPending && canResolve && (
         <div className="flex gap-2 pt-1">
           <button
             disabled={isResolving}
@@ -140,6 +144,8 @@ function ApprovalCard({
 }
 
 export default function ApprovalsPage() {
+  const role = useAuthStore((s) => s.user?.role)
+  const canResolve = role === 'admin' || role === 'reviewer'
   const [actionError, setError] = useState<string | null>(null)
   const [resolving, setResolving] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -155,11 +161,11 @@ export default function ApprovalsPage() {
     setError(null)
     setResolving(approvalId)
     try {
+      if (!canResolve) throw new Error('Only reviewers and admins can resolve approvals')
       await apiFetch(`/api/v1/approvals/${approvalId}/resolve`, {
         method: 'POST',
         body: JSON.stringify({
           approval_status: approved ? 'approved' : 'rejected',
-          resolved_by: null,
         }),
       })
       await load()
@@ -224,6 +230,7 @@ export default function ApprovalsPage() {
                 key={approval.id}
                 approval={approval}
                 onResolve={handleResolve}
+                canResolve={canResolve}
                 resolving={resolving}
               />
             ))}
