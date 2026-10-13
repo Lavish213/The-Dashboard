@@ -26,3 +26,4 @@ ENV PYTHONPATH=/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 EXPOSE 8000
+CMD ["sh", "-c", "python scripts/initialize_database.py && exec uvicorn api.main:app --host 0.0.0.0 --port 8000"]
