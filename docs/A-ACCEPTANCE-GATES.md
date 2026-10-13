@@ -1,6 +1,6 @@
 # Acceptance gates for an A
 
-Status on 2026-10-13: substantial repairs verified; full production system is **not A**. Unit test counts are not conversation-quality scores, code coverage or evidence of production uptime. Dashboard/REI drafts are unmerged and undeployed. Bob/standalone Sophia retain their separately logged open items.
+Status on 2026-10-13: substantial repairs verified; full production system is **not A**. Unit test counts are not conversation-quality scores, code coverage or evidence of production uptime. Repair PR #1 has now been merged in Bob-Intelligence-, REI-AGENT, Sophia-Agent and The-Dashboard. This is source integration, not a verified production rollout. Bob/standalone Sophia retain their separately logged open items.
 
 ## Verified in this pass
 
@@ -32,3 +32,17 @@ No evidence in this pass establishes perfect accents, indefinite conversation le
 
 
 Final production-secret refinement verified: [CI 38328837255](https://github.com/Lavish213/The-Dashboard/actions/runs/38328837255) on `bfb85a45d67d6946c004d73d715c8511b1c35a36` is fully green, retaining 1,095 backend cases and all schema/frontend/browser gates. The Compose check now also verifies that production backend/provider secrets are absent from the frontend container environment. Subsequent report commits change only documentation/evidence.
+
+
+## Merge verification — 2026-10-13
+
+| Repository | Merge commit | Pull request |
+|---|---|---|
+| Bob-Intelligence- | `113ba05f10ca3dfae6f1ce2daca058808f9c61ef` | https://github.com/Lavish213/Bob-Intelligence-/pull/1 |
+| REI-AGENT | `7e12f6bc93c2f7adfd3d325187a7186bd9d6d97d` | https://github.com/Lavish213/REI-AGENT/pull/1 |
+| Sophia-Agent | `6d95844792038d12f8daad368a0b7136bc72a459` | https://github.com/Lavish213/Sophia-Agent/pull/1 |
+| The-Dashboard | `60346e5c7087d8aef1bca525e31f347df523dc24` | https://github.com/Lavish213/The-Dashboard/pull/1 |
+
+Hosted head checks passed before these merges. REI Vercel preview status passed after the request-time database initialization repair. Local verification reproduced 237 Bob tests, 51 Bob SQL contracts, 55 REI outbox/receipt tests, 30 REI dashboard HTTP checks, the REI scheduling SQL contracts, and the current REI dashboard build/lint without database credentials. The Dashboard verification workflow now also runs on `phase6-transcript-runtime` after merges.
+
+The latest source includes leased and ordered voice event recovery, checkpointed conversation events, live websocket role revalidation, and approval decision lifecycle repairs. These supersede some earlier gaps above, but do not establish that every remaining acceptance requirement is complete. The standalone Sophia repository remains a separate fallback with incompatible shared-schema integration; merging its source does not authorize combining its embedded Bob with the REI schema. Actual provider recovery, external calendar operations, durable suppression recovery, data-preserving legacy upgrades and production operations remain unproven.
