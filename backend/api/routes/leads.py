@@ -2,15 +2,41 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
-from models.enums import LeadSource, LeadStatus
+from models.enums import LeadStatus
 from models.lead import Lead
-from security.auth import get_current_active_user
+from security.permissions import require_permission
+from security.rbac import Permission
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_permission(Permission.LEADS_READ))])
+
+
+class FollowupUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    follow_up_at: datetime | None
+
+    @field_validator("follow_up_at", mode="before")
+    @classmethod
+    def reject_numeric_date(cls, value):
+        if value is not None and not isinstance(value, (str, datetime)):
+            raise ValueError("Use an ISO timestamp with a timezone, or null to cancel")
+        return value
+
+    @field_validator("follow_up_at")
+    @classmethod
+    def validate_date(cls, value):
+        if value is None:
+            return None
+        if value.utcoffset() is None:
+            raise ValueError("follow_up_at must include a timezone")
+        value = value.astimezone(UTC)
+        if value <= datetime.now(UTC):
+            raise ValueError("follow_up_at must be in the future")
+        return value
 
 
 def _serialize(lead: Lead) -> dict:
@@ -41,26 +67,59 @@ async def list_leads(
     page_size: int = Query(50, ge=1, le=200),
     status: LeadStatus | None = None,
     lead_id: UUID | None = Query(None),
+    statuses: list[LeadStatus] | None = Query(None),
+    scheduled_only: bool = False,
+    follow_up_start: datetime | None = None,
+    follow_up_end: datetime | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    q = select(Lead)
+    q = select(Lead).where(Lead.deleted_at.is_(None))
     if status:
         q = q.where(Lead.lead_status == status)
     if lead_id:
         q = q.where(Lead.id == lead_id)
-    q = q.order_by(Lead.created_at.desc())
+    if statuses:
+        q = q.where(Lead.lead_status.in_(statuses))
+    for boundary in (follow_up_start, follow_up_end):
+        if boundary is not None and boundary.utcoffset() is None:
+            raise HTTPException(422, "Follow-up range timestamps must include a timezone")
+    if follow_up_start and follow_up_end and follow_up_end <= follow_up_start:
+        raise HTTPException(422, "Follow-up range end must be after its start")
+    if scheduled_only:
+        q = q.where(Lead.follow_up_at.is_not(None))
+    if follow_up_start:
+        q = q.where(Lead.follow_up_at >= follow_up_start)
+    if follow_up_end:
+        q = q.where(Lead.follow_up_at < follow_up_end)
     total_result = await session.execute(
         select(func.count()).select_from(q.subquery())
     )
     total = total_result.scalar_one()
+    summary = None
+    if statuses:
+        filtered = q.subquery()
+        grouped = await session.execute(select(
+            filtered.c.lead_status,
+            func.count().label("lead_count"),
+            func.sum(func.coalesce(filtered.c.ai_score, 0)).label("score_sum"),
+        ).group_by(filtered.c.lead_status))
+        rows = grouped.all()
+        summary = {
+            "by_status": {row.lead_status.value: row.lead_count for row in rows},
+            "average_score": round(sum(row.score_sum for row in rows) / total) if total else 0,
+            "score_total": sum(row.score_sum for row in rows),
+        }
+    q = q.order_by(Lead.follow_up_at.asc(), Lead.id.asc()) if scheduled_only else q.order_by(Lead.created_at.desc(), Lead.id.desc())
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
     leads = result.scalars().all()
     return {
-        "items": [_serialize(l) for l in leads],
+        "items": [_serialize(lead) for lead in leads],
         "total": total,
         "page": page,
         "page_size": page_size,
+        "total_pages": max(1, (total + page_size - 1) // page_size),
+        "summary": summary,
     }
 
 
@@ -76,7 +135,7 @@ async def get_lead(
     return _serialize(lead)
 
 
-@router.patch("/{lead_id}/status")
+@router.patch("/{lead_id}/status", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
 async def update_lead_status(
     lead_id: UUID,
     status: LeadStatus,
@@ -92,7 +151,7 @@ async def update_lead_status(
     return {"status": "ok", "lead_id": str(lead_id), "new_status": status}
 
 
-@router.post("/{lead_id}/notes")
+@router.post("/{lead_id}/notes", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
 async def add_lead_note(
     lead_id: UUID,
     body: dict,
@@ -115,7 +174,7 @@ async def add_lead_note(
     }
 
 
-@router.patch("/{lead_id}/notes")
+@router.patch("/{lead_id}/notes", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
 async def update_lead_notes(
     lead_id: UUID,
     body: dict,
@@ -131,21 +190,20 @@ async def update_lead_notes(
     return {"status": "ok", "lead_id": str(lead_id)}
 
 
-@router.patch("/{lead_id}/followup")
+@router.patch("/{lead_id}/followup", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
 async def update_followup(
     lead_id: UUID,
-    body: dict,
+    body: FollowupUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     result = await session.execute(select(Lead).where(Lead.id == lead_id))
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
-    if body.get("follow_up_at"):
-        lead.follow_up_at = datetime.fromisoformat(body["follow_up_at"])
+    lead.follow_up_at = body.follow_up_at
     session.add(lead)
     await session.commit()
-    return {"status": "ok", "lead_id": str(lead_id)}
+    return {"status": "ok", "lead_id": str(lead_id), "follow_up_at": lead.follow_up_at.isoformat() if lead.follow_up_at else None}
 
 
 @router.get("/{lead_id}/timeline")
@@ -153,8 +211,9 @@ async def get_lead_timeline(
     lead_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    from models.call import Call
     from sqlalchemy import desc
+
+    from models.call import Call
 
     lead_result = await session.execute(select(Lead).where(Lead.id == lead_id))
     lead = lead_result.scalar_one_or_none()

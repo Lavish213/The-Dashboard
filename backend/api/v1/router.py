@@ -29,6 +29,7 @@ from api.routes import (
     referrals,
     social,
     social_leads,
+    settings,
     transcripts,
     workflows,
 )
@@ -43,6 +44,7 @@ router.include_router(calls.router, prefix="/calls", tags=["calls"])
 router.include_router(transcripts.router, prefix="/transcripts", tags=["transcripts"])
 router.include_router(operator_sessions.router, prefix="/operator-sessions", tags=["operator-sessions"])
 router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+router.include_router(settings.router, prefix="/settings", tags=["settings"])
 router.include_router(audit_timeline.router, prefix="/audit", tags=["audit"])
 router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 router.include_router(activity.router, prefix="/activity", tags=["activity"])

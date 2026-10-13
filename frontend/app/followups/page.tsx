@@ -1,9 +1,9 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
-import { apiFetch } from '@/services/api'
+import { Button } from '@/components/ui/button'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { STATUS_COLORS } from '@/constants/colors'
 import { Bell, AlertCircle, Clock, CheckCircle2 } from 'lucide-react'
@@ -40,9 +40,9 @@ function FollowUpCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
   const today = lead.follow_up_at && isToday(lead.follow_up_at)
 
   return (
-    <div
+    <button type="button"
       onClick={onClick}
-      className={`rounded-lg border p-4 cursor-pointer transition-all hover:shadow-card-hover space-y-3 ${
+      className={`w-full text-left rounded-lg border p-4 cursor-pointer transition-all hover:shadow-card-hover space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         overdue
           ? 'border-red-500/25 bg-red-500/5 hover:border-red-500/40'
           : today
@@ -85,14 +85,14 @@ function FollowUpCard({ lead, onClick }: { lead: Lead; onClick: () => void }) {
           {lead.notes.split('\n')[0].replace(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\] /, '')}
         </p>
       )}
-    </div>
+    </button>
   )
 }
 
 export default function FollowupsPage() {
   const router = useRouter()
-  const { data, isPending: loading, error } = useQuery({ queryKey: ['scheduled-leads'], queryFn: ({ signal }) => apiFetch<{ items: Lead[]; total: number }>('/api/v1/leads?page_size=200', { signal }) })
-  const leads = (data?.items ?? []).filter(l => l.follow_up_at).sort((a, b) => new Date(a.follow_up_at!).getTime() - new Date(b.follow_up_at!).getTime())
+  const { data, isPending: loading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useLeadPages<Lead>({ scheduled_only: 'true' })
+  const leads = data?.pages.flatMap(page => page.items) ?? []
 
   const overdue = leads.filter(l => l.follow_up_at && isOverdue(l.follow_up_at) && !isToday(l.follow_up_at))
   const today = leads.filter(l => l.follow_up_at && isToday(l.follow_up_at))
@@ -101,7 +101,8 @@ export default function FollowupsPage() {
   return (
     <PageContainer title="Follow-ups" description="Scheduled callbacks and follow-up queue">
       {error && <p role="alert" className="mb-4 text-sm text-destructive">Follow-ups unavailable. Existing values may be stale.</p>}
-      {data && data.total > data.items.length && <p role="status" className="mb-4 text-sm text-muted-foreground">This queue covers the first 200 leads. Additional scheduled work may exist; review Leads for the complete list.</p>}
+      {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} scheduled follow-ups. Counts below cover loaded records.</p>}
+      {hasNextPage && <Button className="mb-4" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more follow-ups'}</Button>}
       <div className="space-y-6 max-w-content">
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-center shadow-card">

@@ -1,5 +1,11 @@
 # Dashboard repair design contract
 
+## Enhancement contract: remaining wiring
+
+Keep the inspected Settings layout, tabs and appearance control. Add an authenticated read-only server configuration query, real security lifetimes, admin-only paginated team roster, and an account-owned notification feed with unread filtering and acknowledged read actions. The server remains authoritative; no cosmetic preference is represented as a delivery policy. Separate voice configuration and external booking capabilities remain explicitly unavailable unless supplied by their actual service. Loading, error, empty, populated, permission-denied and mutation-pending states must be visible and typed.
+
+Follow-ups query only scheduled leads; Calendar filters the selected month on the server; Deals totals aggregate the full matching set. All lists expose real pagination instead of an unreachable 200-record cap. Pagination errors retain existing records and never advertise an empty queue. Calendar items use keyboard-accessible links. Backend permissions and timezone validation are tested independently from synthetic UI fixtures.
+
 Established after inspecting current-run desktop/mobile screenshots and WCAG checks, before UI changes. Existing architecture and data flows remain the foundation; the four-repository map and ten-product primary-source comparison are in REI-AGENT/docs/system-audit.
 
 ## Purpose and information hierarchy

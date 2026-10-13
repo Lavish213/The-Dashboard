@@ -42,6 +42,11 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest tests tests_safety -q --junitxml=test-results.xml
+      - run: alembic upgrade head
+      - run: PYTHONPATH=. python scripts/verify_schema.py
+      - run: alembic downgrade base
+      - run: alembic upgrade head
+      - run: PYTHONPATH=. python scripts/verify_schema.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -72,4 +77,4 @@ jobs:
         if: always()
         with:
           name: dashboard-browser-evidence
-          path: docs/visual-audit/after
+          path: docs/visual-audit/enhanced

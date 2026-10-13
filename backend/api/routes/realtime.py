@@ -17,6 +17,8 @@ import json
 import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from core.redis import get_redis
+from db.session import async_session_factory
 from observability.correlation import generate_correlation_id
 from observability.metrics import metrics
 from realtime.manager import connection_manager
@@ -32,8 +34,7 @@ from realtime.protocol import (
 )
 from realtime.reconnect import HEARTBEAT_INTERVAL_SECONDS, heartbeat_tracker
 from realtime.subscriptions import channel_allowed, subscription_manager
-from security.auth import decode_access_token
-from core.redis import get_redis
+from security.auth import get_current_user_ws
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 logger = structlog.get_logger(__name__)
@@ -69,9 +70,11 @@ async def websocket_endpoint(
 
     try:
         async for redis in get_redis():
-            payload = await decode_access_token(token, redis)
-            user_id = payload.get("sub")
-            role = payload.get("role", "operator")
+            async with asyncio.timeout(5):
+                async with async_session_factory() as session:
+                    user = await get_current_user_ws(token, session, redis)
+                    user_id = str(user.id)
+                    role = user.role.value
     except Exception:
         await ws.accept()
         err = RealtimeError(code="authentication_error", message="Invalid or expired token")
@@ -121,7 +124,7 @@ async def websocket_endpoint(
                     heartbeat_tracker.record_pong(connection_id)
 
                 case "subscribe":
-                    if not channel_allowed(msg.channel, role):
+                    if not channel_allowed(msg.channel, role, user_id):
                         err = RealtimeError(
                             code="permission_denied",
                             message=f"Not allowed to subscribe to {msg.channel}",
@@ -142,7 +145,7 @@ async def websocket_endpoint(
                     await connection_manager.send_json(connection_id, unsub_ack.model_dump())
 
                 case "replay":
-                    if not channel_allowed(msg.channel, role):
+                    if not channel_allowed(msg.channel, role, user_id):
                         err = RealtimeError(
                             code="permission_denied",
                             message=f"Not allowed to replay {msg.channel}",
@@ -150,7 +153,6 @@ async def websocket_endpoint(
                         )
                         await connection_manager.send_json(connection_id, err.model_dump())
                     else:
-                        from db.session import async_session_factory
                         from events.replay import replay_channel
 
                         async with async_session_factory() as session:

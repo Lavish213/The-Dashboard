@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
-import { apiFetch } from '@/services/api'
+import Link from 'next/link'
 import { LeadAvatar } from '@/components/leads/LeadAvatar'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -39,8 +39,12 @@ export default function CalendarPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
-  const { data, isPending: loading, error } = useQuery({ queryKey: ['scheduled-leads'], queryFn: ({ signal }) => apiFetch<{ items: Lead[]; total: number }>('/api/v1/leads?page_size=200', { signal }) })
-  const leads = (data?.items ?? []).filter(l => l.follow_up_at)
+  const { data, isPending: loading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useLeadPages<Lead>({
+    scheduled_only: 'true',
+    follow_up_start: new Date(year, month, 1).toISOString(),
+    follow_up_end: new Date(year, month + 1, 1).toISOString(),
+  })
+  const leads = data?.pages.flatMap(page => page.items) ?? []
 
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear(y => y - 1) }
@@ -71,7 +75,8 @@ export default function CalendarPage() {
   return (
     <PageContainer title="Calendar" description="Lead follow-up dates — external calendar bookings are not connected here">
       {error && <p role="alert" className="mb-4 text-sm text-destructive">Calendar data unavailable. Existing dates may be stale.</p>}
-      {data && data.total > data.items.length && <p role="status" className="mb-4 text-sm text-muted-foreground">Showing dates from the first 200 leads. Additional scheduled work may exist.</p>}
+      {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} follow-ups for this month.</p>}
+      {hasNextPage && <Button variant="outline" className="mb-4" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more calendar dates'}</Button>}
       <div className="space-y-4 max-w-content">
         <div className="rounded-lg border bg-card shadow-card p-4">
           <div className="flex items-center justify-between mb-4">
@@ -107,6 +112,8 @@ export default function CalendarPage() {
               return (
                 <button
                   key={day}
+                  aria-label={`${MONTH_NAMES[month]} ${day}, ${year}: ${dayLeads.length} loaded follow-ups`}
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedDay(isSelected ? null : day)}
                   className={`relative rounded-md p-1.5 text-center text-xs transition-all min-h-[36px] ${
                     isSelected
@@ -135,16 +142,16 @@ export default function CalendarPage() {
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               {MONTH_NAMES[month]} {selectedDay} — {selectedLeads.length} follow-up{selectedLeads.length !== 1 ? 's' : ''}
             </p>
-            {selectedLeads.length === 0 ? (
+            {!error && selectedLeads.length === 0 ? (
               <div className="rounded-lg border bg-card p-6 text-center">
                 <CalendarDays className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No follow-ups scheduled</p>
               </div>
             ) : (
               selectedLeads.map(lead => (
-                <div
+                <Link
                   key={lead.id}
-                  onClick={() => router.push(`/leads/${lead.id}`)}
+                  href={`/leads/${lead.id}`}
                   className="flex items-center gap-3 rounded-lg border bg-card shadow-card px-4 py-3 cursor-pointer hover:border-teal-500/30 transition-all"
                 >
                   <LeadAvatar name={lead.full_name} score={lead.ai_score} size="sm" />
@@ -155,7 +162,7 @@ export default function CalendarPage() {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">{lead.lead_status}</span>
-                </div>
+                </Link>
               ))
             )}
           </div>

@@ -5,7 +5,7 @@ import { chromium } from 'playwright'
 import AxeBuilder from '@axe-core/playwright'
 
 const phase = process.argv[2] || 'before'
-if (!['before', 'after'].includes(phase)) throw new Error('Use before or after')
+if (!['before', 'after', 'enhanced'].includes(phase)) throw new Error('Use before, after or enhanced')
 const output = resolve('../docs/visual-audit', phase)
 await mkdir(output, { recursive: true })
 const origin = 'http://127.0.0.1:3217'
@@ -14,12 +14,33 @@ let serverLog = ''
 server.stdout.on('data', b => { serverLog += b })
 server.stderr.on('data', b => { serverLog += b })
 let browser
-const watchdog = setTimeout(() => { server.kill('SIGKILL'); process.exit(124) }, 180_000)
+const watchdog = setTimeout(() => { server.kill('SIGKILL'); process.exit(124) }, 240_000)
 const evidence = { phase, fixtureOnly: true, browserExecutableOverride: Boolean(process.env.BROWSER_EXECUTABLE_PATH), capturedAt: new Date().toISOString(), browserVersion: null, screens: [], errors: [], requests: [], interactions: [] }
 const user = { id: '00000000-0000-4000-8000-000000000001', email: 'audit@example.invalid', full_name: 'Audit operator', role: 'admin' }
-const list = { items: [], total: 0, page: 1, page_size: 50, total_pages: 1 }
-function fixture(path) {
-  if (path.endsWith('/auth/me')) return user
+const list = { items: [], total: 0, page: 1, page_size: 50, total_pages: 1, summary: null }
+let populated = false, notificationRead = false, notificationFailure = false
+let actorId = user.id, actorRole = 'admin'
+function fixture(url) {
+  const path = url.pathname
+  if (path.endsWith('/auth/me')) return { ...user, id: actorId, role: actorRole }
+  if (path === '/api/v1/settings') return { source: 'dashboard_server', app_version: 'fixture', environment: 'test', security: { access_token_minutes: 1440, refresh_token_days: 7 }, permissions: [], notifications: { channel: 'in_app', delivery: 'database_and_websocket' }, voice_configuration: { available: false, reason: 'Voice configuration is managed by the separate voice service' }, calendar_booking: { available: false, reason: 'Follow-up dates only' } }
+  if (path.endsWith('/settings/team')) return { ...list, items: populated ? [{ ...user, status: 'active' }] : [], total: populated ? 1 : 0 }
+  if (path.endsWith('/notifications/unread-count')) return { unread_count: populated && !notificationRead ? 1 : 0 }
+  if (path.endsWith('/notifications')) return { ...list, items: populated && (!notificationRead || url.searchParams.get('unread_only') !== 'true') ? [{ id: 'notice-one', title: 'Synthetic approval notice', body: 'Review this synthetic decision.', created_at: '2026-10-12T12:00:00Z', read_at: notificationRead ? '2026-10-12T13:00:00Z' : null }] : [] }
+  if (populated && path.endsWith('/leads')) {
+    const page = Number(url.searchParams.get('page') || 1)
+    const status = url.searchParams.get('statuses') || 'new'
+    const total = status === 'converted' ? 2 : 201
+    const anchor = new Date(url.searchParams.get('follow_up_start') || '2099-04-01T00:00:00Z')
+    anchor.setUTCDate(anchor.getUTCDate() + 10)
+    const items = Array.from({ length: Math.max(0, Math.min(200, total - (page - 1) * 200)) }, (_, i) => ({
+      id: `${status}-${(page - 1) * 200 + i + 1}`, full_name: `Synthetic seller ${(page - 1) * 200 + i + 1}`, phone: '+12095550101', email: null, lead_status: status, ai_score: 80,
+      notes: null, address: '123 Synthetic Lane', city: 'Stockton', state: 'CA', follow_up_at: anchor.toISOString(), updated_at: '2026-10-12T12:00:00Z', created_at: '2026-10-12T12:00:00Z',
+    }))
+    return { ...list, items, total, page, total_pages: Math.ceil(total / 200), summary: { by_status: { [status]: total }, average_score: 80, score_total: total * 80 } }
+  }
+  if (populated && path.endsWith('/transcripts')) return { ...list, total: 2, items: ['11111111', '22222222'].map(id => ({ id: id + '-0000-4000-8000-000000000001', source_type: 'call', transcript_status: 'completed', created_at: '2026-10-12T12:00:00Z' })) }
+  if (populated && path.endsWith('/chunks')) return [{ id: 'chunk', speaker: 'sophia', text: path.includes('11111111') ? 'First conversation only' : 'Second conversation only', chunk_index: 0, created_at: '2026-10-12T12:00:00Z' }]
   if (path.endsWith('/analytics')) {
     if (path.includes('/social/')) return { total_posts: 8, posted: 3, total_leads_generated: 2, by_platform: { facebook: 4, instagram: 4 } }
     return { leads: { total: 42, by_status: { new: 14, contacted: 12, qualified: 10, converted: 6 } }, calls: { total: 120, completed: 96, no_answer: 12, voicemail: 6, failed: 6, contact_rate: 80, avg_duration_seconds: 165 }, workflows: { total: 24, active: 7, completed: 17, failed: 0 } }
@@ -36,7 +57,7 @@ try {
   }
   browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE_PATH || undefined })
   evidence.browserVersion = browser.version()
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' })
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', timezoneId: 'America/Los_Angeles' })
   await context.addInitScript(() => {
     localStorage.setItem('karpathys_token', 'synthetic-audit-token')
     if (!localStorage.getItem('theme')) localStorage.setItem('theme', 'dark')
@@ -47,10 +68,16 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (populated && route.request().method() === 'POST' && url.pathname.includes('/notifications/')) {
+        if (notificationFailure) return route.fulfill({ status: 503, json: { detail: 'Synthetic read failure' } })
+        notificationRead = true
+        return route.fulfill({ status: 200, json: {} })
+      }
       if (rejectLogin && url.pathname.endsWith('/auth/login')) return route.fulfill({ status: 401, json: { detail: [{ msg: 'Synthetic structured rejection' }] } })
       if (route.request().method() !== 'GET') return route.fulfill({ status: 405, json: { detail: 'Fixture audit prevents mutations' } })
       const failed = outage && !url.pathname.endsWith('/auth/me')
-      return route.fulfill({ status: failed ? 503 : 200, json: failed ? { detail: 'Synthetic provider outage' } : fixture(url.pathname) })
+      if (populated && url.pathname.includes('/transcripts/11111111')) await new Promise(r => setTimeout(r, 700))
+      return route.fulfill({ status: failed ? 503 : 200, json: failed ? { detail: 'Synthetic provider outage' } : fixture(url) })
     }
     if (url.origin === origin) return route.continue()
     return route.abort('blockedbyclient')
@@ -79,7 +106,7 @@ try {
   await capture('05-settings-mobile', '/settings', 390)
   outage = true
   await capture('06-dashboard-outage', '/dashboard')
-  if (phase === 'after') {
+  if (phase !== 'before') {
     const idle = evidence.screens.find(s => s.name === '01-dashboard-desktop')
     if (idle.text.includes('AI Active')) throw new Error('Idle session falsely advertised active')
     const failed = evidence.screens.find(s => s.name === '06-dashboard-outage')
@@ -135,6 +162,58 @@ try {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await page.getByRole('alert').getByText('Login failed (401)', { exact: true }).waitFor()
     evidence.interactions.push('Structured sign-in rejection remains readable without crashing')
+    if (phase === 'enhanced') {
+      populated = true
+      rejectLogin = false
+      await capture('32-populated-followups', '/followups')
+      await page.getByRole('button', { name: 'Load more follow-ups', exact: true }).click()
+      await page.getByText('Loaded 201 of 201 scheduled follow-ups. Counts below cover loaded records.', { exact: true }).waitFor()
+      await page.getByText('Synthetic seller 201', { exact: true }).waitFor()
+      evidence.interactions.push('Follow-ups reach record 201 through real pagination')
+      await capture('33-populated-calendar', '/calendar', 390)
+      await page.getByRole('button', { name: 'Load more calendar dates' }).click()
+      await page.getByText('Loaded 201 of 201 follow-ups for this month.', { exact: true }).waitFor()
+      evidence.interactions.push('Calendar reaches the complete month-filtered dataset')
+      await capture('34-populated-deals', '/deals')
+      await page.getByText('Loaded 202 of 203 deals. Totals cover all matching records.', { exact: true }).waitFor()
+      await page.getByRole('button', { name: 'Load more qualified deals' }).click()
+      await page.getByText('Loaded 203 of 203 deals. Totals cover all matching records.', { exact: true }).waitFor()
+      evidence.interactions.push('Deal totals cover unloaded pages and both statuses')
+      await capture('35-populated-settings', '/settings')
+      await page.getByRole('tab', { name: 'Notifications', exact: true }).click()
+      await page.getByText('Synthetic approval notice', { exact: true }).waitFor()
+      notificationFailure = true
+      await page.getByRole('button', { name: 'Mark read', exact: true }).click()
+      await page.getByText('Read status was not saved. Try again.', { exact: true }).waitFor()
+      notificationFailure = false
+      await page.getByRole('button', { name: 'Mark read', exact: true }).click()
+      await page.getByRole('button', { name: 'Mark read', exact: true }).waitFor({ state: 'hidden' })
+      await page.getByText('0 unread', { exact: true }).waitFor()
+      evidence.interactions.push('Notification failure preserves unread state; acknowledged retry updates it')
+      await page.getByRole('tab', { name: 'Users', exact: true }).click()
+      await page.getByRole('heading', { name: 'Team roster', exact: true }).waitFor()
+      actorRole = 'operator'
+      await capture('36-operator-settings', '/settings')
+      await page.getByRole('tab', { name: 'Users', exact: true }).click()
+      await page.getByText('The team roster is available to administrators.', { exact: true }).waitFor()
+      evidence.interactions.push('Operator UI does not expose the admin roster')
+      await capture('37-populated-transcripts', '/transcripts')
+      await page.getByRole('button').filter({ hasText: '11111111' }).click()
+      await page.getByRole('button').filter({ hasText: '22222222' }).click()
+      await page.getByText('Second conversation only', { exact: true }).waitFor()
+      await page.waitForTimeout(800)
+      if (await page.getByText('First conversation only', { exact: true }).count()) throw new Error('Stale transcript overwrote current selection')
+      evidence.interactions.push('Delayed first transcript cannot overwrite the second selection')
+      await page.evaluate(id => localStorage.setItem('karpathys_saved_properties:' + id, JSON.stringify([{ attomId: 'private', address: 'Private saved address', city: 'Stockton', state: 'CA', zip: '95201', bedrooms: null, bathrooms: null, squareFeet: null, yearBuilt: null, estimatedValue: null, lastSalePrice: null, lastSaleDate: null, ownerName: null, lotSize: null, propertyType: null, taxAssessment: null, taxDelinquent: false, savedAt: '2026-10-12T12:00:00Z' }])), actorId)
+      await page.goto(origin + '/properties', { waitUntil: 'networkidle' })
+      await page.getByRole('button', { name: 'Saved (1)', exact: true }).click()
+      await page.getByText('Private saved address', { exact: true }).waitFor()
+      actorId = '00000000-0000-4000-8000-000000000002'
+      await page.goto(origin + '/properties', { waitUntil: 'networkidle' })
+      await page.getByRole('button', { name: 'Saved (0)', exact: true }).click()
+      if (await page.getByText('Private saved address', { exact: true }).count()) throw new Error('Saved property crossed account boundary')
+      evidence.interactions.push('Persisted saved properties remain isolated across two accounts')
+    }
     const violations = evidence.screens.filter(s => s.violations.length)
     if (violations.length) throw new Error('Accessibility violations: ' + violations.map(s => s.name).join(', '))
     if (evidence.errors.length) throw new Error('Browser runtime errors: ' + evidence.errors.join('; '))
