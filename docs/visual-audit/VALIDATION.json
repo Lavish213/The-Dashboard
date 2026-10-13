@@ -32,8 +32,8 @@
   },
   "ci": {
     "status": "passed",
-    "run": 38328389520,
-    "testedCommit": "fef426224ae434d348ed9dc3fe16f121ad97adc6",
+    "run": 38328837255,
+    "testedCommit": "bfb85a45d67d6946c004d73d715c8511b1c35a36",
     "backendTests": 1095,
     "tables": 44,
     "enums": 46
