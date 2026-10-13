@@ -1,6 +1,6 @@
 const env = {
-  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000',
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? '',
   appEnv: (process.env.NEXT_PUBLIC_APP_ENV ?? 'development') as
     | 'development'
     | 'staging'

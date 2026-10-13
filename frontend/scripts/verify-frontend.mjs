@@ -147,3 +147,53 @@ test('account changes and logout clear conversation and approval identity', asyn
   assert.equal(auth.getState().status, 'unauthenticated')
   assert.equal(storage.size, 0)
 })
+
+async function loadSocket() {
+  const sockets = []
+  const timers = []
+  class Socket {
+    static OPEN = 1
+    constructor(url) { this.url = url; sockets.push(this) }
+    close() {}
+  }
+  const context = createContext({ URL, WebSocket: Socket, window: { location: { origin: 'https://dashboard.example.invalid', protocol: 'https:' } }, setTimeout: (fn) => { timers.push(fn); return timers.length }, clearTimeout() {} })
+  const reconnect = new SourceTextModule(compile(await readFile(new URL('../lib/websocket/reconnect.ts', import.meta.url), 'utf8')), { context })
+  await reconnect.link(() => { throw new Error('Unexpected dependency') })
+  const client = new SourceTextModule(compile(await readFile(new URL('../lib/websocket/client.ts', import.meta.url), 'utf8')), { context })
+  await client.link(() => reconnect)
+  await client.evaluate()
+  return { ...client.namespace, sockets, timers }
+}
+test('socket uses secure same origin and a ticket without JWT query', async () => {
+  const { buildWsUrl } = await loadSocket()
+  const url = new URL(buildWsUrl('', 'single-use-ticket'))
+  assert.equal(url.origin, 'wss://dashboard.example.invalid')
+  assert.equal(url.pathname, '/api/v1/realtime/ws')
+  assert.equal(url.searchParams.get('ticket'), 'single-use-ticket')
+  assert.equal(url.searchParams.has('token'), false)
+  assert.throws(() => buildWsUrl('ws://insecure.example.invalid', 'ticket'))
+  assert.throws(() => buildWsUrl('https://user:password@example.invalid', 'ticket'))
+})
+test('socket reconnect obtains a fresh ticket', async () => {
+  const { WebSocketClient, sockets, timers } = await loadSocket()
+  let requests = 0
+  const client = new WebSocketClient(async () => `wss://example.invalid?ticket=${++requests}`, { onStatusChange() {}, onMessage() {} })
+  client.connect()
+  await new Promise(setImmediate)
+  sockets[0].onclose({ code: 1006 })
+  timers[0]()
+  await new Promise(setImmediate)
+  assert.equal(requests, 2)
+  assert.notEqual(sockets[0].url, sockets[1].url)
+  client.disconnect()
+})
+test('destroyed socket does not open after delayed ticket resolves', async () => {
+  const { WebSocketClient, sockets } = await loadSocket()
+  let resolve
+  const client = new WebSocketClient(() => new Promise((done) => { resolve = done }), { onStatusChange() {}, onMessage() {} })
+  client.connect()
+  client.disconnect()
+  resolve('wss://example.invalid?ticket=expired-session')
+  await new Promise(setImmediate)
+  assert.equal(sockets.length, 0)
+})

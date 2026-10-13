@@ -155,3 +155,13 @@ async def get_me(
     user: User = Depends(get_current_active_user),
 ) -> UserResponse:
     return UserResponse.model_validate(user)
+
+
+@router.post("/ws-ticket")
+async def websocket_ticket(
+    user: User = Depends(get_current_active_user),
+    raw_token: str = Depends(_get_raw_token),
+    redis: aioredis.Redis = Depends(get_redis),
+) -> dict:
+    from security.websocket_tickets import issue_ticket
+    return await issue_ticket(raw_token, user, redis)

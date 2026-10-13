@@ -6,6 +6,12 @@ on:
 permissions:
   contents: read
 jobs:
+  production-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python scripts/verify-production-compose.py
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 20

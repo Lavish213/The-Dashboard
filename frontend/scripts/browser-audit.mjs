@@ -74,6 +74,7 @@ try {
         return route.fulfill({ status: 200, json: {} })
       }
       if (rejectLogin && url.pathname.endsWith('/auth/login')) return route.fulfill({ status: 401, json: { detail: [{ msg: 'Synthetic structured rejection' }] } })
+      if (url.pathname === '/api/v1/auth/ws-ticket' && route.request().method() === 'POST') return route.fulfill({ json: { ticket: 'synthetic-ticket-with-no-external-access', expires_in: 20 } })
       if (route.request().method() !== 'GET') return route.fulfill({ status: 405, json: { detail: 'Fixture audit prevents mutations' } })
       const failed = outage && !url.pathname.endsWith('/auth/me')
       if (populated && url.pathname.includes('/transcripts/11111111')) await new Promise(r => setTimeout(r, 700))

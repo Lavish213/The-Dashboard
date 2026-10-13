@@ -1,7 +1,8 @@
 version: '3.9'
 
 # Production overlay — apply on top of docker-compose.yml:
-#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Requires Docker Compose 2.24.4+ for !override; validate with config before deploying.
 #
 # Required env vars (set in environment or .env.production):
 #   SECRET_KEY, DATABASE_URL, REDIS_URL, CORS_ORIGINS
@@ -10,16 +11,20 @@ version: '3.9'
 services:
   postgres:
     restart: unless-stopped
-    ports: []                        # no port exposure in production
+    ports: !reset []
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER:?Production database user required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Production database password required}
       POSTGRES_DB: ${POSTGRES_DB:-karpathys}
 
   redis:
     restart: unless-stopped
-    ports: []
+    ports: !reset []
     command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Production Redis password required}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
     volumes:
       - redis_data:/data
 
@@ -27,12 +32,16 @@ services:
     build:
       target: production
     restart: unless-stopped
-    ports: []                        # expose via reverse proxy only
-    env_file:
+    ports: !reset []
+    env_file: !override
       - .env.production
-    environment:
+    environment: !override
       APP_ENV: production
-    volumes: []                      # no bind mounts in production
+      SECRET_KEY: ${SECRET_KEY:?Production signing key required}
+      DATABASE_URL: ${DATABASE_URL:?Production database URL required}
+      REDIS_URL: ${REDIS_URL:?Production Redis URL required}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Production browser origins required}
+    volumes: !reset []
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,13 +51,18 @@ services:
   frontend:
     build:
       target: runner
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-}
     restart: unless-stopped
-    ports: []
-    env_file:
+    ports: !reset []
+    env_file: !override
       - .env.production
-    environment:
+    environment: !override
       NODE_ENV: production
-    volumes: []
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-}
+    volumes: !reset []
     depends_on:
       backend:
         condition: service_healthy
@@ -57,6 +71,8 @@ services:
   proxy:
     image: caddy:2-alpine
     restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Production domain required}
     ports:
       - '80:80'
       - '443:443'

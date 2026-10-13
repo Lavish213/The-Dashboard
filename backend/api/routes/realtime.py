@@ -2,8 +2,8 @@
 Realtime WebSocket endpoint and HTTP observability routes.
 
 WS connect flow:
-  1. Client connects: /api/v1/realtime/ws?token=<jwt>
-  2. Server validates JWT, extracts user_id + role
+  1. Client connects using a single-use, 20-second websocket ticket
+  2. Server consumes ticket and loads current active database identity
   3. Registers connection, sends ConnectedAck
   4. Starts heartbeat task
   5. Receives messages in loop, dispatches handlers
@@ -34,7 +34,7 @@ from realtime.protocol import (
 )
 from realtime.reconnect import HEARTBEAT_INTERVAL_SECONDS, heartbeat_tracker
 from realtime.subscriptions import channel_allowed, subscription_manager
-from security.auth import get_current_user_ws
+from security.websocket_tickets import redeem_ticket
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 logger = structlog.get_logger(__name__)
@@ -55,12 +55,12 @@ async def _heartbeat_loop(connection_id: str) -> None:
 @router.websocket("/ws")
 async def websocket_endpoint(
     ws: WebSocket,
-    token: str | None = Query(default=None),
+    ticket: str | None = Query(default=None),
 ) -> None:
     # --- Auth gate — reject immediately if no token or invalid token ---
-    if token is None:
+    if ticket is None:
         await ws.accept()
-        err = RealtimeError(code="authentication_error", message="Missing authentication token")
+        err = RealtimeError(code="authentication_error", message="Missing websocket ticket")
         await ws.send_json(err.model_dump())
         await ws.close(code=4001)
         return
@@ -72,7 +72,7 @@ async def websocket_endpoint(
         async for redis in get_redis():
             async with asyncio.timeout(5):
                 async with async_session_factory() as session:
-                    user = await get_current_user_ws(token, session, redis)
+                    user = await redeem_ticket(ticket, session, redis)
                     user_id = str(user.id)
                     role = user.role.value
     except Exception:

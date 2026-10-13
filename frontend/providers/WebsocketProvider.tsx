@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import env from '@/config/environment'
+import { apiFetch } from '@/services/api'
 import { buildWsUrl, WebSocketClient } from '@/lib/websocket/client'
 import { MessageDispatcher } from '@/lib/realtime/dispatcher'
 import { HandlerRegistry } from '@/lib/realtime/registry'
@@ -41,9 +42,10 @@ export function WebsocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!token) return
 
-    const url = buildWsUrl(env.wsUrl, token)
-
-    const client = new WebSocketClient(url, {
+    const client = new WebSocketClient(async () => {
+      const { ticket } = await apiFetch<{ ticket: string }>('/api/v1/auth/ws-ticket', { method: 'POST' })
+      return buildWsUrl(env.wsUrl, ticket)
+    }, {
       onStatusChange: (status) => {
         setStatus(status)
         if (status === 'reconnecting') {
