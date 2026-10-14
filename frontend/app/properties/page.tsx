@@ -57,36 +57,32 @@ function fmtNum(v: number | null): string {
   return new Intl.NumberFormat('en-US').format(v)
 }
 
-function equity(prop: PropertyResult): number | null {
-  if (!prop.estimatedValue || !prop.lastSalePrice) return null
-  return prop.estimatedValue - prop.lastSalePrice
-}
-
-function equityPct(prop: PropertyResult): string {
-  const eq = equity(prop)
-  if (!eq || !prop.estimatedValue) return '—'
-  return `${Math.round((eq / prop.estimatedValue) * 100)}%`
-}
-
-function ARVCalculator({ arv }: { arv: number | null }) {
+function ARVCalculator() {
   const [repairCost, setRepairCost] = useState('')
-  const [arvOverride, setArvOverride] = useState(arv ? String(arv) : '')
+  const [arvOverride, setArvOverride] = useState('')
 
-  const arvVal = parseFloat(arvOverride.replace(/[^0-9.]/g, '')) || 0
-  const repairVal = parseFloat(repairCost.replace(/[^0-9.]/g, '')) || 0
-  const mao70 = arvVal * 0.70 - repairVal
-  const mao75 = arvVal * 0.75 - repairVal
-  const mao80 = arvVal * 0.80 - repairVal
+  const cents = (text: string) => {
+    const raw = text.trim().replace(/,/g, '')
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(text.trim())) return null
+    const [dollars, fraction = ''] = raw.split('.')
+    const amount = Number(dollars) * 100 + Number(fraction.padEnd(2, '0'))
+    return Number.isSafeInteger(amount) && amount <= 1e14 ? amount : null
+  }
+  const arvCents = cents(arvOverride), repairCents = cents(repairCost)
+  const arvVal = arvCents === null ? 0 : arvCents / 100
+  const screen = (bps: number) => arvCents === null || repairCents === null ? 0 : Math.max(0, Number(BigInt(arvCents) * BigInt(bps) / BigInt(10000)) - repairCents) / 100
+  const mao70 = screen(7000), mao75 = screen(7500), mao80 = screen(8000)
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3 shadow-card">
       <div className="flex items-center gap-2">
         <Calculator className="h-4 w-4 text-teal-400" />
-        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">ARV / MAO Calculator</p>
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Manual deal screen</p>
       </div>
+      <p className="text-xs text-muted-foreground">Enter a reviewed after-repair value and an explicit repair budget. Screens exclude financing, holding and closing costs; they do not approve an offer.</p>
       <div className="space-y-2">
         <div>
-          <label className="text-xs text-muted-foreground">ARV ($)</label>
+          <label className="text-xs text-muted-foreground">Reviewed ARV input ($)</label>
           <input
             type="text"
             value={arvOverride}
@@ -106,22 +102,22 @@ function ARVCalculator({ arv }: { arv: number | null }) {
           />
         </div>
       </div>
-      {arvVal > 0 && (
+      {arvVal > 0 && repairCents !== null && (
         <div className="space-y-1.5 pt-2 border-t border-border">
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">MAO at 70%</span>
+            <span className="text-muted-foreground">Screen at 70%</span>
             <span className={`font-semibold tabular-nums ${mao70 > 0 ? 'text-green-400' : 'text-red-400'}`}>
               {fmt$(mao70)}
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">MAO at 75%</span>
+            <span className="text-muted-foreground">Screen at 75%</span>
             <span className={`font-semibold tabular-nums ${mao75 > 0 ? 'text-amber-400' : 'text-red-400'}`}>
               {fmt$(mao75)}
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">MAO at 80%</span>
+            <span className="text-muted-foreground">Screen at 80%</span>
             <span className={`font-semibold tabular-nums ${mao80 > 0 ? 'text-blue-400' : 'text-red-400'}`}>
               {fmt$(mao80)}
             </span>
@@ -263,9 +259,9 @@ export default function PropertiesPage() {
           <div className="rounded-lg border bg-card p-5 space-y-0 divide-y divide-border shadow-card">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground pb-3">Financial</p>
             {[
-              { icon: DollarSign, color: 'text-teal-400', label: 'Estimated Value', value: fmt$(prop.estimatedValue), highlight: true },
+              { icon: DollarSign, color: 'text-teal-400', label: 'Provider estimate (not ARV)', value: fmt$(prop.estimatedValue), highlight: true },
               { icon: Calendar, color: 'text-muted-foreground', label: 'Last Sale', value: fmt$(prop.lastSalePrice), sub: prop.lastSaleDate ?? undefined },
-              { icon: ArrowRight, color: 'text-green-400', label: 'Equity', value: fmt$(equity(prop)), sub: equityPct(prop) },
+              { icon: ArrowRight, color: 'text-muted-foreground', label: 'Equity', value: 'Unverified', sub: 'Current loan payoffs and liens required' },
               { icon: Landmark, color: 'text-muted-foreground', label: 'Tax Assessment', value: fmt$(prop.taxAssessment) },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between py-3">
@@ -281,7 +277,7 @@ export default function PropertiesPage() {
             ))}
           </div>
 
-          <ARVCalculator key={prop.attomId} arv={prop.estimatedValue} />
+          <ARVCalculator key={prop.attomId} />
         </div>
 
         <div className="space-y-4">
@@ -419,7 +415,7 @@ export default function PropertiesPage() {
               <div className="rounded-lg border border-dashed border-border p-12 text-center">
                 <Home className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
                 <p className="text-sm text-muted-foreground">Search an address to pull property data</p>
-                <p className="text-xs text-muted-foreground mt-1">Owner info, AVM, tax records, equity analysis</p>
+                <p className="text-xs text-muted-foreground mt-1">Owner info, provider estimates and tax records</p>
               </div>
             )}
 
@@ -473,7 +469,7 @@ export default function PropertiesPage() {
                     </div>
                     <div className="rounded bg-muted p-2 text-center">
                       <p className="text-muted-foreground">Equity</p>
-                      <p className="font-semibold text-green-400 mt-0.5">{equityPct(prop)}</p>
+                      <p className="font-semibold text-green-400 mt-0.5">Unverified</p>
                     </div>
                     <div className="rounded bg-muted p-2 text-center">
                       <p className="text-muted-foreground">Score</p>
