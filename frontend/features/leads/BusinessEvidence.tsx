@@ -19,11 +19,15 @@ export function BusinessEvidence({leadId}: {leadId: string}) {
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     let active = true
+    let pending = false
     async function refresh() {
+      if (pending) return
+      pending = true
       try {
         const result = await apiFetch<Evidence>(`/api/v1/leads/${leadId}/business-evidence`)
         if (active) { setEvidence(result); setError(null) }
       } catch { if (active) { setEvidence(null); setError('Property evidence could not be loaded.') } }
+      finally { pending = false }
     }
     refresh()
     const timer = setInterval(refresh, 30000)
