@@ -107,3 +107,58 @@ async def test_expired_receipts_are_pruned_before_new_snapshot(db):
     assert repeated.status_code == 200
     await db.refresh(lead)
     assert 'expired' not in lead.metadata_['business_receipts']
+
+
+def priced_business(external):
+    body = business(external)
+    body['snapshot']['comparables'] = [{**body['snapshot']['comparables'][0], 'sale_id': f'sale-{i}'} for i in range(3)]
+    body['snapshot']['valuation'] = {'schema_version': '1.0', 'lead_id': external, 'status': 'ready_advisory', 'method': 'evidence_adjusted_sales_comparison', 'purpose': 'after_repair', 'as_of': datetime.now(UTC).date().isoformat(), 'comparable_count': 3, 'supported_low_cents': 45000000, 'point_cents': 46000000, 'supported_high_cents': 47000000, 'quote_authorized': False, 'offer_authorized': False}
+    body['revision'] = hashlib.sha256(json.dumps(body['snapshot'], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return body
+
+
+async def test_business_rejects_stale_valuation_duplicate_comps_and_naive_appointment(db):
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=application(db)), base_url='http://test') as client:
+        for defect in ('stale', 'duplicate', 'count', 'naive', 'missing_time'):
+            body = priced_business(str(uuid4()))
+            if defect == 'stale':
+                body['snapshot']['valuation']['as_of'] = (datetime.now(UTC) - timedelta(days=31)).date().isoformat()
+            elif defect == 'duplicate':
+                body['snapshot']['comparables'][1]['sale_id'] = 'sale-0'
+            elif defect == 'count':
+                body['snapshot']['valuation']['comparable_count'] = 4
+            elif defect == 'naive':
+                body['snapshot']['appointment']['at'] = '2026-11-01T22:00:00'
+            else:
+                body['snapshot']['appointment']['at'] = None
+            body['revision'] = hashlib.sha256(json.dumps(body['snapshot'], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            result = await client.post('/api/v1/ingest/business', json=body)
+            assert result.status_code == 422, (defect, result.text)
+    assert (await db.scalar(select(func.count()).select_from(Lead))) == 0
+
+
+async def test_equal_timestamp_conflict_cannot_reinstate_appointment(db):
+    body = business(str(uuid4()))
+    conflict = json.loads(json.dumps(body))
+    conflict['snapshot']['appointment'] = {'at': None, 'status': 'cancelled'}
+    conflict['revision'] = hashlib.sha256(json.dumps(conflict['snapshot'], sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=application(db)), base_url='http://test') as client:
+        first = await client.post('/api/v1/ingest/business', json=body)
+        second = await client.post('/api/v1/ingest/business', json=conflict)
+        evidence = await client.get('/api/v1/leads/' + first.json()['lead_id'] + '/business-evidence')
+    assert second.status_code == 409
+    assert evidence.json()['snapshot']['appointment']['status'] == 'confirmed'
+
+
+async def test_recent_sync_does_not_make_expired_valuation_current(db):
+    body = priced_business(str(uuid4()))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=application(db)), base_url='http://test') as client:
+        result = await client.post('/api/v1/ingest/business', json=body)
+        assert result.status_code == 200, result.text
+        lead = await db.get(Lead, UUID(result.json()['lead_id']))
+        metadata = json.loads(json.dumps(lead.metadata_))
+        metadata['business_evidence']['snapshot']['valuation']['as_of'] = (datetime.now(UTC) - timedelta(days=31)).date().isoformat()
+        lead.metadata_ = metadata
+        await db.commit()
+        evidence = await client.get('/api/v1/leads/' + result.json()['lead_id'] + '/business-evidence')
+    assert evidence.json()['status'] == 'stale'
