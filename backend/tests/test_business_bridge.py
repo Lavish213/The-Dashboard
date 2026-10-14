@@ -92,3 +92,18 @@ async def test_older_snapshot_cannot_reinstate_cancelled_appointment(db):
         evidence = await client.get('/api/v1/leads/' + first.json()['lead_id'] + '/business-evidence')
     assert old.json()['status'] == 'ignored_older_snapshot'
     assert evidence.json()['snapshot']['appointment']['status'] == 'cancelled'
+
+
+async def test_expired_receipts_are_pruned_before_new_snapshot(db):
+    body = business(str(uuid4()))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=application(db)), base_url='http://test') as client:
+        first = await client.post('/api/v1/ingest/business', json=body)
+        lead = await db.get(Lead, UUID(first.json()['lead_id']))
+        metadata = dict(lead.metadata_)
+        metadata['business_receipts'] = {'expired': {'recorded_at': (datetime.now(UTC) - timedelta(days=8)).isoformat()}}
+        lead.metadata_ = metadata
+        await db.commit()
+        repeated = await client.post('/api/v1/ingest/business', json=body)
+    assert repeated.status_code == 200
+    await db.refresh(lead)
+    assert 'expired' not in lead.metadata_['business_receipts']

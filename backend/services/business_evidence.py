@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -65,7 +65,8 @@ async def receive_business(session, body):
         raise HTTPException(422, "Bound lead required")
     lead = await session.get(Lead, lead_id)
     metadata = dict(lead.metadata_ or {})
-    receipts = dict(metadata.get('business_receipts') or {})
+    retained_after = (datetime.now(UTC) - timedelta(days=7)).isoformat()
+    receipts = {key: value for key, value in (metadata.get('business_receipts') or {}).items() if value.get('recorded_at', observed) >= retained_after}
     identity = str(body.get('call_sid') or '')
     if not 0 < len(identity) <= 255:
         raise HTTPException(422, "Delivery partition required")
@@ -87,7 +88,7 @@ async def receive_business(session, body):
             if value is not None and (not isinstance(value, str) or len(value) > 500):
                 raise HTTPException(422, "Invalid property label")
             setattr(lead, field, value)
-    result = {'schema_version': 1, 'persisted': True, 'receipt_id': str(lead_id) + ':business:' + key, 'call_sid': identity, 'lead_id': str(lead_id), 'status': status}
+    result = {'schema_version': 1, 'persisted': True, 'receipt_id': str(lead_id) + ':business:' + key, 'call_sid': identity, 'lead_id': str(lead_id), 'status': status, 'recorded_at': observed}
     receipts[key] = result
     metadata['business_receipts'] = receipts
     lead.metadata_ = metadata
