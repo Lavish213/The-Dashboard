@@ -24,6 +24,9 @@ let approvalResolved = false, approvalFailure = false
 let approvalExpired = false
 function fixture(url) {
   const path = url.pathname
+  if (path.includes('/source-operations')) return {items: [], page: 1, total_pages: 0}
+  if (path.includes('/source-review/candidates')) return {items: [], page: 1}
+  if (path.includes('/source-review/workflow-review')) return {items: [], requires_review: 0, review_owner_configured: false}
   if (path.endsWith('/business-evidence')) return {status: 'current', observed_at: new Date().toISOString(), snapshot: {address: '123 Synthetic Street', apn: '00123456', valuation: {point_cents: 46000000, supported_low_cents: 45000000, supported_high_cents: 47000000, comparable_count: 3, purpose: 'after_repair', as_of: '2026-10-14'}, comparables: [{sale_id: 'sale-1', source_ref: 'synthetic-reviewed-source', closed_on: '2026-10-01', sale_price_cents: 45000000, adjusted_value_cents: 46000000}], offers: [{id: 'offer-1', status: 'draft', amount_cents: 25000000, repairs_cents: 2000000}], appointment: {at: '2099-01-01T22:00:00Z', status: 'confirmed'}}}
   if (path === '/api/v1/leads/11111111-1111-4111-8111-111111111111') return {id: '11111111-1111-4111-8111-111111111111', full_name: 'Synthetic Owner', phone: null, email: null, lead_status: 'new', address: '123 Synthetic Street', city: 'Stockton', state: 'CA', notes: null, follow_up_at: null, created_at: '2026-10-14T00:00:00Z'}
   if (path.endsWith('/auth/me')) return { ...user, id: actorId, role: actorRole }
@@ -147,7 +150,7 @@ try {
     await page.getByRole('button', { name: 'Switch to light mode' }).click()
     await capture('07-dashboard-light', '/dashboard')
     await page.getByRole('button', { name: 'Switch to dark mode' }).click()
-    for (const route of ['leads', 'deals', 'followups', 'calendar', 'social', 'properties', 'calls', 'workflows', 'approvals', 'realtime', 'audit', 'analytics', 'activity', 'transcripts']) {
+    for (const route of ['leads', 'source-review', 'deals', 'followups', 'calendar', 'social', 'properties', 'calls', 'workflows', 'approvals', 'realtime', 'audit', 'analytics', 'activity', 'transcripts']) {
       await capture('route-' + route, '/' + route)
     }
     await page.setViewportSize({ width: 390, height: 844 })

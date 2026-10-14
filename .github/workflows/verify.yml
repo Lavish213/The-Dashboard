@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Lavish213/REI-AGENT
-          ref: 411940948654267d2fd6aa3fe1509f455e0f4d15
+          ref: 5a44afa3e87097d190f9afb76e2e0652d335c729
           path: _rei-contract
       - run: ruff check .
       - run: pytest tests tests_safety -q --junitxml=test-results.xml

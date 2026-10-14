@@ -17,6 +17,10 @@ interface Evidence { revision?: string; status: 'current' | 'stale' | 'unavailab
 const money = (cents: number | null) => cents !== null && Number.isSafeInteger(cents) ? new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(cents / 100) : 'Unverified'
 
 export function BusinessEvidence({leadId}: {leadId: string}) {
+  return <BusinessEvidencePanel key={leadId} leadId={leadId} />
+}
+
+export function BusinessEvidencePanel({leadId}: {leadId: string}) {
   const user = useAuthStore(state => state.user)
   const [callbackAt, setCallbackAt] = useState('')
   const [commandState, setCommandState] = useState<string | null>(null)
@@ -36,10 +40,6 @@ export function BusinessEvidence({leadId}: {leadId: string}) {
   const [evidence, setEvidence] = useState<Evidence | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    setEvidence(null)
-    setCallbackAt('')
-    setCommandState(null)
-    setRequestId(null)
     let active = true
     let pending = false
     async function refresh() {

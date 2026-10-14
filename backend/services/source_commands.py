@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import json
 import os
+from copy import deepcopy
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -10,7 +11,7 @@ import httpx
 import structlog
 from fastapi import HTTPException
 from sqlalchemy import cast, func, literal, select
-from sqlalchemy.dialects.postgresql import JSONPATH
+from sqlalchemy.dialects.postgresql import JSONB, JSONPATH
 
 from db.session import async_session_factory
 from models.lead import Lead
@@ -106,7 +107,7 @@ async def stage_callback(session, lead_id, request_id, at, revision, actor_id):
     fingerprint = hashlib.sha256(
         json.dumps(payload, sort_keys=True).encode()
     ).hexdigest()
-    metadata = dict(lead.metadata_ or {})
+    metadata = deepcopy(lead.metadata_ or {})
     commands = dict(metadata.get("source_commands") or {})
     existing = commands.get(str(request_id))
     if existing:
@@ -141,7 +142,7 @@ async def recover_commands(limit=20):
                 .where(
                     Lead.deleted_at.is_(None),
                     func.jsonb_path_exists(
-                        Lead.metadata_,
+                        cast(Lead.metadata_, JSONB),
                         cast(
                             literal('$.source_commands.* ? (@.state == "pending")'),
                             JSONPATH,
@@ -156,7 +157,7 @@ async def recover_commands(limit=20):
     for identity in identities:
         async with async_session_factory() as session:
             lead = await locked_source_lead(session, identity)
-            metadata = dict(lead.metadata_ or {})
+            metadata = deepcopy(lead.metadata_ or {})
             commands = dict(metadata.get("source_commands") or {})
             attempts_this_lead = 0
             for key, command in commands.items():

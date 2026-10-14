@@ -233,9 +233,8 @@ async function loadBusinessEvidence(fetcher) {
     throw new Error(`Unexpected component dependency: ${name}`)
   })
   await mod.evaluate()
-  mod.namespace.BusinessEvidence({ leadId: 'synthetic-lead' })
+  mod.namespace.BusinessEvidencePanel({ leadId: 'synthetic-lead' })
   const cleanup = effect()
-  updates.length = 0
   return { updates, cleanup, tick: () => timer() }
 }
 
