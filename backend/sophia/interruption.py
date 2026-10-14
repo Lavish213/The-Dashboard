@@ -19,7 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.enums import SophiaInterruptionReason
 from sophia.confidence_engine import SophiaConfidenceEngine
-from sophia.contracts import SophiaInterruption, TransferReason, TurnSignals, SophiaTurnRecord
+from sophia.contracts import (
+    SophiaInterruption,
+    SophiaTurnRecord,
+    TransferReason,
+    TurnSignals,
+)
 from sophia.session import SophiaSessionRuntime
 from sophia.turn import SophiaTurnRuntime
 

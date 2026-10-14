@@ -24,6 +24,8 @@ let approvalResolved = false, approvalFailure = false
 let approvalExpired = false
 function fixture(url) {
   const path = url.pathname
+  if (path.endsWith('/business-evidence')) return {status: 'current', observed_at: new Date().toISOString(), snapshot: {address: '123 Synthetic Street', apn: '00123456', valuation: {point_cents: 46000000, supported_low_cents: 45000000, supported_high_cents: 47000000, comparable_count: 3, purpose: 'after_repair', as_of: '2026-10-14'}, comparables: [{sale_id: 'sale-1', source_ref: 'synthetic-reviewed-source', closed_on: '2026-10-01', sale_price_cents: 45000000, adjusted_value_cents: 46000000}], offers: [{id: 'offer-1', status: 'draft', amount_cents: 25000000, repairs_cents: 2000000}], appointment: {at: '2099-01-01T22:00:00Z', status: 'confirmed'}}}
+  if (path === '/api/v1/leads/11111111-1111-4111-8111-111111111111') return {id: '11111111-1111-4111-8111-111111111111', full_name: 'Synthetic Owner', phone: null, email: null, lead_status: 'new', address: '123 Synthetic Street', city: 'Stockton', state: 'CA', notes: null, follow_up_at: null, created_at: '2026-10-14T00:00:00Z'}
   if (path.endsWith('/auth/me')) return { ...user, id: actorId, role: actorRole }
   if (path === '/api/v1/settings') return { source: 'dashboard_server', app_version: 'fixture', environment: 'test', security: { access_token_minutes: 1440, refresh_token_days: 7 }, permissions: [], notifications: { channel: 'in_app', delivery: 'database_and_websocket' }, voice_configuration: { available: false, reason: 'Voice configuration is managed by the separate voice service' }, calendar_booking: { available: false, reason: 'Follow-up dates only' } }
   if (path.endsWith('/settings/team')) return { ...list, items: populated ? [{ ...user, status: 'active' }] : [], total: populated ? 1 : 0 }
@@ -225,6 +227,11 @@ try {
       await page.getByRole('button', { name: 'Saved (0)', exact: true }).click()
       if (await page.getByText('Private saved address', { exact: true }).count()) throw new Error('Saved property crossed account boundary')
       evidence.interactions.push('Persisted saved properties remain isolated across two accounts')
+      await capture('42-business-evidence', '/leads/11111111-1111-4111-8111-111111111111')
+      await page.getByText('synthetic-reviewed-source', {exact: true}).waitFor()
+      await page.getByText(/draft: \$250,000.00/).waitFor()
+      await page.getByText(/Reviewed ARV advisory: \$460,000.00/).waitFor()
+      evidence.interactions.push('Business evidence shows reviewed cents, comp reference, draft status and appointment separately')
       actorId = user.id
       actorRole = 'operator'
       await capture('38-operator-approval-queue', '/approvals')

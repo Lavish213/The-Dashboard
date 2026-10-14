@@ -24,8 +24,8 @@ from calls.schemas import (
 from db.session import get_session
 from models.call import Call
 from models.call_participant import CallParticipant
-from models.sophia_session import SophiaSession
 from models.enums import CallStatus, UserRole
+from models.sophia_session import SophiaSession
 from security.permissions import require_permission
 from security.rbac import Permission
 

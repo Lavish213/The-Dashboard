@@ -195,6 +195,7 @@ export default function PropertiesPage() {
   }
 
   async function createLead(prop: PropertyResult) {
+    if (!prop.attomId) { toast.error('A provider record identity is required before saving this lead'); return }
     setCreatingLead(true)
     try {
       await apiFetch('/api/v1/leads', {
@@ -203,11 +204,11 @@ export default function PropertiesPage() {
           full_name: prop.ownerName ?? 'Unknown Owner',
           phone: null,
           lead_source: 'direct',
-          lead_status: 'new',
+          source_record_id: `property-search:${prop.attomId}`,
           address: prop.address,
           city: prop.city,
           state: prop.state,
-          ai_score: prop.taxDelinquent ? 9 : 6,
+
         }),
       })
       setLeadCreated(true)

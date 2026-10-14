@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.enums import SophiaEventType, SophiaHandoffStatus, SophiaSessionMode
 from repositories.sophia_event import SophiaEventRepository
 from sophia.confidence_engine import SophiaConfidenceEngine
+from sophia.context_packet import ContextPacketBuilder
 from sophia.contracts import (
     HandoffPayload,
     SophiaHandoffRecord,
@@ -30,7 +31,6 @@ from sophia.contracts import (
     SophiaInterruption,
     TransferReason,
 )
-from sophia.context_packet import ContextPacketBuilder
 from sophia.interruption import SophiaInterruptionRuntime
 from sophia.session import SophiaSessionRuntime
 

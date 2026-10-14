@@ -135,3 +135,9 @@ async def ingest_transcript(body: dict, session: AsyncSession = Depends(get_sess
     await session.flush()
     session.add_all([TranscriptChunk(transcript_id=transcript.id, chunk_index=i, speaker=chunk["speaker"], text=chunk["text"]) for i, chunk in enumerate(chunks)])
     return await acknowledge(session, call, "transcript", fingerprint, transcript_id=str(transcript.id), chunk_count=len(chunks))
+
+
+@router.post("/business")
+async def ingest_business(body: dict, session: AsyncSession = Depends(get_session)):
+    from services.business_evidence import receive_business
+    return await receive_business(session, body)

@@ -18,9 +18,8 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
-from testing.database import validate_disposable_database
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 import models.ai_decision  # noqa: F401
@@ -65,6 +64,7 @@ import models.workflow_snapshot  # noqa: F401
 
 # Import all models to populate Base.metadata before create_all
 from db.base import Base
+from testing.database import validate_disposable_database
 
 TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", "")
 

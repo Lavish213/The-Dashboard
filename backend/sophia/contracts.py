@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 from models.enums import (
@@ -26,7 +26,7 @@ from models.enums import (
 )
 
 
-class TransferReason(str, Enum):
+class TransferReason(StrEnum):
     trust_low = "trust_low"
     hot_lead = "hot_lead"
     seller_requested = "seller_requested"

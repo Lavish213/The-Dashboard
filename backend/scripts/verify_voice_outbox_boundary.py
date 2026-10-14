@@ -125,7 +125,7 @@ def main():
                         if time.monotonic() >= deadline:
                             raise RuntimeError("Synthetic receiver startup timed out")
                         time.sleep(0.1)
-                environment = {**os.environ, "PYTHONPATH": str(source), "KARPATHYS_URL": f"http://127.0.0.1:{port}", "KARPATHYS_WEBHOOK_SECRET": "synthetic-boundary-secret", "KARPATHYS_OUTBOX_PATH": str(root / "journal.sqlite3"), "CONTRACT_CALL_SID": sid, "CONTRACT_LEAD_ID": external}
+                environment = {**os.environ, "PYTHONPATH": str(source), "KARPATHYS_URL": f"http://127.0.0.1:{port}", "KARPATHYS_WEBHOOK_SECRET": "synthetic-boundary-secret", "KARPATHYS_OUTBOX_PATH": str(root / "journal.sqlite3"), "CONTRACT_CALL_SID": sid, "CONTRACT_LEAD_ID": external, "BOB_REPO": os.environ["BOB_REPO"]}
                 evidence = []
                 for number, phase in enumerate(("stage", "resume", "resume")):
                     result_path = root / f"result-{number}.json"
@@ -141,7 +141,25 @@ def main():
                 assert evidence[1]["health"]["pending"] == 3 and evidence[1]["persisted"]["chunks"] == 2
                 assert evidence[2]["health"]["pending"] == 0 and evidence[2]["health"]["delivered"] == 5
                 assert evidence[2]["persisted"] == {"calls": 1, "turns": 1, "transcripts": 1, "chunks": 2}
-                report = {"status": "passed", "fixture_only": True, "process_restarts": 2, "checks": ["real HTTP authentication and PostgreSQL persistence", "turn staged before root waits for call creation", "outage before persistence survives producer restart", "lost acknowledgement after committed transcript survives restart", "replay persists one call, one transcript and exactly two chunks"], "phases": evidence}
+                business_result = root / "business-result.json"
+                result = subprocess.run([producer_python, str(source / "tests/dashboard_bridge_process.py"), "business", str(business_result)], cwd=source, env=environment, capture_output=True, text=True, timeout=45)
+                if result.returncode:
+                    raise RuntimeError("Business producer failed: " + result.stderr[-2000:])
+                async def business_record():
+                    engine = create_async_engine(database_url)
+                    try:
+                        async with AsyncSession(engine) as session:
+                            lead = await session.scalar(select(Lead).where(Lead.metadata_["external_lead_id"].as_string() == external))
+                            return lead.metadata_["business_evidence"]["snapshot"]
+                    finally:
+                        await engine.dispose()
+                snapshot = asyncio.run(business_record())
+                assert snapshot["valuation"]["point_cents"] == 46000000
+                assert len(snapshot["comparables"]) == 3
+                assert snapshot["offers"][0]["amount_cents"] == 25000000
+                assert snapshot["appointment"]["status"] == "confirmed"
+                assert snapshot["offer_authorized"] is False
+                report = {"status": "passed", "fixture_only": True, "process_restarts": 2, "checks": ["real HTTP authentication and PostgreSQL persistence", "turn staged before root waits for call creation", "outage before persistence survives producer restart", "lost acknowledgement after committed transcript survives restart", "replay persists one call, one transcript and exactly two chunks", "actual Bob pricing and REI business snapshot persist exact cents, three comps, draft offer and appointment without authority"], "phases": evidence}
                 Path("voice-outbox-boundary-results.json").write_text(json.dumps(report, indent=2) + "\n")
                 sys.stdout.write("Voice outbox boundary passed: real HTTP, PostgreSQL, two producer restarts, pre-write outage and post-commit acknowledgement loss\n")
             finally:

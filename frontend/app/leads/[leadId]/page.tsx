@@ -1,5 +1,7 @@
 'use client'
 
+import { BusinessEvidence } from '@/features/leads/BusinessEvidence'
+
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
@@ -178,7 +180,8 @@ export default function LeadDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2 border-t border-border">
+          <BusinessEvidence key={leadId} leadId={leadId} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-2 border-t border-border">
             <InfoRow icon={Phone} label="Phone" value={lead.phone} />
             <InfoRow icon={Mail} label="Email" value={lead.email} />
             <InfoRow icon={MapPin} label="Address" value={address || null} />
