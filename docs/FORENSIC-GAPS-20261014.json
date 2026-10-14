@@ -1,0 +1,1373 @@
+{
+  "audit_date": "2026-10-14",
+  "heads": {
+    "Bob": "44059af6766811add52cf7849dda7ea36e8e164c",
+    "Sophia": "0ae65ff799eb1c54aad846f9a76ca35c1b7e2263",
+    "Dashboard": "4b8c556c94d15de55dbc1a0ad68b18f5d19912d5"
+  },
+  "counts": {
+    "findings": 59,
+    "by_severity": {
+      "Critical": 2,
+      "High": 45,
+      "Medium": 12
+    },
+    "by_status": {
+      "reproduced": 34,
+      "source_confirmed": 16,
+      "risk": 3,
+      "blocked": 6
+    },
+    "by_project": {
+      "Sophia": 36,
+      "Dashboard": 20,
+      "Bob": 3
+    },
+    "probe_cases": 38,
+    "probe_discrepancies_observed": 38
+  },
+  "coverage": {
+    "Bob": {
+      "python_files_scanned": 30,
+      "statement_nodes": 962,
+      "reverse_relationship_references": 0,
+      "execute_calls_inside_async_functions": 0,
+      "typescript_files_in_inventory": 0,
+      "typescript_count_note": "Repository files only; installed node_modules and .next excluded"
+    },
+    "Sophia": {
+      "python_files_scanned": 142,
+      "statement_nodes": 11806,
+      "reverse_relationship_references": 18,
+      "execute_calls_inside_async_functions": 44,
+      "typescript_files_in_inventory": 25,
+      "typescript_count_note": "Repository files only; installed node_modules and .next excluded"
+    },
+    "Dashboard": {
+      "python_files_scanned": 369,
+      "statement_nodes": 21219,
+      "reverse_relationship_references": 0,
+      "execute_calls_inside_async_functions": 157,
+      "typescript_files_in_inventory": 325,
+      "typescript_count_note": "Repository files only; installed node_modules and .next excluded"
+    }
+  },
+  "scope": "Static backend inventory plus focused manual tracing and isolated current-source counterexample probes. Not exhaustive proof that no other bugs exist. No production access, messages, migrations or deployment. Old repaired issues are not counted as newly open findings.",
+  "findings": [
+    {
+      "id": "G01",
+      "project": "Sophia",
+      "severity": "Critical",
+      "status": "reproduced",
+      "title": "Offer threshold checks caller price instead of outgoing amount",
+      "path": "backend/voice/tools.py",
+      "symbol": "_preflight_gate",
+      "line": 265,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/voice/tools.py#L265",
+      "observation": "With OUTBOUND_ENABLED=true, quote permission and a $300k threshold, no seller-mentioned price allows a cached $380k\u2013$400k range. _verified_offer_range does not require a dated approved offer row.",
+      "impact": "Above-threshold or stale heuristic prices can be spoken when otherwise authorized tools are enabled. This is not an anonymous or disabled-outbound bypass.",
+      "recommended_fix": "Bind price actions to an unexpired persisted operator approval for the actual lead, property, amount and call; compare the actual outgoing amount before speech or send.",
+      "verification_required": "Execute full call-bound price tools below/at/above the threshold with absent, stale, revoked, wrong-property and conflicting approvals.",
+      "probe_ids": [
+        "R14"
+      ]
+    },
+    {
+      "id": "G02",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Missing permission expiry is treated as valid",
+      "path": "backend/contracts/intel_packet.py",
+      "symbol": "is_permission_expired",
+      "line": 110,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/contracts/intel_packet.py#L110",
+      "observation": "A permission with a level but no expires_at returns not expired. The gate validates the level, not a complete dated approval identity.",
+      "impact": "Legacy grants can remain effective indefinitely.",
+      "recommended_fix": "Require a complete scoped grant with bounded expiry and independently verified operator provenance.",
+      "verification_required": "Reject missing/blank/naive/expired/future-invalid grants; verify revocation during a call.",
+      "probe_ids": [
+        "R15"
+      ]
+    },
+    {
+      "id": "G03",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Operator access and legacy service-key queries lack tenant enforcement",
+      "path": "backend/api/security.py",
+      "symbol": "OperatorAuthentication",
+      "line": 30,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/api/security.py#L30",
+      "observation": "Any accepted operator/admin account in the project passes middleware; get_operator_user checks role without configured tenant membership. Numerous service-key reads/writes omit tenant predicates.",
+      "impact": "Cross-tenant exposure or writes if another tenant/account exists; live exploitation was not tested.",
+      "recommended_fix": "Bind authenticated principals to configured tenant and enforce tenant scope in centralized data access.",
+      "verification_required": "Two-user/two-tenant integration tests covering every operator read and mutation; service-role and RLS checks.",
+      "probe_ids": []
+    },
+    {
+      "id": "G04",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Canonical property repair is bypassed by legacy queries",
+      "path": "backend/lib/db.py",
+      "symbol": "get_leads_for_followup",
+      "line": 110,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/lib/db.py#L110",
+      "observation": "18 reverse-relationship references remain across API, alerts, engagement and db helpers. Intel assembly also prefers properties.lead_id before the canonical lead.property_id.",
+      "impact": "Wrong, missing or list-shaped property data can affect queue, activation, outreach and cached pricing.",
+      "recommended_fix": "Consolidate all property reads through canonical lead.property_id and reject ambiguous or cross-tenant bindings.",
+      "verification_required": "Real PostgREST contracts with inconsistent forward/reverse links, multiple reverse rows and missing properties.",
+      "probe_ids": []
+    },
+    {
+      "id": "G05",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Intel assembly resets evidence timestamps without new evidence",
+      "path": "backend/lib/intel_assembler.py",
+      "symbol": "assemble_intel_packet",
+      "line": 37,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/lib/intel_assembler.py#L37",
+      "observation": "Existing seller facts and property prices are labeled updated_at=now, source=comps, regardless of their original timestamps or whether new comps were obtained.",
+      "impact": "Old evidence can look current and unrelated cached prices can look sourced.",
+      "recommended_fix": "Preserve source record timestamps, origin and reviewed valuation identity; distinguish assembled_at from observed_at.",
+      "verification_required": "Assemble twice without source changes and ensure source age never refreshes.",
+      "probe_ids": []
+    },
+    {
+      "id": "G06",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Date-only closed sales lose recency",
+      "path": "backend/comps/calculator.py",
+      "symbol": "_days_since",
+      "line": 31,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/calculator.py#L31",
+      "observation": "A date-only sold_date parses as naive; subtracting aware UTC raises internally and returns None.",
+      "impact": "Recent, old and future date-only sales enter unknown-date weighting rather than reliable freshness checks.",
+      "recommended_fix": "Parse canonical sale dates explicitly and reject stale, future or unknown evidence for pricing.",
+      "verification_required": "Date-only, zoned, naive timestamp, future and old-sale cases.",
+      "probe_ids": [
+        "R01"
+      ]
+    },
+    {
+      "id": "G07",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Duplicate comps inflate legacy confidence",
+      "path": "backend/comps/calculator.py",
+      "symbol": "calculate_arv",
+      "line": 66,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/calculator.py#L66",
+      "observation": "Repeating one comp five times returns high confidence. No parcel/sale identity, arm-length, condition or provenance validation precedes the estimate.",
+      "impact": "One sale can masquerade as broad market support.",
+      "recommended_fix": "Keep this engine out of price authority; use Bob reviewed-sale evidence and deduplicate before reconciliation.",
+      "verification_required": "Duplicate parcel/sale IDs and source lineage tests through the pricing persistence path.",
+      "probe_ids": [
+        "R02"
+      ]
+    },
+    {
+      "id": "G08",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Invalid comps re-enter the no-area median",
+      "path": "backend/comps/calculator.py",
+      "symbol": "calculate_arv",
+      "line": 66,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/calculator.py#L66",
+      "observation": "With subject area missing, a $900k comp with zero area is excluded from PPSF but re-enters the raw-price median; a valid $100k sale yields a $500k estimate.",
+      "impact": "Invalid rows materially change valuations.",
+      "recommended_fix": "Use one validated comp set for every branch; withhold unsupported subject/value calculations.",
+      "verification_required": "Invalid-price/area and mixed-type rows must not affect any reconciliation branch.",
+      "probe_ids": [
+        "R03"
+      ]
+    },
+    {
+      "id": "G09",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Configured MAO multiplier is ignored",
+      "path": "backend/comps/calculator.py",
+      "symbol": "calculate_arv",
+      "line": 66,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/calculator.py#L66",
+      "observation": "MAO_MULTIPLIER is loaded but the output calculation always uses 70 percent.",
+      "impact": "Operator configuration does not produce the requested underwriting policy.",
+      "recommended_fix": "Use validated integer basis points or remove the misleading setting; publish the applied policy.",
+      "verification_required": "Multiple multiplier settings with independently calculated cent-level results.",
+      "probe_ids": [
+        "R04"
+      ]
+    },
+    {
+      "id": "G10",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Homeharvest asking prices can become ARV",
+      "path": "backend/comps/homeharvest.py",
+      "symbol": "get_comps",
+      "line": 11,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/homeharvest.py#L11",
+      "observation": "When sold_price is absent the calculator falls back to list_price. The search uses city/state rather than the supplied subject address; baths is unused.",
+      "impact": "Asking prices or unrelated city sales can be presented as comparable evidence.",
+      "recommended_fix": "Require verified closed sale prices, subject geography/type/condition and reviewed adjustment evidence.",
+      "verification_required": "List-price-only data must withhold value; geographic and sale-status mismatch tests.",
+      "probe_ids": [
+        "R05"
+      ]
+    },
+    {
+      "id": "G11",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "LOW confidence passes the Homeharvest write gate",
+      "path": "backend/comps/homeharvest.py",
+      "symbol": "trigger_arv_computation",
+      "line": 119,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/homeharvest.py#L119",
+      "observation": "get_comps emits uppercase LOW; trigger_arv_computation checks lowercase low and writes the value. Other emitters use HIGH/MEDIUM, while the voice range reader accepts only lowercase high/medium.",
+      "impact": "A weak estimate can overwrite the common price fields used by other modules.",
+      "recommended_fix": "Use a typed confidence contract and only persist clearly distinguished reviewed advisory values.",
+      "verification_required": "Single-comp LOW report cannot update a reviewed property valuation.",
+      "probe_ids": [
+        "R06"
+      ]
+    },
+    {
+      "id": "G12",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Homeharvest writes negative MAO",
+      "path": "backend/comps/homeharvest.py",
+      "symbol": "trigger_arv_computation",
+      "line": 119,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/homeharvest.py#L119",
+      "observation": "A $10k estimate writes a negative $18k screening MAO. This branch does not share the newer nonnegative money safeguards.",
+      "impact": "Invalid purchase limits persist and differ between engines.",
+      "recommended_fix": "Unify bounded integer-cent calculation and infeasibility semantics.",
+      "verification_required": "Low value/high repair scenario must return infeasible or zero screening limit.",
+      "probe_ids": [
+        "R07"
+      ]
+    },
+    {
+      "id": "G13",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Redfin comp request ignores resolved region",
+      "path": "backend/comps/redfin.py",
+      "symbol": "_get_comps_from_region",
+      "line": 46,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/comps/redfin.py#L46",
+      "observation": "Different region_url inputs produce identical GIS request parameters. RADIUS_MILES is not included in that request.",
+      "impact": "Comp selection is not actually bound to the resolved subject location.",
+      "recommended_fix": "Use a verified supported source contract with explicit subject geometry and radius; withhold when binding is absent.",
+      "verification_required": "Captured provider requests and returned comp coordinates must match two distinct subjects.",
+      "probe_ids": [
+        "R08"
+      ]
+    },
+    {
+      "id": "G14",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Social and eviction runners count unsaved results",
+      "path": "backend/scout/social_scraper.py",
+      "symbol": "run_social_scraper",
+      "line": 90,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/scout/social_scraper.py#L90",
+      "observation": "Social and eviction runners return a count without durable candidate or canonical lead creation.",
+      "impact": "Discovery appears successful while Bob/Sophia receive nothing.",
+      "recommended_fix": "Persist dated source candidates, verify parcel/address and idempotently create canonical leads without contact authority.",
+      "verification_required": "Synthetic source result must be observable in the canonical database and dashboard, including retry.",
+      "probe_ids": [
+        "R09",
+        "R10"
+      ]
+    },
+    {
+      "id": "G15",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Main scout cycle omits configured source runners",
+      "path": "backend/scout/cron.py",
+      "symbol": "run_scout_cycle",
+      "line": 156,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/scout/cron.py#L156",
+      "observation": "The API lifespan schedules run_scout_cycle, which runs RSS, expired and eviction only. The separate start_scheduler path includes CRMLS/social/CSV but is not the Railway start command.",
+      "impact": "Merged CRMLS persistence repair is not sufficient to make it run in the main deployment path.",
+      "recommended_fix": "Define one explicit source registry and schedule with per-source durable outcomes.",
+      "verification_required": "Boot the actual configured entry point and assert each enabled source is called and persisted.",
+      "probe_ids": [
+        "R11"
+      ]
+    },
+    {
+      "id": "G16",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "source_confirmed",
+      "title": "RSS source is empty and lacks operational coverage",
+      "path": "backend/scout/rss_scraper.py",
+      "symbol": "run_rss_scraper",
+      "line": 66,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/scout/rss_scraper.py#L66",
+      "observation": "RSS_FEEDS is an empty list; the module safely returns zero. Titles are currently assigned to address and every ZIP result is labeled Stockton.",
+      "impact": "No RSS leads are discovered; naive future activation would create unverified identities.",
+      "recommended_fix": "Configure supported feeds and normalize source titles separately from verified property addresses.",
+      "verification_required": "Source inventory must distinguish disabled, empty, failed, candidate and saved lead outcomes.",
+      "probe_ids": []
+    },
+    {
+      "id": "G17",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Expired/FSBO property candidates do not create leads",
+      "path": "backend/scout/expired.py",
+      "symbol": "_upsert_distress",
+      "line": 17,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/scout/expired.py#L17",
+      "observation": "The expired path saves through upsert_listing_candidate but does not perform the canonical lead creation used by persist_mls_candidate.",
+      "impact": "New property-only candidates remain invisible to Bob lead jobs.",
+      "recommended_fix": "Route verified candidates through a shared canonical lead persistence service.",
+      "verification_required": "New candidate yields exactly one property and lead; retries preserve reviewed fields.",
+      "probe_ids": []
+    },
+    {
+      "id": "G18",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Automatic enrichment may receive property ID instead of lead ID",
+      "path": "backend/scout/cron.py",
+      "symbol": "run_scout",
+      "line": 48,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/scout/cron.py#L48",
+      "observation": "After insert_lead returns lead_id, the enrichment branch chooses prop.lead_id or prop.id; the local property dictionary normally only has its property ID.",
+      "impact": "Enrichment fails or targets the wrong identity.",
+      "recommended_fix": "Pass the returned canonical lead_id and validate binding before enrichment.",
+      "verification_required": "A property ID distinct from its lead ID must never be passed as the lead argument.",
+      "probe_ids": []
+    },
+    {
+      "id": "G19",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Lead insertion and reverse-link update are not atomic or retry-safe",
+      "path": "backend/lib/db.py",
+      "symbol": "insert_lead",
+      "line": 61,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/lib/db.py#L61",
+      "observation": "Lead insert and properties.lead_id update are separate operations; callers first read then insert, without a transaction or stable source-key contract.",
+      "impact": "Concurrent imports or acknowledgement loss can create duplicate leads or incomplete links.",
+      "recommended_fix": "Use one tenant-bound atomic RPC with idempotent source/parcel keys.",
+      "verification_required": "Independent database connections racing and crashing between insert/link updates.",
+      "probe_ids": []
+    },
+    {
+      "id": "G20",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Legacy mutations can claim success on zero saved rows",
+      "path": "backend/api/routes/leads.py",
+      "symbol": "update_notes",
+      "line": 125,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/api/routes/leads.py#L125",
+      "observation": "Notes and campaign pause return success when the adapter returns an empty update result. Similar patterns exist for activation, property state and followups.",
+      "impact": "Dashboard/operator believes an action completed when it did not.",
+      "recommended_fix": "Require matching write receipts and apply explicit not-found/conflict/retryable errors everywhere.",
+      "verification_required": "Empty, wrong-row, multiple-row and lost-ack tests across the mutation inventory.",
+      "probe_ids": [
+        "R12",
+        "R13"
+      ]
+    },
+    {
+      "id": "G21",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Email unsubscribe acknowledges lost writes",
+      "path": "backend/api/routes/email_webhook.py",
+      "symbol": "unsubscribe_page",
+      "line": 212,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/api/routes/email_webhook.py#L212",
+      "observation": "Database errors are swallowed by unsubscribe handlers; provider webhook returns 200 and link page says unsubscribed successfully.",
+      "impact": "Suppression can be lost and the provider will not necessarily retry.",
+      "recommended_fix": "Persist address-wide suppression locally before acknowledgement and recover it; do not confirm unsaved results.",
+      "verification_required": "Database outage, restart, signed duplicate events and all leads sharing the email.",
+      "probe_ids": [
+        "R17",
+        "R18"
+      ]
+    },
+    {
+      "id": "G22",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Email adapter ignores disabled outbound and suppression",
+      "path": "backend/alerts/email.py",
+      "symbol": "send_email",
+      "line": 90,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/email.py#L90",
+      "observation": "With OUTBOUND_ENABLED=false a configured email adapter still issues a provider request and returns accepted. It does not itself check email-wide suppression or lead consent.",
+      "impact": "Disabling phone/tool actions does not necessarily stop marketing email.",
+      "recommended_fix": "Centralize explicit channel-aware outbound control and durable email suppression, with separately authorized operational notifications.",
+      "verification_required": "Direct sends, scheduled sends and buyer sends must deny disabled/suppressed contacts.",
+      "probe_ids": [
+        "R21"
+      ]
+    },
+    {
+      "id": "G23",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Accepted SMS becomes failure after logging outage",
+      "path": "backend/alerts/sms.py",
+      "symbol": "send_sms",
+      "line": 39,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/sms.py#L39",
+      "observation": "Provider returns a message SID, then insert_sms raises; the whole method returns False.",
+      "impact": "A retry can send twice and provider acceptance can disappear from local history.",
+      "recommended_fix": "Use a durable outbound intent and provider-result reconciliation before retries.",
+      "verification_required": "Lost provider acknowledgement and post-acceptance datastore outage with stable intent identity.",
+      "probe_ids": [
+        "R19"
+      ]
+    },
+    {
+      "id": "G24",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Deal blast records failed channels as sent",
+      "path": "backend/alerts/deal_blast.py",
+      "symbol": "blast_deal",
+      "line": 7,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/deal_blast.py#L7",
+      "observation": "Both send adapters return False, yet sms_sent/email_sent are stored as true because the contact strings are nonempty.",
+      "impact": "Failed sends become successful records and future retries are suppressed.",
+      "recommended_fix": "Persist actual per-channel outcome and receipt; distinguish pending, accepted, delivered, failed and unknown.",
+      "verification_required": "One/both channel failures and retry after partial success.",
+      "probe_ids": [
+        "R20"
+      ]
+    },
+    {
+      "id": "G25",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "risk",
+      "title": "Deal blast send-before-log race allows duplicates",
+      "path": "backend/alerts/deal_blast.py",
+      "symbol": "blast_deal",
+      "line": 7,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/deal_blast.py#L7",
+      "observation": "Idempotency checks precede provider sends; the log is inserted afterward with no owned claim around the send.",
+      "impact": "Concurrent runs or a crash between send and log can duplicate outreach.",
+      "recommended_fix": "Claim durable per-channel intents before sends and reconcile unknown acceptance.",
+      "verification_required": "Two independent workers plus crash immediately after provider acceptance.",
+      "probe_ids": []
+    },
+    {
+      "id": "G26",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Walkthrough email caller has incompatible arguments",
+      "path": "backend/workflows/engine.py",
+      "symbol": "trigger_from_call_outcome",
+      "line": 46,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/workflows/engine.py#L46",
+      "observation": "Workflow passes three objects to a function requiring four scalar arguments; signature binding raises TypeError. The workflow catches and logs it.",
+      "impact": "Booking confirmation email is skipped.",
+      "recommended_fix": "Call the typed interface with canonical email/name/address and a formatted zoned appointment after verified reservation.",
+      "verification_required": "Actual workflow booking branch must invoke the adapter once with correctly typed values.",
+      "probe_ids": [
+        "R16"
+      ]
+    },
+    {
+      "id": "G27",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Completed walkthrough still triggers no-show reminder",
+      "path": "backend/voice/appointment_scheduler.py",
+      "symbol": "_process_lead",
+      "line": 48,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/voice/appointment_scheduler.py#L48",
+      "observation": "A lead with walkthrough_state=completed and a past confirmed appointment still sends the no-show followup. Completion is not checked in the processing branch.",
+      "impact": "Customers can receive inappropriate reschedule messages after a completed visit.",
+      "recommended_fix": "Use one appointment lifecycle/version for booking, completion, cancellation and reminders.",
+      "verification_required": "Complete/cancel/reschedule between selection and send; exact appointment-version claims.",
+      "probe_ids": [
+        "R22"
+      ]
+    },
+    {
+      "id": "G28",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Email-only nurture cannot advance without SMS drip date",
+      "path": "backend/alerts/email.py",
+      "symbol": "_process_email_lead",
+      "line": 135,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/email.py#L135",
+      "observation": "A lead with email_day=0 and last email 40 days ago but no drip_started_at sends no next step because days_elapsed is always zero.",
+      "impact": "Email-only leads stall after the first message.",
+      "recommended_fix": "Persist a separate email sequence anchor and durable per-step claim; use explicit absolute/relative schedule semantics.",
+      "verification_required": "Email-only campaign advances days 0/7/21/45 without SMS state.",
+      "probe_ids": [
+        "R24"
+      ]
+    },
+    {
+      "id": "G29",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Inbound email conversation is not wired",
+      "path": "backend/alerts/email.py",
+      "symbol": "handle_email_reply",
+      "line": 185,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/email.py#L185",
+      "observation": "handle_email_reply is defined, but no runtime caller or inbound-message route is registered; SendGrid event processing handles delivery/open/click/unsubscribe rather than reply content.",
+      "impact": "Sophia cannot be certified as holding email conversations from these paths.",
+      "recommended_fix": "Connect authenticated inbound email parsing, canonical sender/thread binding, memory and approved reply delivery.",
+      "verification_required": "Operator-controlled reply-to inbox thread roundtrip and spoofed/mismatched sender rejection.",
+      "probe_ids": []
+    },
+    {
+      "id": "G30",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "risk",
+      "title": "Speed-to-lead scheduled touches are memory-only",
+      "path": "backend/alerts/speed_to_lead.py",
+      "symbol": "run_speed_to_lead",
+      "line": 159,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/alerts/speed_to_lead.py#L159",
+      "observation": "Touches 2\u20135 are APScheduler date jobs using the default in-memory store; lead attempt flags do not reconstruct lost jobs at restart.",
+      "impact": "Restart loses future touches; multiple replicas can schedule the same lead.",
+      "recommended_fix": "Persist source-owned touch intents with leases and restart recovery.",
+      "verification_required": "Restart after first touch and race two scheduler replicas without duplicate or missing touches.",
+      "probe_ids": []
+    },
+    {
+      "id": "G31",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Poison lead aborts dashboard refresh page",
+      "path": "backend/karpathys/outbox.py",
+      "symbol": "recovery_loop",
+      "line": 45,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/karpathys/outbox.py#L45",
+      "observation": "One bad lead raises during a batch publish and skips the healthy lead that follows. The offset has already advanced for full pages.",
+      "impact": "Healthy leads after the failing row can stay unsynchronized across repeated page rotations.",
+      "recommended_fix": "Isolate each lead failure and retain its retry identity; paginate independently of item success.",
+      "verification_required": "Bad first/middle/last lead must not block any healthy record.",
+      "probe_ids": [
+        "R23"
+      ]
+    },
+    {
+      "id": "G32",
+      "project": "Dashboard",
+      "severity": "Critical",
+      "status": "reproduced",
+      "title": "InstantDM writes are unauthenticated and unsigned",
+      "path": "backend/api/routes/instantdm_webhook.py",
+      "symbol": "instantdm_webhook",
+      "line": 12,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/instantdm_webhook.py#L12",
+      "observation": "The actual router accepts an anonymous POST and creates a social lead; the application router adds no global authentication.",
+      "impact": "Anyone reaching the endpoint can inject leads and pollute business data.",
+      "recommended_fix": "Require provider/service authentication, payload budgets, stable event IDs and replay/conflict receipts.",
+      "verification_required": "Full application anonymous/bad-signature/replay/oversize rejection tests.",
+      "probe_ids": [
+        "D01"
+      ]
+    },
+    {
+      "id": "G33",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Any long text containing a digit is labeled an address and hot lead",
+      "path": "backend/api/routes/instantdm_webhook.py",
+      "symbol": "instantdm_webhook",
+      "line": 12,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/instantdm_webhook.py#L12",
+      "observation": "I owe 1000 dollars is assigned address_detected and hot intent.",
+      "impact": "Non-address messages become apparent property/intent evidence.",
+      "recommended_fix": "Keep extraction unverified until structured address and parcel review; avoid invented intent certainty.",
+      "verification_required": "Debt amounts, dates, phone numbers, negations and actual addresses.",
+      "probe_ids": [
+        "D02"
+      ]
+    },
+    {
+      "id": "G34",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "InstantDM retries create duplicate social leads",
+      "path": "backend/api/routes/instantdm_webhook.py",
+      "symbol": "instantdm_webhook",
+      "line": 12,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/instantdm_webhook.py#L12",
+      "observation": "Posting the same event twice creates two records.",
+      "impact": "Provider replay and attacker spam inflate the lead pipeline.",
+      "recommended_fix": "Persist a sender-bound event/source identity with atomic deduplication and conflicting replay rejection.",
+      "verification_required": "Identical simultaneous deliveries create one record.",
+      "probe_ids": [
+        "D03"
+      ]
+    },
+    {
+      "id": "G35",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Legacy dashboard writes have login but no write permission",
+      "path": "backend/api/routes/social.py",
+      "symbol": "create_post",
+      "line": 74,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/social.py#L74",
+      "observation": "A reviewer can create a post with status=posted. Email drip, referral, social-lead and Reddit mutation routes use similarly authentication-only boundaries.",
+      "impact": "Read/review roles can mutate outreach and commercial state.",
+      "recommended_fix": "Define and enforce domain write/manage permissions and actor attribution on every mutation route.",
+      "verification_required": "Role-by-route matrix for admin/operator/reviewer, including creation, conversion, scan, deletion and financial changes.",
+      "probe_ids": [
+        "D04"
+      ]
+    },
+    {
+      "id": "G36",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Social/email delivery state can be manufactured",
+      "path": "backend/api/routes/email_drip.py",
+      "symbol": "advance_drip",
+      "line": 97,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/email_drip.py#L97",
+      "observation": "Advance sets last_sent_at without sending or a provider receipt; social create/update accepts posted status directly.",
+      "impact": "Dashboard status is not evidence of real delivery/publication.",
+      "recommended_fix": "Separate manual status notes from provider-backed delivery events and durable intents.",
+      "verification_required": "Missing/mismatched/duplicate provider receipts cannot advance actual delivery state.",
+      "probe_ids": [
+        "D05",
+        "D06"
+      ]
+    },
+    {
+      "id": "G37",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Curator fetch permits private server URLs",
+      "path": "backend/api/routes/curator.py",
+      "symbol": "_fetch_url_content",
+      "line": 39,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/curator.py#L39",
+      "observation": "The fetch helper accepts a loopback URL and returns its content preview; it also follows redirects without destination controls. Only a mocked adapter was used.",
+      "impact": "Authenticated users can request internal services; redirect/DNS variants need verification.",
+      "recommended_fix": "Allow supported public HTTPS destinations, reject private/reserved addresses before and after redirects, and bound streamed responses.",
+      "verification_required": "Loopback/private/link-local, rebinding and redirect rejection plus allowed public cases.",
+      "probe_ids": [
+        "D10"
+      ]
+    },
+    {
+      "id": "G38",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Missing-model fallback fabricates a recent closing",
+      "path": "backend/api/routes/curator.py",
+      "symbol": "_call_claude",
+      "line": 50,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/curator.py#L50",
+      "observation": "Without the AI key, one generated fallback says the business just closed another house. No closing record supports it.",
+      "impact": "Unverified marketing claims can enter saved or posted content.",
+      "recommended_fix": "Return unavailable or grounded generic drafts with source/provenance and review status.",
+      "verification_required": "Missing key/provider failure must never create an event or deal claim.",
+      "probe_ids": [
+        "D11"
+      ]
+    },
+    {
+      "id": "G39",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Manual source deduplication is scoped to actor",
+      "path": "backend/services/lead_creation.py",
+      "symbol": "create_manual_lead",
+      "line": 11,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/services/lead_creation.py#L11",
+      "observation": "The same provider source record under two operators generates distinct create keys. This is a team deduplication discrepancy, not proof that intentional duplicate leads are forbidden.",
+      "impact": "Multiple operators can create duplicate property leads.",
+      "recommended_fix": "Define global tenant/source/property identity with explicit intentional-duplicate rules.",
+      "verification_required": "Two operators and two source channels for one parcel, including intentional duplicates.",
+      "probe_ids": [
+        "D08"
+      ]
+    },
+    {
+      "id": "G40",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Soft-deleted leads remain available in detail/mutations",
+      "path": "backend/api/routes/leads.py",
+      "symbol": "get_lead",
+      "line": 146,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/leads.py#L146",
+      "observation": "List and business-evidence reads exclude deleted rows; detail and several mutation queries do not. The detail function returns a deleted fixture and its SQL lacks the predicate.",
+      "impact": "Deleted records can still be read or modified through direct IDs.",
+      "recommended_fix": "Use the shared repository soft-delete contract for all endpoints and related timelines.",
+      "verification_required": "Deleted lead detail, notes, status, followup and timeline all reject.",
+      "probe_ids": [
+        "D07"
+      ]
+    },
+    {
+      "id": "G41",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Refresh token rotation is not atomic",
+      "path": "backend/api/routes/auth.py",
+      "symbol": "refresh",
+      "line": 98,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/auth.py#L98",
+      "observation": "Two concurrent calls using the same real signed refresh token both pass the separate blacklist check and each returns a new token pair under a synchronized fake Redis adapter.",
+      "impact": "A replay race creates multiple valid successor refresh tokens.",
+      "recommended_fix": "Atomically claim the refresh JTI once and maintain revocable token families.",
+      "verification_required": "Independent Redis/client concurrency with exactly one accepted successor; crash/retry behavior defined.",
+      "probe_ids": [
+        "D12"
+      ]
+    },
+    {
+      "id": "G42",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Logout revokes access token but not refresh family",
+      "path": "backend/api/routes/auth.py",
+      "symbol": "logout",
+      "line": 129,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/api/routes/auth.py#L129",
+      "observation": "Logout blacklists the current access JTI; it receives/revokes no refresh token or session family. Refresh does not look up current user status before minting successors. Current access checks still read the user, so this is not proof of role escalation.",
+      "impact": "A retained refresh credential can mint tokens after logout until expiry.",
+      "recommended_fix": "Revoke the session refresh family at logout and recheck account status at refresh.",
+      "verification_required": "Retained refresh token after logout/password reset/account suspension must fail.",
+      "probe_ids": []
+    },
+    {
+      "id": "G43",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "reproduced",
+      "title": "Legacy malformed business snapshot causes read failure",
+      "path": "backend/services/business_evidence.py",
+      "symbol": "read_business",
+      "line": 124,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/services/business_evidence.py#L124",
+      "observation": "A previously persisted valuation without as_of raises KeyError on read. Earlier validation accepted valuation dictionaries without that date.",
+      "impact": "Existing records from the older schema can make the evidence panel fail after an upgrade.",
+      "recommended_fix": "Version/validate old snapshots on reads and return an explicit unavailable/review state; migrate deliberately.",
+      "verification_required": "Old missing/invalid date, timezone and collection shapes never cause 500.",
+      "probe_ids": [
+        "D09"
+      ]
+    },
+    {
+      "id": "G44",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Valuation ingest accepts comps without price or closed date",
+      "path": "backend/services/business_evidence.py",
+      "symbol": "validate_snapshot",
+      "line": 12,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/services/business_evidence.py#L12",
+      "observation": "Three distinct sale IDs and source refs with null sale prices, null adjusted values and no closed dates pass as ready advisory evidence.",
+      "impact": "A ready-looking valuation can have no concrete displayed sale-price/date evidence. Producer-side checks reduce current exposure but do not complete receiver validation.",
+      "recommended_fix": "Require complete comparable identity, dated closed status, positive cents and reviewed lineage for a ready valuation.",
+      "verification_required": "Missing, future, stale, duplicate and wrong-property comp evidence must withhold ready status.",
+      "probe_ids": [
+        "D13"
+      ]
+    },
+    {
+      "id": "G45",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "reproduced",
+      "title": "Existing external lead mapping never refreshes missing contacts",
+      "path": "backend/services/voice_ingest.py",
+      "symbol": "resolve_lead",
+      "line": 60,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/services/voice_ingest.py#L60",
+      "observation": "An existing Unverified seller row with no phone remains unchanged when a later mapped event carries a source name and phone. Business snapshots do not carry phone/email.",
+      "impact": "Pre-call imports can leave dashboard contact/name data incomplete even after calls.",
+      "recommended_fix": "Reconcile source-bound contact fields with timestamps and conflict rules, preserving reviewed operator edits.",
+      "verification_required": "Business-before-call and call-before-business converge on the same reviewed contact data.",
+      "probe_ids": [
+        "D14"
+      ]
+    },
+    {
+      "id": "G46",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Operational lead/calendar/deal state is not fully synchronized",
+      "path": "backend/services/business_evidence.py",
+      "symbol": "receive_business",
+      "line": 76,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/services/business_evidence.py#L76",
+      "observation": "Business ingestion stores snapshots and address labels, not source stage, followup_at, assigned operator or a local Property entity. Calendar reads Lead.follow_up_at; deals reads qualified/converted local status. Local manual creation does not emit a canonical REI lead.",
+      "impact": "The evidence panel works while calendar/deal pipeline and actions remain separate systems.",
+      "recommended_fix": "Specify authoritative fields and governed state transitions; connect source bookings/followups and operator actions with bidirectional receipts.",
+      "verification_required": "One reviewed lead through creation, valuation, authorized contact, reservation, completion and deal state across both databases.",
+      "probe_ids": []
+    },
+    {
+      "id": "G47",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Development admin seeding contains a fixed credential",
+      "path": "backend/scripts/seed_admin.py",
+      "symbol": "seed",
+      "line": 14,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/scripts/seed_admin.py#L14",
+      "observation": "The seed script hashes a hardcoded password for a hardcoded administrator, without a production guard. Credential values are intentionally omitted from this report.",
+      "impact": "A database provisioned with this script can have a predictable admin login; actual deployment use is unknown.",
+      "recommended_fix": "Require explicit secure credential input or one-time generated setup; forbid dev seeding in production.",
+      "verification_required": "No fixed credential exists in the supported production bootstrap; validate an existing seeded account safely.",
+      "probe_ids": []
+    },
+    {
+      "id": "G48",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "source_confirmed",
+      "title": "Bootstrap is platform-specific and advertises the wrong password",
+      "path": "scripts/dev/bootstrap.sh",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/scripts/dev/bootstrap.sh",
+      "observation": "The script hardcodes a versioned Homebrew PostgreSQL path and prints a login password different from seed_admin.py. It also uses the legacy migration bootstrap path.",
+      "impact": "Setup fails on other platforms and the printed login fails; fresh-schema path consistency needs verification.",
+      "recommended_fix": "Use portable executables and the canonical initialization command; never advertise a static password.",
+      "verification_required": "Clean Linux/macOS setup and actual generated login with one supported schema head.",
+      "probe_ids": []
+    },
+    {
+      "id": "G49",
+      "project": "Dashboard",
+      "severity": "Medium",
+      "status": "source_confirmed",
+      "title": "Rate limiting module is empty",
+      "path": "backend/security/rate_limits.py",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/backend/security/rate_limits.py",
+      "observation": "The module has zero lines; login and public lead webhook have no application rate-limit integration in the inspected routes. External edge controls were not accessible.",
+      "impact": "Credential guessing, lead injection and paid-provider request amplification are not constrained here.",
+      "recommended_fix": "Add bounded account/IP/service event budgets and document edge limits.",
+      "verification_required": "Burst/concurrent requests and degraded Redis behavior, without blocking legitimate STOP/recovery.",
+      "probe_ids": []
+    },
+    {
+      "id": "G50",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "source_confirmed",
+      "title": "Synchronous database calls block async legacy routes",
+      "path": "backend/api/routes/leads.py",
+      "symbol": "list_leads",
+      "line": 16,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/backend/api/routes/leads.py#L16",
+      "observation": "Legacy async endpoints call synchronous Supabase execute and some scraper/comp work directly; the newer offer routes use the threadpool.",
+      "impact": "Slow datastore/provider work can delay other requests in the same process.",
+      "recommended_fix": "Centralize bounded async/threadpool adapters and isolate long scouting work from the voice/webhook process.",
+      "verification_required": "Concurrent delayed requests must not stall health, STOP, callbacks or voice control.",
+      "probe_ids": []
+    },
+    {
+      "id": "G51",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "source_confirmed",
+      "title": "Shared REI/Bob clean baseline is incomplete",
+      "path": "supabase/migrations/20260911_tenant_and_suppression.sql",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/supabase/migrations/20260911_tenant_and_suppression.sql",
+      "observation": "Migration explicitly skips business tables that do not exist; core leads/properties/contacts schemas are not created in the inspected committed migration set. Bob SQL harness supplies a minimal scaffold.",
+      "impact": "A clean shared deployment or independent upgrade cannot be certified from existing contract tests alone.",
+      "recommended_fix": "Reconstruct and verify the authoritative frozen shared baseline, upgrade paths and RLS/RPC grants.",
+      "verification_required": "Empty database plus representative legacy copy, independent connections and full PostgREST queries.",
+      "probe_ids": []
+    },
+    {
+      "id": "G52",
+      "project": "Sophia",
+      "severity": "Medium",
+      "status": "source_confirmed",
+      "title": "Old audit summaries conflict with merged state",
+      "path": "docs/system-audit/MASTER-ISSUES.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/docs/system-audit/MASTER-ISSUES.md",
+      "observation": "Historical summaries still say nothing merged and retain old test counts/open items; later repairs and current merged heads are documented elsewhere.",
+      "impact": "Operators can confuse old findings, repaired defects and current release gates.",
+      "recommended_fix": "Maintain a current head-bound ledger that preserves but clearly labels historical evidence.",
+      "verification_required": "Every closed finding names its exact fix and verification; no blanket historical statement overrides current source.",
+      "probe_ids": []
+    },
+    {
+      "id": "G53",
+      "project": "Bob",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Current San Joaquin sold-data acceptance is missing",
+      "path": "docs/VALUATION-MODEL-RESEARCH-AND-GRADE.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/Bob-Intelligence-/blob/44059af6766811add52cf7849dda7ea36e8e164c/docs/VALUATION-MODEL-RESEARCH-AND-GRADE.md",
+      "observation": "The research benchmark is historical Ames/Iowa data and a repeatedly examined cohort. Current local closed-sale and renovation-scope acceptance was not available.",
+      "impact": "The tested math and Iowa error rate do not establish current Stockton/Lodi ARV accuracy.",
+      "recommended_fix": "Acquire permitted current sold/condition data and seal independent local/temporal cohorts; retain severe misses.",
+      "verification_required": "Segmented local sale/ARV errors, coverage, severe-tail audit and reviewed source authenticity.",
+      "probe_ids": []
+    },
+    {
+      "id": "G54",
+      "project": "Bob",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Public county candidate evidence is not deal underwriting",
+      "path": "docs/SAN-JOAQUIN-LEAD-SAMPLE-20261014.json",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/Bob-Intelligence-/blob/44059af6766811add52cf7849dda7ea36e8e164c/docs/SAN-JOAQUIN-LEAD-SAMPLE-20261014.json",
+      "observation": "County sample contains candidates with arv_cents unset; parcel context and tax notice matches do not supply a reviewed sale-price/condition/repair/offer package.",
+      "impact": "Candidate discovery cannot be equated with a verified profitable deal.",
+      "recommended_fix": "Build dated per-property reviewed comps, condition, repairs, costs/title and explicit offer authority.",
+      "verification_required": "Blind property-level underwriting against reviewed actual outcomes and evidence receipts.",
+      "probe_ids": []
+    },
+    {
+      "id": "G55",
+      "project": "Bob",
+      "severity": "High",
+      "status": "risk",
+      "title": "Queue quarantine and evidence expiration require operations ownership",
+      "path": "backend/worker/loop.py",
+      "symbol": "run_once",
+      "line": 22,
+      "source_url": "https://github.com/Lavish213/Bob-Intelligence-/blob/44059af6766811add52cf7849dda7ea36e8e164c/backend/worker/loop.py#L22",
+      "observation": "Worker and event failures log/back off; quarantined jobs, expired feedback and dead events require deliberate operator recovery. Configured alert/backup ownership was not accessible.",
+      "impact": "The system can be safe but silently stop useful processing if nobody handles degraded queues.",
+      "recommended_fix": "Assign and surface queue age, quarantine/dead-letter alerts, recovery procedures and backup ownership.",
+      "verification_required": "Observed alerts and owned recovery for worker kill, repeated source error, outage and restored volume.",
+      "probe_ids": []
+    },
+    {
+      "id": "G56",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Production/provider end-to-end acceptance is not available",
+      "path": "docs/END-TO-END-BUSINESS-EVIDENCE.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/docs/END-TO-END-BUSINESS-EVIDENCE.md",
+      "observation": "CI verifies synthetic source data and real disposable PostgreSQL/HTTP, not the deployed accounts, providers or actual operator calendar.",
+      "impact": "Live phone quality, SMS/email delivery, permissions, scheduling and rollout remain unproven.",
+      "recommended_fix": "Connect approved staging/deployment/provider accounts and use designated test recipients and disposable records.",
+      "verification_required": "Exact deployed commit, real bidirectional call/message/calendar roundtrip and rollback evidence.",
+      "probe_ids": []
+    },
+    {
+      "id": "G57",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Persistent volume and multi-replica behavior is unverified",
+      "path": "docs/BOB-RECOVERY-REAUDIT.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/docs/BOB-RECOVERY-REAUDIT.md",
+      "observation": "Suppression, facts and dashboard delivery use local private SQLite journals. Production volume durability, shared replica ownership and restore behavior were not accessible.",
+      "impact": "A lost or separate replica volume can lose pending state or delay suppression visibility.",
+      "recommended_fix": "Verify the configured topology and persistence contracts; test restore and cross-process suppression.",
+      "verification_required": "Kill/redeploy/two-replica/outage/restore drills with no duplicate communication and no suppressed-contact send.",
+      "probe_ids": []
+    },
+    {
+      "id": "G58",
+      "project": "Sophia",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Real voice quality and conversations are not measured",
+      "path": "docs/system-audit/CALIFORNIA-VOICE-ACCEPTANCE.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/REI-AGENT/blob/0ae65ff799eb1c54aad846f9a76ca35c1b7e2263/docs/system-audit/CALIFORNIA-VOICE-ACCEPTANCE.md",
+      "observation": "Text/logic tests do not measure actual ASR errors, noise, accents, interruption, latency, language switching or spoken unsupported promises.",
+      "impact": "A high unit-test count cannot justify a 10/10 conversational grade.",
+      "recommended_fix": "Build a consented operator-controlled audio corpus and independent human grading with explicit failure thresholds.",
+      "verification_required": "Real turn/audio/latency metrics and severe-error review through provider outages and handoff.",
+      "probe_ids": []
+    },
+    {
+      "id": "G59",
+      "project": "Dashboard",
+      "severity": "High",
+      "status": "blocked",
+      "title": "Legacy production migration and rollback remain unproven",
+      "path": "docs/database/AUDIT_TABLES.md",
+      "symbol": null,
+      "line": null,
+      "source_url": "https://github.com/Lavish213/The-Dashboard/blob/4b8c556c94d15de55dbc1a0ad68b18f5d19912d5/docs/database/AUDIT_TABLES.md",
+      "observation": "Fresh disposable schema tests do not establish upgrades and rollback on the existing production database. No live migration was performed in this audit.",
+      "impact": "Deployment can fail despite a green fresh-install test.",
+      "recommended_fix": "Rehearse upgrades on a backed-up sanitized representative database and verify rollback/data retention.",
+      "verification_required": "Pre/post schema, row invariants, RLS/API queries and restore/rollback evidence.",
+      "probe_ids": []
+    }
+  ],
+  "probe_suites": {
+    "Sophia": {
+      "suite": "REI merged-source isolated defect probes",
+      "limits": "Synthetic source/provider/datastore mocks; no live requests, messages or database writes",
+      "results": [
+        {
+          "id": "R01",
+          "actual": null,
+          "expected": 13,
+          "defect_observed": true
+        },
+        {
+          "id": "R02",
+          "actual": "high",
+          "expected": "low",
+          "defect_observed": true
+        },
+        {
+          "id": "R03",
+          "actual": 50000000,
+          "expected": 10000000,
+          "defect_observed": true
+        },
+        {
+          "id": "R04",
+          "actual": 4500000,
+          "expected": 2500000,
+          "defect_observed": true
+        },
+        {
+          "id": "R05",
+          "actual": 40000000,
+          "expected": 0,
+          "defect_observed": true
+        },
+        {
+          "id": "R06",
+          "actual": 1,
+          "expected": 0,
+          "defect_observed": true
+        },
+        {
+          "id": "R07",
+          "actual": -1800000,
+          "expected": 0,
+          "defect_observed": true
+        },
+        {
+          "id": "R08",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "R09",
+          "actual": false,
+          "expected": true,
+          "defect_observed": true
+        },
+        {
+          "id": "R10",
+          "actual": false,
+          "expected": true,
+          "defect_observed": true
+        },
+        {
+          "id": "R11",
+          "actual": false,
+          "expected": true,
+          "defect_observed": true
+        },
+        {
+          "id": "R12",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "R13",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "R14",
+          "actual": {
+            "blocked": false,
+            "range_dollars": [
+              380000,
+              400000
+            ]
+          },
+          "expected": {
+            "blocked": true,
+            "range_dollars": null
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "R15",
+          "actual": false,
+          "expected": true,
+          "defect_observed": true
+        },
+        {
+          "id": "R16",
+          "actual": "TypeError_missing_appointment_str",
+          "expected": "compatible",
+          "defect_observed": true
+        },
+        {
+          "id": "R17",
+          "actual": 200,
+          "expected": 503,
+          "defect_observed": true
+        },
+        {
+          "id": "R18",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "R19",
+          "actual": {
+            "provider_accepts": 1,
+            "returned_success": false
+          },
+          "expected": {
+            "provider_accepts": 1,
+            "returned_success": true
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "R20",
+          "actual": {
+            "sms_sent": true,
+            "email_sent": true
+          },
+          "expected": {
+            "sms_sent": false,
+            "email_sent": false
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "R21",
+          "actual": {
+            "outbound_disabled": true,
+            "provider_requests": 1,
+            "accepted": true
+          },
+          "expected": {
+            "outbound_disabled": true,
+            "provider_requests": 0,
+            "accepted": false
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "R22",
+          "actual": 1,
+          "expected": 0,
+          "defect_observed": true
+        },
+        {
+          "id": "R23",
+          "actual": [
+            "bad"
+          ],
+          "expected": [
+            "bad",
+            "healthy"
+          ],
+          "defect_observed": true
+        },
+        {
+          "id": "R24",
+          "actual": 0,
+          "expected": 1,
+          "defect_observed": true
+        }
+      ]
+    },
+    "Dashboard": {
+      "suite": "Dashboard merged-source isolated defect probes",
+      "limits": "Synthetic auth, database and HTTP adapters; no provider actions or real SQL/concurrency certification",
+      "results": [
+        {
+          "id": "D01",
+          "actual": 200,
+          "expected": 401,
+          "defect_observed": true
+        },
+        {
+          "id": "D02",
+          "actual": "I owe 1000 dollars",
+          "expected": null,
+          "defect_observed": true
+        },
+        {
+          "id": "D03",
+          "actual": 2,
+          "expected": 1,
+          "defect_observed": true
+        },
+        {
+          "id": "D04",
+          "actual": 200,
+          "expected": 403,
+          "defect_observed": true
+        },
+        {
+          "id": "D05",
+          "actual": "posted",
+          "expected": "draft_pending_verified_publication",
+          "defect_observed": true
+        },
+        {
+          "id": "D06",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "D07",
+          "actual": {
+            "returned_deleted_lead": true,
+            "soft_delete_predicate": false
+          },
+          "expected": {
+            "returned_deleted_lead": false,
+            "soft_delete_predicate": true
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "D08",
+          "actual": 2,
+          "expected": 1,
+          "defect_observed": true
+        },
+        {
+          "id": "D09",
+          "actual": "KeyError",
+          "expected": null,
+          "defect_observed": true
+        },
+        {
+          "id": "D10",
+          "actual": {
+            "private_url_requested": 1,
+            "returned_private_preview": true
+          },
+          "expected": {
+            "private_url_requested": 0,
+            "returned_private_preview": false
+          },
+          "defect_observed": true
+        },
+        {
+          "id": "D11",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "D12",
+          "actual": 2,
+          "expected": 1,
+          "defect_observed": true
+        },
+        {
+          "id": "D13",
+          "actual": true,
+          "expected": false,
+          "defect_observed": true
+        },
+        {
+          "id": "D14",
+          "actual": {
+            "phone": null,
+            "full_name": "Unverified seller"
+          },
+          "expected": {
+            "phone": "+12095550123",
+            "full_name": "Synthetic Known Seller"
+          },
+          "defect_observed": true
+        }
+      ]
+    }
+  },
+  "reviewed_non_findings": [
+    "Bob job seeding excludes existing jobs before its 1000-row batch limit; the inspected limit does not establish permanent top-1000 starvation.",
+    "Current dashboard websocket code revalidates identity/role; old summaries saying that remains open are not treated as a new defect.",
+    "OUTBOUND_ENABLED and action grants intentionally deny unsafe calls; unavailable credentials/consent/slots are operating prerequisites, not reasons to bypass those checks."
+  ]
+}
