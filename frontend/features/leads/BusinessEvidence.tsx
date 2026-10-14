@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/services/api'
+import { useAuthStore } from '@/stores/auth.store'
+import { Button } from '@/components/ui/button'
 
 interface Snapshot {
   address: string | null
@@ -11,13 +13,33 @@ interface Snapshot {
   offers: { id: string | null; status: string; amount_cents: number | null; repairs_cents: number | null }[]
   appointment: { at: string | null; status: string | null }
 }
-interface Evidence { status: 'current' | 'stale' | 'unavailable'; observed_at?: string; snapshot: Snapshot | null }
+interface Evidence { revision?: string; status: 'current' | 'stale' | 'unavailable'; observed_at?: string; snapshot: Snapshot | null }
 const money = (cents: number | null) => cents !== null && Number.isSafeInteger(cents) ? new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD'}).format(cents / 100) : 'Unverified'
 
 export function BusinessEvidence({leadId}: {leadId: string}) {
+  const user = useAuthStore(state => state.user)
+  const [callbackAt, setCallbackAt] = useState('')
+  const [commandState, setCommandState] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [requestId, setRequestId] = useState<string | null>(null)
+  async function scheduleCallback() {
+    if (!callbackAt || !evidence?.revision || sending) return
+    setSending(true)
+    const identity = requestId ?? crypto.randomUUID()
+    setRequestId(identity)
+    try {
+      const result = await apiFetch<{state: string}>(`/api/v1/leads/${leadId}/source-callback`, { method: 'POST', body: JSON.stringify({ request_id: identity, at: new Date(callbackAt).toISOString(), revision: evidence.revision }) })
+      setCommandState(result.state === 'applied' ? 'Source confirmed the callback.' : 'Callback queued. It is not confirmed until the source applies it and the snapshot refreshes.')
+    } catch { setCommandState('Callback could not be queued. Refresh the source and retry; no booking is confirmed.') }
+    finally { setSending(false) }
+  }
   const [evidence, setEvidence] = useState<Evidence | null>(null)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
+    setEvidence(null)
+    setCallbackAt('')
+    setCommandState(null)
+    setRequestId(null)
     let active = true
     let pending = false
     async function refresh() {
@@ -47,7 +69,12 @@ export function BusinessEvidence({leadId}: {leadId: string}) {
       {snapshot.offers.length ? <ul>{snapshot.offers.map((row, i) => <li key={`${row.id}:${i}`}>{row.status}: {money(row.amount_cents)} · Repairs {money(row.repairs_cents)}</li>)}</ul> : <p>No recorded offers.</p>}
       <h3 className="font-medium">Source appointment</h3>
       <p>{snapshot.appointment.status ?? 'Status unverified'} · {snapshot.appointment.at ? new Date(snapshot.appointment.at).toLocaleString('en-US', {timeZone: 'America/Los_Angeles', timeZoneName: 'short'}) : 'No appointment recorded'}</p>
-      <p className="text-xs text-muted-foreground">Read-only source records. Research, draft offers and saved appointment records do not grant offer or contact authority. Confirm current availability before booking.</p>
+      {user && ['admin', 'operator'].includes(user.role) && evidence.status === 'current' && evidence.revision && <div className="space-y-2">
+        <label className="block text-sm">Source callback time (your device timezone)<input type="datetime-local" value={callbackAt} onChange={event => { setCallbackAt(event.target.value); setRequestId(null) }} className="block rounded border bg-background p-2" /></label>
+        <Button disabled={sending || !callbackAt} onClick={() => void scheduleCallback()}>{sending ? 'Queuing…' : 'Queue source callback'}</Button>
+      </div>}
+      {commandState && <p role="status">{commandState}</p>}
+      <p className="text-xs text-muted-foreground">Source records. Research, draft offers and saved appointment records do not grant offer or contact authority. Confirm current availability before booking.</p>
     </>}
   </section>
 }

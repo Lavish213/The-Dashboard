@@ -228,11 +228,14 @@ async function loadBusinessEvidence(fetcher) {
       this.setExport('jsx', () => null); this.setExport('jsxs', () => null); this.setExport('Fragment', 'fragment')
     }, { context })
     if (name === '@/services/api') return new SyntheticModule(['apiFetch'], function () { this.setExport('apiFetch', fetcher) }, { context })
+    if (name === '@/stores/auth.store') return new SyntheticModule(['useAuthStore'], function () { this.setExport('useAuthStore', selector => selector({user: null})) }, {context})
+    if (name === '@/components/ui/button') return new SyntheticModule(['Button'], function () { this.setExport('Button', () => null) }, {context})
     throw new Error(`Unexpected component dependency: ${name}`)
   })
   await mod.evaluate()
   mod.namespace.BusinessEvidence({ leadId: 'synthetic-lead' })
   const cleanup = effect()
+  updates.length = 0
   return { updates, cleanup, tick: () => timer() }
 }
 
