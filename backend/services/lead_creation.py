@@ -2,7 +2,7 @@ import hashlib
 import json
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from models.enums import LeadSource, LeadStatus
 from models.lead import Lead
@@ -21,7 +21,13 @@ async def create_manual_lead(session, payload, actor_id):
     rows = (
         await session.scalars(
             select(Lead)
-            .where(Lead.metadata_["manual_create_key"].as_string() == key)
+            .where(
+                or_(
+                    Lead.metadata_["manual_create_key"].as_string() == key,
+                    Lead.metadata_["source_record_id"].as_string()
+                    == payload["source_record_id"],
+                )
+            )
             .limit(2)
         )
     ).all()

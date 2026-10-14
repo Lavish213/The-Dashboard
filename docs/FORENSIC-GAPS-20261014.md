@@ -1008,3 +1008,7 @@ The calendar currently shows local lead followups, not a verified external calen
 - OUTBOUND_ENABLED and action grants intentionally deny unsafe calls; unavailable credentials/consent/slots are operating prerequisites, not reasons to bypass those checks.
 
 The prior green suites remain useful regression evidence for their exact source heads. The newly reproduced defects show that those suites did not establish complete acceptance of every legacy module. No A or autonomous production-ready grade is justified until the release stops and live acceptance gates above close.
+
+## Remediation follow-up
+
+PRs [Sophia #9](https://github.com/Lavish213/REI-AGENT/pull/9) and [Dashboard #7](https://github.com/Lavish213/The-Dashboard/pull/7) implement the current lockdown. The historical findings and probes above remain evidence of the original behavior, not current passing tests. See the JSON remediation section and Sophia docs/FORENSIC-LOCKDOWN.md for implemented, contained and still-open work. No live provider, production upgrade or current San Joaquin valuation acceptance is claimed. Initial CI passed Sophia and the dashboard backend; final revisions require exact-head checks before merge.

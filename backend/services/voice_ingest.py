@@ -110,10 +110,14 @@ async def resolve_lead(session, body):
         raise HTTPException(409, "External lead mapping is ambiguous or deleted")
     if rows:
         lead = rows[0]
-        for source, field in (("phone", "phone"), ("lead_name", "full_name")):
+        for source, field in (
+            ("phone", "phone"),
+            ("email", "email"),
+            ("lead_name", "full_name"),
+        ):
             value = body.get(source)
             if value is not None and (
-                not isinstance(value, str) or not 0 < len(value) <= 1000
+                not isinstance(value, str) or not len(value) <= 1000
             ):
                 raise HTTPException(422, "Invalid source contact fields")
             if value and (
@@ -122,7 +126,7 @@ async def resolve_lead(session, body):
             ):
                 setattr(lead, field, value)
         return lead.id
-    for field in ("lead_name", "phone", "address"):
+    for field in ("lead_name", "phone", "email", "address"):
         if body.get(field) is not None and (
             not isinstance(body[field], str) or len(body[field]) > 1000
         ):
@@ -130,6 +134,7 @@ async def resolve_lead(session, body):
     lead = Lead(
         full_name=body.get("lead_name") or "Unverified seller",
         phone=body.get("phone"),
+        email=body.get("email"),
         address=body.get("address"),
         lead_source=LeadSource.imported,
         metadata_={"external_source": "rei", "external_lead_id": external},
