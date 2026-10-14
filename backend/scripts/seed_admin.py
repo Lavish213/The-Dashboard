@@ -1,5 +1,9 @@
 from __future__ import annotations
-import asyncio, os, sys, uuid
+
+import asyncio
+import os
+import uuid
+
 import bcrypt
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "").replace("postgresql+asyncpg://", "postgresql://")

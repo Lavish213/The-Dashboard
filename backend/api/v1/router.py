@@ -1,15 +1,6 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/v1")
-
-
-@router.get("/ping", tags=["system"])
-async def v1_ping() -> dict:
-    return {"status": "ok"}
-
-
 from api.routes import (
-    sophia_bridge,
     activity,
     analytics,
     approvals,
@@ -25,15 +16,27 @@ from api.routes import (
     operator_sessions,
     properties,
     property_search,
+    realtime_active,
     reddit_monitor,
     referrals,
+    settings,
     social,
     social_leads,
-    settings,
+    sophia_bridge,
     transcripts,
     workflows,
 )
-from api.routes import realtime_active
+from api.routes.realtime import router as realtime_router
+
+router = APIRouter(prefix="/api/v1")
+
+
+@router.get("/ping", tags=["system"])
+async def v1_ping() -> dict:
+    return {"status": "ok"}
+
+
+
 
 router.include_router(auth.router)
 router.include_router(leads.router, prefix="/leads", tags=["leads"])
@@ -60,5 +63,6 @@ router.include_router(email_drip.router, prefix="/email-drip", tags=["email"])
 router.include_router(sophia_bridge.router, prefix="/sophia", tags=["sophia"])
 router.include_router(referrals.router, prefix="/referrals", tags=["referrals"])
 
-from api.routes.realtime import router as realtime_router
+
+
 router.include_router(realtime_router)

@@ -51,18 +51,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Lavish213/REI-AGENT
-          ref: da36aaa5dd0916f257bc76259960d38136532a0f
+          ref: e8f3bb9dc9c386b7bd83b93ec985b89180cd1464
           path: _rei-contract
+      - run: ruff check .
       - run: pytest tests tests_safety -q --junitxml=test-results.xml
       - run: PYTHONPATH=. python scripts/initialize_database.py --roundtrip-test
       - run: PYTHONPATH=. python scripts/verify_schema.py
       - run: alembic current
+      - uses: actions/checkout@v4
+        with:
+          repository: Lavish213/Bob-Intelligence-
+          ref: 44059af6766811add52cf7849dda7ea36e8e164c
+          path: _bob-contract
       - name: Install isolated REI bridge runtime
         run: |
           python -m venv /tmp/rei-bridge-runtime
-          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0
+          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0 pytest==9.0.2
       - name: Real HTTP voice outbox restart and receipt recovery
-        run: PYTHONPATH=. REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_voice_outbox_boundary.py
+        run: PYTHONPATH=. BOB_REPO="$GITHUB_WORKSPACE/_bob-contract" REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_voice_outbox_boundary.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -2,17 +2,29 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
-from models.enums import LeadStatus
+from models.enums import LeadSource, LeadStatus
 from models.lead import Lead
 from security.permissions import require_permission
 from security.rbac import Permission
 
 router = APIRouter(dependencies=[Depends(require_permission(Permission.LEADS_READ))])
+
+
+class LeadCreation(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    full_name: str = Field(min_length=1, max_length=200)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=254)
+    lead_source: LeadSource = LeadSource.direct
+    address: str | None = Field(default=None, max_length=500)
+    city: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
+    source_record_id: str = Field(min_length=1, max_length=200)
 
 
 class FollowupUpdate(BaseModel):
@@ -59,6 +71,13 @@ def _serialize(lead: Lead) -> dict:
         "created_at": lead.created_at.isoformat(),
         "updated_at": lead.updated_at.isoformat(),
     }
+
+
+@router.post("", status_code=201)
+async def create_lead(body: LeadCreation, actor=Depends(require_permission(Permission.LEADS_WRITE)), session: AsyncSession = Depends(get_session)):
+    from services.lead_creation import create_manual_lead
+    lead = await create_manual_lead(session, body.model_dump(mode="json"), str(actor.id))
+    return _serialize(lead)
 
 
 @router.get("")
@@ -266,3 +285,9 @@ async def get_lead_timeline(
     events.sort(key=lambda e: e["timestamp"], reverse=True)
 
     return {"lead_id": str(lead_id), "events": events}
+
+
+@router.get("/{lead_id}/business-evidence")
+async def get_business_evidence(lead_id: UUID, session: AsyncSession = Depends(get_session)):
+    from services.business_evidence import read_business
+    return await read_business(session, lead_id)

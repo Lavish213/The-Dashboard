@@ -54,7 +54,7 @@ async def list_social_leads(
     result = await session.execute(q)
     leads = result.scalars().all()
     return {
-        "items": [_serialize(l) for l in leads],
+        "items": [_serialize(lead) for lead in leads],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -89,8 +89,9 @@ async def convert_to_lead(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from fastapi import HTTPException
-    from models.lead import Lead
+
     from models.enums import LeadSource, LeadStatus
+    from models.lead import Lead
 
     result = await session.execute(select(SocialLead).where(SocialLead.id == social_lead_id))
     social_lead = result.scalar_one_or_none()

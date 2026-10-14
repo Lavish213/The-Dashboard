@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
@@ -71,6 +71,7 @@ async def update_match_status(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from fastapi import HTTPException
+
     from models.reddit_match import RedditMatch
 
     result = await session.execute(

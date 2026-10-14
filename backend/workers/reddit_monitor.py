@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import UTC, datetime
 
 from loguru import logger
 from sqlalchemy import select
@@ -10,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session_context
 from integrations.reddit import fetch_matches
-
 
 POLL_INTERVAL = int(os.environ.get("REDDIT_POLL_INTERVAL", "1800"))
 

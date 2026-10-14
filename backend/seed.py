@@ -2,22 +2,6 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import models.transcript_chunk
-import models.transcript_segment
-import models.transcript_event
-import models.transcript_stream
-import models.transcript_checkpoint
-import models.sophia_session
-import models.sophia_turn
-import models.sophia_event
-import models.call_session
-import models.call_event
-import models.call_participant
-import models.workflow_event
-import models.workflow_checkpoint
-import models.workflow_snapshot
-import models.workflow_lease
-
 from db.session import async_session_factory
 from models.call import Call
 from models.enums import (

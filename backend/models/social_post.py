@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 import datetime
+import uuid
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
