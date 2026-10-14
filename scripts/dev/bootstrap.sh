@@ -4,9 +4,9 @@
 set -euo pipefail
 
 BACKEND_DIR="$(cd "$(dirname "$0")/../../backend" && pwd)"
-PSQL="/opt/homebrew/Cellar/postgresql@16/16.11_1/bin/psql"
-CREATEDB="/opt/homebrew/Cellar/postgresql@16/16.11_1/bin/createdb"
-DROPDB="/opt/homebrew/Cellar/postgresql@16/16.11_1/bin/dropdb"
+PSQL="${PSQL:-$(command -v psql)}"
+CREATEDB="${CREATEDB:-$(command -v createdb)}"
+DROPDB="${DROPDB:-$(command -v dropdb)}"
 DB_NAME="${DB_NAME:-karpathys_dev}"
 DB_USER="${DB_USER:-$(whoami)}"
 DB_HOST="${DB_HOST:-localhost}"
@@ -17,6 +17,8 @@ for arg in "$@"; do
   [[ "$arg" == "--reset" ]] && RESET=1
 done
 
+: "${ADMIN_PASSWORD:?Set a unique ADMIN_PASSWORD of at least 16 characters}"
+export ADMIN_PASSWORD
 echo "=== Karpathys Dev Bootstrap ==="
 echo "DB: ${DB_NAME} on ${DB_HOST} as ${DB_USER}"
 
@@ -40,5 +42,5 @@ DATABASE_URL="$DATABASE_URL" .venv/bin/python scripts/seed_admin.py
 
 echo ""
 echo "=== Bootstrap complete ==="
-echo "Login: admin@karpathys.dev / admin1234"
+echo "Login with your configured ADMIN_EMAIL and ADMIN_PASSWORD"
 echo "Start server: cd backend && uvicorn api.main:app --reload"

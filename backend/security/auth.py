@@ -25,6 +25,7 @@ _ACCESS_TOKEN_TYPE = "access"
 
 # --- Password helpers ---
 
+
 def hash_password(plain: str) -> str:
     return _bcrypt.hashpw(plain.encode(), _bcrypt.gensalt()).decode()
 
@@ -34,6 +35,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # --- Token creation ---
+
 
 def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> str:
     now = datetime.now(UTC)
@@ -45,9 +47,16 @@ def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> st
         "iat": now,
         "jti": jti,
         "type": _ACCESS_TOKEN_TYPE,
+        "sid": str(uuid.uuid4()),
     }
     if extra:
-        payload.update(extra)
+        payload.update(
+            {
+                key: value
+                for key, value in extra.items()
+                if key not in {"sub", "exp", "iat", "jti", "type"}
+            }
+        )
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
@@ -61,13 +70,21 @@ def create_refresh_token(subject: str, extra: dict[str, Any] | None = None) -> s
         "iat": now,
         "jti": jti,
         "type": _REFRESH_TOKEN_TYPE,
+        "sid": str(uuid.uuid4()),
     }
     if extra:
-        payload.update(extra)
+        payload.update(
+            {
+                key: value
+                for key, value in extra.items()
+                if key not in {"sub", "exp", "iat", "jti", "type"}
+            }
+        )
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
 # --- Token decoding ---
+
 
 def _decode_raw(token: str) -> dict[str, Any]:
     try:
@@ -95,6 +112,9 @@ async def decode_access_token(
             detail="Invalid token type",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    sid = payload.get("sid")
+    if sid and await redis.exists("session-revoked:" + str(sid)):
+        raise HTTPException(401, "Session has been revoked")
     jti = payload.get("jti")
     if jti and await is_blacklisted(jti, redis):
         raise HTTPException(
@@ -110,12 +130,17 @@ async def verify_refresh_token(
     redis: aioredis.Redis,
 ) -> dict[str, Any]:
     payload = _decode_raw(token)
+    if not isinstance(payload.get("sid"), str) or not payload.get("jti"):
+        raise HTTPException(401, "Legacy refresh token requires a new login")
     if payload.get("type") != _REFRESH_TOKEN_TYPE:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    sid = payload.get("sid")
+    if sid and await redis.exists("session-revoked:" + str(sid)):
+        raise HTTPException(401, "Session has been revoked")
     jti = payload.get("jti")
     if jti and await is_blacklisted(jti, redis):
         raise HTTPException(
@@ -128,6 +153,7 @@ async def verify_refresh_token(
 
 # --- Redis blacklist ---
 
+
 async def blacklist_token(jti: str, ttl_seconds: int, redis: aioredis.Redis) -> None:
     await redis.setex(f"{_BLACKLIST_PREFIX}{jti}", ttl_seconds, "1")
 
@@ -138,6 +164,7 @@ async def is_blacklisted(jti: str, redis: aioredis.Redis) -> bool:
 
 
 # --- FastAPI HTTP dependencies ---
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
@@ -167,7 +194,10 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     from models.user import User
-    result = await session.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
+
+    result = await session.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
@@ -182,6 +212,7 @@ async def get_current_active_user(
     user: Any = Depends(get_current_user),
 ) -> Any:
     from models.enums import UserStatus
+
     if user.status != UserStatus.active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -191,6 +222,7 @@ async def get_current_active_user(
 
 
 # --- WebSocket dependency ---
+
 
 async def get_current_user_ws(
     token: str | None = Query(default=None),
@@ -211,11 +243,15 @@ async def get_current_user_ws(
     except ValueError:
         raise WebSocketException(code=4001, reason="Invalid token subject")
     from models.user import User
-    result = await session.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None)))
+
+    result = await session.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
     user = result.scalar_one_or_none()
     if user is None:
         raise WebSocketException(code=4001, reason="User not found")
     from models.enums import UserStatus
+
     if user.status != UserStatus.active:
         raise WebSocketException(code=4001, reason="User account is not active")
     return user

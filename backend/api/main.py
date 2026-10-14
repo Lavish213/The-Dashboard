@@ -17,6 +17,7 @@ from core.redis import close_redis, init_redis
 from middleware.correlation import CorrelationMiddleware
 from middleware.metrics import MetricsMiddleware
 from observability.logging import configure_logging
+from security.request_limits import RequestLimits
 
 configure_logging(env=settings.app_env)
 logger = structlog.get_logger(__name__)
@@ -128,9 +129,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def _validate_startup() -> None:
     from security.secrets import validate_secrets
+
     validate_secrets(settings)
     if settings.is_secret_key_insecure and settings.is_production:
-        raise RuntimeError("Insecure secret_key detected in production — aborting startup")
+        raise RuntimeError(
+            "Insecure secret_key detected in production — aborting startup"
+        )
     logger.info("karpathys.startup.validated")
 
 
@@ -142,6 +146,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+app.add_middleware(RequestLimits)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(CorrelationMiddleware)
 app.add_middleware(

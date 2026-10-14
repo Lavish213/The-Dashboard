@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
@@ -68,10 +69,16 @@ async def login(
     body: LoginRequest,
     session: AsyncSession = Depends(get_session),
 ) -> LoginResponse:
-    result = await session.execute(select(User).where(User.email == body.email))
+    result = await session.execute(
+        select(User).where(User.email == body.email, User.deleted_at.is_(None))
+    )
     user = result.scalar_one_or_none()
 
-    if user is None or not user.hashed_password or not verify_password(body.password, user.hashed_password):
+    if (
+        user is None
+        or not user.hashed_password
+        or not verify_password(body.password, user.hashed_password)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -83,7 +90,7 @@ async def login(
             detail="User account is not active",
         )
 
-    extra = {"role": user.role.value, "email": user.email}
+    extra = {"role": user.role.value, "email": user.email, "sid": str(uuid.uuid4())}
     access_token = create_access_token(subject=str(user.id), extra=extra)
     refresh_token = create_refresh_token(subject=str(user.id), extra=extra)
 
@@ -98,6 +105,7 @@ async def login(
 async def refresh(
     body: RefreshRequest,
     redis: aioredis.Redis = Depends(get_redis),
+    session: AsyncSession = Depends(get_session),
 ) -> RefreshResponse:
     payload = await verify_refresh_token(body.refresh_token, redis)
 
@@ -109,13 +117,21 @@ async def refresh(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    old_jti: str | None = payload.get("jti")
-    if old_jti:
-        exp: int | None = payload.get("exp")
-        ttl = max(0, exp - int(datetime.now(UTC).timestamp())) if exp else 0
-        await blacklist_token(old_jti, ttl, redis)
-
-    extra = {"role": payload.get("role", "operator"), "email": payload.get("email", "")}
+    try:
+        identity = uuid.UUID(user_id_str)
+    except (ValueError, TypeError) as error:
+        raise HTTPException(401, "Invalid refresh identity") from error
+    user = await session.scalar(
+        select(User).where(User.id == identity, User.deleted_at.is_(None))
+    )
+    if user is None or user.status != UserStatus.active:
+        raise HTTPException(401, "Inactive refresh identity")
+    ttl = max(1, int(payload["exp"]) - int(datetime.now(UTC).timestamp()))
+    claimed = await redis.set("refresh-used:" + payload["jti"], "1", ex=ttl, nx=True)
+    if not claimed:
+        raise HTTPException(401, "Refresh token has already been consumed")
+    await blacklist_token(payload["jti"], ttl, redis)
+    extra = {"role": user.role.value, "email": user.email, "sid": payload["sid"]}
     new_access_token = create_access_token(subject=user_id_str, extra=extra)
     new_refresh_token = create_refresh_token(subject=user_id_str, extra=extra)
 
@@ -132,19 +148,31 @@ async def logout(
     redis: aioredis.Redis = Depends(get_redis),
 ) -> dict:
     from jose import jwt as _jwt
+
     payload = _jwt.decode(
         raw_token,
         settings.secret_key,
         algorithms=[settings.jwt_algorithm],
         options={"verify_exp": False},
     )
+    sid = payload.get("sid")
+    if sid:
+        await redis.setex(
+            "session-revoked:" + str(sid),
+            settings.refresh_token_expire_days * 86400,
+            "1",
+        )
     jti: str | None = payload.get("jti")
     if jti:
         exp: int | None = payload.get("exp")
-        ttl = max(
-            0,
-            exp - int(datetime.now(UTC).timestamp()),
-        ) if exp else int(settings.access_token_expire_minutes * 60)
+        ttl = (
+            max(
+                0,
+                exp - int(datetime.now(UTC).timestamp()),
+            )
+            if exp
+            else int(settings.access_token_expire_minutes * 60)
+        )
         await blacklist_token(jti, ttl, redis)
 
     return {"ok": True}
@@ -164,4 +192,5 @@ async def websocket_ticket(
     redis: aioredis.Redis = Depends(get_redis),
 ) -> dict:
     from security.websocket_tickets import issue_ticket
+
     return await issue_ticket(raw_token, user, redis)

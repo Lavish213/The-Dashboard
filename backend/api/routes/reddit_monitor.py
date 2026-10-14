@@ -7,9 +7,9 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
-from security.auth import get_current_active_user
+from security.legacy_writes import require_legacy_writer
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_legacy_writer)])
 
 
 def _serialize(r) -> dict:
@@ -48,9 +48,7 @@ async def list_reddit_matches(
         q = q.where(RedditMatch.status == status)
     q = q.order_by(desc(RedditMatch.intent_score), desc(RedditMatch.created_at))
 
-    total_result = await session.execute(
-        select(func.count()).select_from(q.subquery())
-    )
+    total_result = await session.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
@@ -94,5 +92,6 @@ async def trigger_scan(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from workers.reddit_monitor import run_once
+
     count = await run_once(session)
     return {"status": "ok", "new_matches": count}

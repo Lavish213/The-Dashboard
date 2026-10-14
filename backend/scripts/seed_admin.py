@@ -6,26 +6,44 @@ import uuid
 
 import bcrypt
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "").replace("postgresql+asyncpg://", "postgresql://")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").replace(
+    "postgresql+asyncpg://", "postgresql://"
+)
 
-ADMIN_EMAIL = "admin@karpathys.dev"
-ADMIN_PASSWORD = "Karpathys2025!"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@karpathys.dev")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 
 async def seed() -> None:
+    if len(ADMIN_PASSWORD) < 16:
+        raise RuntimeError(
+            "Set ADMIN_PASSWORD to a unique password of at least 16 characters"
+        )
     import asyncpg
+
     url = DATABASE_URL.replace("postgresql://", "")
-    conn = await asyncpg.connect(f"postgresql://{url}" if not url.startswith("postgres") else DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://"))
+    conn = await asyncpg.connect(
+        f"postgresql://{url}"
+        if not url.startswith("postgres")
+        else DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+    )
     existing = await conn.fetchrow("SELECT id FROM users WHERE email = $1", ADMIN_EMAIL)
     if existing:
         print(f"Admin already exists: {ADMIN_EMAIL}")
     else:
         pw = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
-        await conn.execute("""
+        await conn.execute(
+            """
             INSERT INTO users (id, email, hashed_password, full_name, role, status, created_at, updated_at)
             VALUES ($1, $2, $3, 'Internal Admin', 'admin', 'active', now(), now())
-        """, str(uuid.uuid4()), ADMIN_EMAIL, pw)
+        """,
+            str(uuid.uuid4()),
+            ADMIN_EMAIL,
+            pw,
+        )
         print(f"Created admin: {ADMIN_EMAIL}")
     await conn.close()
+
 
 if __name__ == "__main__":
     asyncio.run(seed())
