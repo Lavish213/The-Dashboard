@@ -210,3 +210,51 @@ test('unexpected HTML errors use a bounded status message', async () => {
   const { api } = await load(async () => new Response('<html>synthetic-private-server-output</html>', { status: 500 }))
   await assert.rejects(api('/api/v1/approvals'), { status: 500, message: 'Request failed (500)' })
 })
+
+async function loadBusinessEvidence(fetcher) {
+  const updates = []
+  let effect, timer
+  const context = createContext({ Intl, Date, Number,
+    setInterval(fn) { timer = fn; return 1 }, clearInterval() {} })
+  const code = await readFile(new URL('../features/leads/BusinessEvidence.tsx', import.meta.url), 'utf8')
+  const compiled = ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
+  const mod = new SourceTextModule(compiled, { context })
+  await mod.link((name) => {
+    if (name === 'react') return new SyntheticModule(['useEffect', 'useState'], function () {
+      this.setExport('useEffect', (fn) => { effect = fn })
+      this.setExport('useState', (initial) => [initial, (value) => updates.push(value)])
+    }, { context })
+    if (name === 'react/jsx-runtime') return new SyntheticModule(['jsx', 'jsxs', 'Fragment'], function () {
+      this.setExport('jsx', () => null); this.setExport('jsxs', () => null); this.setExport('Fragment', 'fragment')
+    }, { context })
+    if (name === '@/services/api') return new SyntheticModule(['apiFetch'], function () { this.setExport('apiFetch', fetcher) }, { context })
+    throw new Error(`Unexpected component dependency: ${name}`)
+  })
+  await mod.evaluate()
+  mod.namespace.BusinessEvidence({ leadId: 'synthetic-lead' })
+  const cleanup = effect()
+  return { updates, cleanup, tick: () => timer() }
+}
+
+test('business polling permits only one pending request and resumes after it settles', async () => {
+  let requests = 0, resolve
+  const harness = await loadBusinessEvidence(() => { requests++; return new Promise((done) => { resolve = done }) })
+  harness.tick(); harness.tick()
+  assert.equal(requests, 1)
+  resolve({ status: 'unavailable', snapshot: null })
+  await new Promise(setImmediate)
+  harness.tick()
+  assert.equal(requests, 2)
+  harness.cleanup()
+  resolve({ status: 'unavailable', snapshot: null })
+  await new Promise(setImmediate)
+})
+
+test('business evidence rejects late updates after leaving the lead', async () => {
+  let resolve
+  const harness = await loadBusinessEvidence(() => new Promise((done) => { resolve = done }))
+  harness.cleanup()
+  resolve({ status: 'current', snapshot: { address: 'old-lead' } })
+  await new Promise(setImmediate)
+  assert.equal(harness.updates.length, 0)
+})
