@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -31,10 +31,33 @@ def validate_snapshot(body):
             value = row.get(key)
             if value is not None and (type(value) is not int or not 0 <= value <= 10**14):
                 raise HTTPException(422, "Offer amounts must be integer cents")
+    appointment = snapshot['appointment']
+    if appointment.get('status') is not None and appointment['status'] not in {'confirmed', 'cancelled', 'scheduled', 'pending', 'completed', 'missed'}:
+        raise HTTPException(422, "Invalid appointment status")
+    if appointment.get('at') is not None:
+        try:
+            slot = datetime.fromisoformat(appointment['at'].replace('Z', '+00:00'))
+            if slot.tzinfo is None:
+                raise ValueError('Timezone required')
+        except (ValueError, TypeError, AttributeError) as error:
+            raise HTTPException(422, "Appointment requires a dated time with UTC offset") from error
+    elif appointment.get('status') in {'confirmed', 'scheduled'}:
+        raise HTTPException(422, "Confirmed appointment requires a time")
     valuation = snapshot.get('valuation')
     if valuation is not None:
         if not isinstance(valuation, dict) or valuation.get('lead_id') != body.get('lead_id') or valuation.get('status') != 'ready_advisory' or valuation.get('method') != 'evidence_adjusted_sales_comparison' or valuation.get('purpose') not in {'as_is', 'after_repair'} or valuation.get('quote_authorized') is not False or valuation.get('offer_authorized') is not False:
             raise HTTPException(422, "Invalid bound research valuation")
+        count = valuation.get('comparable_count')
+        ids = [row.get('sale_id') for row in snapshot['comparables']]
+        if type(count) is not int or not 3 <= count <= 50 or count != len(ids) or any(not isinstance(value, str) or not value for value in ids) or len(set(ids)) != count:
+            raise HTTPException(422, "Valuation requires matching distinct comparable evidence")
+        try:
+            effective = date.fromisoformat(valuation['as_of'])
+            age = (datetime.now(UTC).date() - effective).days
+            if effective.isoformat() != valuation['as_of'] or not 0 <= age <= 30:
+                raise ValueError('Stale valuation')
+        except (KeyError, ValueError, TypeError) as error:
+            raise HTTPException(422, "Current dated valuation required") from error
         amounts = [valuation.get(k) for k in ('supported_low_cents', 'point_cents', 'supported_high_cents')]
         if any(type(v) is not int or not 0 < v <= 10**14 for v in amounts) or amounts != sorted(amounts):
             raise HTTPException(422, "Invalid valuation amounts")
@@ -78,6 +101,8 @@ async def receive_business(session, body):
     current = metadata.get('business_evidence') or {}
     if current and current['snapshot']['property_id'] != snapshot['property_id']:
         raise HTTPException(409, 'Canonical property binding changed; review required')
+    if current.get('observed_at') == observed and current.get('revision') != revision:
+        raise HTTPException(409, 'Conflicting snapshots at the same observation time')
     if current.get('observed_at', '') > observed:
         status = 'ignored_older_snapshot'
     else:
@@ -104,4 +129,6 @@ async def read_business(session, lead_id):
     if not evidence:
         return {'status': 'unavailable', 'snapshot': None}
     age = (datetime.now(UTC) - datetime.fromisoformat(evidence['observed_at'])).total_seconds()
-    return {'status': 'current' if 0 <= age <= 86400 else 'stale', **evidence}
+    valuation = evidence['snapshot'].get('valuation')
+    valuation_age = (datetime.now(UTC).date() - date.fromisoformat(valuation['as_of'])).days if valuation else 0
+    return {'status': 'current' if 0 <= age <= 86400 and 0 <= valuation_age <= 30 else 'stale', **evidence}
