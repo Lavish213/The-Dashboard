@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
 from models.social_lead import SocialLead
-from security.auth import get_current_active_user
+from security.legacy_writes import require_legacy_writer
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_legacy_writer)])
 
 
 def _serialize(s: SocialLead) -> dict:
@@ -46,9 +46,7 @@ async def list_social_leads(
     if platform:
         q = q.where(SocialLead.platform == platform)
     q = q.order_by(SocialLead.created_at.desc())
-    total_result = await session.execute(
-        select(func.count()).select_from(q.subquery())
-    )
+    total_result = await session.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
@@ -93,7 +91,9 @@ async def convert_to_lead(
     from models.enums import LeadSource, LeadStatus
     from models.lead import Lead
 
-    result = await session.execute(select(SocialLead).where(SocialLead.id == social_lead_id))
+    result = await session.execute(
+        select(SocialLead).where(SocialLead.id == social_lead_id)
+    )
     social_lead = result.scalar_one_or_none()
     if not social_lead:
         raise HTTPException(status_code=404, detail="Social lead not found")

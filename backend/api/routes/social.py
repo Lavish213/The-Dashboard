@@ -4,15 +4,15 @@ import json
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
 from models.social_post import SocialPost
-from security.auth import get_current_active_user
+from security.legacy_writes import require_legacy_writer
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_legacy_writer)])
 
 
 def _serialize(p: SocialPost) -> dict:
@@ -55,9 +55,7 @@ async def list_posts(
     if platform:
         q = q.where(SocialPost.platform == platform)
     q = q.order_by(SocialPost.created_at.desc())
-    total_result = await session.execute(
-        select(func.count()).select_from(q.subquery())
-    )
+    total_result = await session.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
@@ -75,6 +73,10 @@ async def create_post(
     body: dict,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
+    if body.get("status", "draft") not in {"draft", "scheduled", "cancelled"}:
+        raise HTTPException(
+            409, "Publication status requires verified provider evidence"
+        )
     variants = body.get("spintax_variants")
     post = SocialPost(
         platform=body.get("platform", "facebook"),
@@ -85,7 +87,9 @@ async def create_post(
         status=body.get("status", "draft"),
         post_type=body.get("post_type"),
         source_url=body.get("source_url"),
-        scheduled_at=datetime.fromisoformat(body["scheduled_at"]) if body.get("scheduled_at") else None,
+        scheduled_at=datetime.fromisoformat(body["scheduled_at"])
+        if body.get("scheduled_at")
+        else None,
     )
     session.add(post)
     await session.commit()
@@ -99,17 +103,36 @@ async def update_post(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from fastapi import HTTPException
+
     result = await session.execute(select(SocialPost).where(SocialPost.id == post_id))
     post = result.scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    for field in ["content", "status", "platform", "target_group", "post_type", "image_path", "source_url"]:
+    if "status" in body and body["status"] not in {"draft", "scheduled", "cancelled"}:
+        raise HTTPException(
+            409, "Publication status requires verified provider evidence"
+        )
+    for field in [
+        "content",
+        "status",
+        "platform",
+        "target_group",
+        "post_type",
+        "image_path",
+        "source_url",
+    ]:
         if field in body:
             setattr(post, field, body[field])
     if "spintax_variants" in body:
-        post.spintax_variants = json.dumps(body["spintax_variants"]) if body["spintax_variants"] else None
+        post.spintax_variants = (
+            json.dumps(body["spintax_variants"]) if body["spintax_variants"] else None
+        )
     if "scheduled_at" in body:
-        post.scheduled_at = datetime.fromisoformat(body["scheduled_at"]) if body["scheduled_at"] else None
+        post.scheduled_at = (
+            datetime.fromisoformat(body["scheduled_at"])
+            if body["scheduled_at"]
+            else None
+        )
     if body.get("status") == "posted":
         post.posted_at = datetime.now(UTC)
     session.add(post)
@@ -123,6 +146,7 @@ async def delete_post(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from fastapi import HTTPException
+
     result = await session.execute(select(SocialPost).where(SocialPost.id == post_id))
     post = result.scalar_one_or_none()
     if not post:
@@ -140,7 +164,9 @@ async def social_analytics(
     total = total_result.scalar_one()
 
     posted_result = await session.execute(
-        select(func.count()).select_from(SocialPost).where(SocialPost.status == "posted")
+        select(func.count())
+        .select_from(SocialPost)
+        .where(SocialPost.status == "posted")
     )
     posted = posted_result.scalar_one()
 
@@ -150,8 +176,7 @@ async def social_analytics(
     total_leads = leads_result.scalar_one() or 0
 
     platform_result = await session.execute(
-        select(SocialPost.platform, func.count())
-        .group_by(SocialPost.platform)
+        select(SocialPost.platform, func.count()).group_by(SocialPost.platform)
     )
     by_platform = {row[0]: row[1] for row in platform_result.all()}
 

@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
 from models.referral import Referral
-from security.auth import get_current_active_user
+from security.legacy_writes import require_legacy_writer
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_legacy_writer)])
 
 
 def _serialize(r: Referral) -> dict:
@@ -39,7 +39,9 @@ async def list_referrals(
     if fee_status:
         q = q.where(Referral.fee_status == fee_status)
     q = q.order_by(Referral.created_at.desc())
-    total = (await session.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
+    total = (
+        await session.execute(select(func.count()).select_from(q.subquery()))
+    ).scalar_one()
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
     return {
@@ -77,6 +79,7 @@ async def update_fee_status(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     from fastapi import HTTPException
+
     result = await session.execute(select(Referral).where(Referral.id == referral_id))
     ref = result.scalar_one_or_none()
     if not ref:
@@ -96,17 +99,23 @@ async def referral_summary(
     total = total_result.scalar_one()
 
     pending_result = await session.execute(
-        select(func.count()).select_from(Referral).where(Referral.fee_status == "pending")
+        select(func.count())
+        .select_from(Referral)
+        .where(Referral.fee_status == "pending")
     )
     pending = pending_result.scalar_one()
 
     paid_result = await session.execute(
-        select(func.sum(Referral.fee_amount)).select_from(Referral).where(Referral.fee_status == "paid")
+        select(func.sum(Referral.fee_amount))
+        .select_from(Referral)
+        .where(Referral.fee_status == "paid")
     )
     paid_total = paid_result.scalar_one() or 0
 
     owed_result = await session.execute(
-        select(func.sum(Referral.fee_amount)).select_from(Referral).where(Referral.fee_status == "pending")
+        select(func.sum(Referral.fee_amount))
+        .select_from(Referral)
+        .where(Referral.fee_status == "pending")
     )
     owed_total = owed_result.scalar_one() or 0
 

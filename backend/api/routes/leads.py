@@ -65,18 +65,29 @@ def _serialize(lead: Lead) -> dict:
         "address": lead.address,
         "city": lead.city,
         "state": lead.state,
-        "last_contacted_at": lead.last_contacted_at.isoformat() if lead.last_contacted_at else None,
+        "last_contacted_at": lead.last_contacted_at.isoformat()
+        if lead.last_contacted_at
+        else None,
         "property_id": str(lead.property_id) if lead.property_id else None,
-        "assigned_user_id": str(lead.assigned_user_id) if lead.assigned_user_id else None,
+        "assigned_user_id": str(lead.assigned_user_id)
+        if lead.assigned_user_id
+        else None,
         "created_at": lead.created_at.isoformat(),
         "updated_at": lead.updated_at.isoformat(),
     }
 
 
 @router.post("", status_code=201)
-async def create_lead(body: LeadCreation, actor=Depends(require_permission(Permission.LEADS_WRITE)), session: AsyncSession = Depends(get_session)):
+async def create_lead(
+    body: LeadCreation,
+    actor=Depends(require_permission(Permission.LEADS_WRITE)),
+    session: AsyncSession = Depends(get_session),
+):
     from services.lead_creation import create_manual_lead
-    lead = await create_manual_lead(session, body.model_dump(mode="json"), str(actor.id))
+
+    lead = await create_manual_lead(
+        session, body.model_dump(mode="json"), str(actor.id)
+    )
     return _serialize(lead)
 
 
@@ -101,7 +112,9 @@ async def list_leads(
         q = q.where(Lead.lead_status.in_(statuses))
     for boundary in (follow_up_start, follow_up_end):
         if boundary is not None and boundary.utcoffset() is None:
-            raise HTTPException(422, "Follow-up range timestamps must include a timezone")
+            raise HTTPException(
+                422, "Follow-up range timestamps must include a timezone"
+            )
     if follow_up_start and follow_up_end and follow_up_end <= follow_up_start:
         raise HTTPException(422, "Follow-up range end must be after its start")
     if scheduled_only:
@@ -110,25 +123,31 @@ async def list_leads(
         q = q.where(Lead.follow_up_at >= follow_up_start)
     if follow_up_end:
         q = q.where(Lead.follow_up_at < follow_up_end)
-    total_result = await session.execute(
-        select(func.count()).select_from(q.subquery())
-    )
+    total_result = await session.execute(select(func.count()).select_from(q.subquery()))
     total = total_result.scalar_one()
     summary = None
     if statuses:
         filtered = q.subquery()
-        grouped = await session.execute(select(
-            filtered.c.lead_status,
-            func.count().label("lead_count"),
-            func.sum(func.coalesce(filtered.c.ai_score, 0)).label("score_sum"),
-        ).group_by(filtered.c.lead_status))
+        grouped = await session.execute(
+            select(
+                filtered.c.lead_status,
+                func.count().label("lead_count"),
+                func.sum(func.coalesce(filtered.c.ai_score, 0)).label("score_sum"),
+            ).group_by(filtered.c.lead_status)
+        )
         rows = grouped.all()
         summary = {
             "by_status": {row.lead_status.value: row.lead_count for row in rows},
-            "average_score": round(sum(row.score_sum for row in rows) / total) if total else 0,
+            "average_score": round(sum(row.score_sum for row in rows) / total)
+            if total
+            else 0,
             "score_total": sum(row.score_sum for row in rows),
         }
-    q = q.order_by(Lead.follow_up_at.asc(), Lead.id.asc()) if scheduled_only else q.order_by(Lead.created_at.desc(), Lead.id.desc())
+    q = (
+        q.order_by(Lead.follow_up_at.asc(), Lead.id.asc())
+        if scheduled_only
+        else q.order_by(Lead.created_at.desc(), Lead.id.desc())
+    )
     q = q.offset((page - 1) * page_size).limit(page_size)
     result = await session.execute(q)
     leads = result.scalars().all()
@@ -147,20 +166,27 @@ async def get_lead(
     lead_id: UUID,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     return _serialize(lead)
 
 
-@router.patch("/{lead_id}/status", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
+@router.patch(
+    "/{lead_id}/status",
+    dependencies=[Depends(require_permission(Permission.LEADS_WRITE))],
+)
 async def update_lead_status(
     lead_id: UUID,
     status: LeadStatus,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -170,13 +196,18 @@ async def update_lead_status(
     return {"status": "ok", "lead_id": str(lead_id), "new_status": status}
 
 
-@router.post("/{lead_id}/notes", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
+@router.post(
+    "/{lead_id}/notes",
+    dependencies=[Depends(require_permission(Permission.LEADS_WRITE))],
+)
 async def add_lead_note(
     lead_id: UUID,
     body: dict,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -193,13 +224,18 @@ async def add_lead_note(
     }
 
 
-@router.patch("/{lead_id}/notes", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
+@router.patch(
+    "/{lead_id}/notes",
+    dependencies=[Depends(require_permission(Permission.LEADS_WRITE))],
+)
 async def update_lead_notes(
     lead_id: UUID,
     body: dict,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -209,20 +245,29 @@ async def update_lead_notes(
     return {"status": "ok", "lead_id": str(lead_id)}
 
 
-@router.patch("/{lead_id}/followup", dependencies=[Depends(require_permission(Permission.LEADS_WRITE))])
+@router.patch(
+    "/{lead_id}/followup",
+    dependencies=[Depends(require_permission(Permission.LEADS_WRITE))],
+)
 async def update_followup(
     lead_id: UUID,
     body: FollowupUpdate,
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     lead.follow_up_at = body.follow_up_at
     session.add(lead)
     await session.commit()
-    return {"status": "ok", "lead_id": str(lead_id), "follow_up_at": lead.follow_up_at.isoformat() if lead.follow_up_at else None}
+    return {
+        "status": "ok",
+        "lead_id": str(lead_id),
+        "follow_up_at": lead.follow_up_at.isoformat() if lead.follow_up_at else None,
+    }
 
 
 @router.get("/{lead_id}/timeline")
@@ -234,7 +279,9 @@ async def get_lead_timeline(
 
     from models.call import Call
 
-    lead_result = await session.execute(select(Lead).where(Lead.id == lead_id))
+    lead_result = await session.execute(
+        select(Lead).where(Lead.id == lead_id, Lead.deleted_at.is_(None))
+    )
     lead = lead_result.scalar_one_or_none()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -249,23 +296,27 @@ async def get_lead_timeline(
 
     events = []
 
-    events.append({
-        "type": "created",
-        "label": "Lead created",
-        "timestamp": lead.created_at.isoformat(),
-    })
+    events.append(
+        {
+            "type": "created",
+            "label": "Lead created",
+            "timestamp": lead.created_at.isoformat(),
+        }
+    )
 
     for call in calls:
-        events.append({
-            "type": "call",
-            "label": f"Call — {call.call_status}",
-            "timestamp": call.created_at.isoformat(),
-            "meta": {
-                "call_id": str(call.id),
-                "duration": call.duration_seconds,
-                "status": call.call_status,
-            },
-        })
+        events.append(
+            {
+                "type": "call",
+                "label": f"Call — {call.call_status}",
+                "timestamp": call.created_at.isoformat(),
+                "meta": {
+                    "call_id": str(call.id),
+                    "duration": call.duration_seconds,
+                    "status": call.call_status,
+                },
+            }
+        )
 
     if lead.notes:
         for line in lead.notes.splitlines():
@@ -273,12 +324,14 @@ async def get_lead_timeline(
                 try:
                     ts_end = line.index("]")
                     ts_str = line[1:ts_end]
-                    content = line[ts_end + 2:]
-                    events.append({
-                        "type": "note",
-                        "label": content,
-                        "timestamp": ts_str,
-                    })
+                    content = line[ts_end + 2 :]
+                    events.append(
+                        {
+                            "type": "note",
+                            "label": content,
+                            "timestamp": ts_str,
+                        }
+                    )
                 except ValueError:
                     pass
 
@@ -288,6 +341,9 @@ async def get_lead_timeline(
 
 
 @router.get("/{lead_id}/business-evidence")
-async def get_business_evidence(lead_id: UUID, session: AsyncSession = Depends(get_session)):
+async def get_business_evidence(
+    lead_id: UUID, session: AsyncSession = Depends(get_session)
+):
     from services.business_evidence import read_business
+
     return await read_business(session, lead_id)

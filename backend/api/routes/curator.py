@@ -3,13 +3,13 @@ from __future__ import annotations
 import os
 
 import httpx
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_session
-from security.auth import get_current_active_user
+from security.legacy_writes import require_legacy_writer
 
-router = APIRouter(dependencies=[Depends(get_current_active_user)])
+router = APIRouter(dependencies=[Depends(require_legacy_writer)])
 
 ANGELO_VOICE = """
 You write social media content for Angelo Washington, owner of San Joaquin House Buyers in Stockton/Lodi CA.
@@ -37,14 +37,9 @@ Return ONLY a JSON array of 3 strings, no other text.
 
 
 async def _fetch_url_content(url: str) -> str:
-    try:
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            headers = {"User-Agent": "Mozilla/5.0 (compatible; bot)"}
-            res = await client.get(url, headers=headers)
-            text = res.text[:3000]
-            return text
-    except Exception:
-        return ""
+    raise HTTPException(
+        409, "Remote content fetching is disabled; paste the source text for review"
+    )
 
 
 async def _call_claude(prompt: str) -> list[str]:
@@ -53,7 +48,7 @@ async def _call_claude(prompt: str) -> list[str]:
         return [
             "thinking about selling your place in Stockton? we buy as-is, cash, fast. DM me your address",
             "hey 209 — if your house needs work and you just want out, we handle it. comment OFFER below",
-            "we just closed another one in the area. if you're ready to sell without the hassle, reach out today",
+            "if you are considering selling in the area, the team can review your property and discuss options",
         ]
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -74,6 +69,7 @@ async def _call_claude(prompt: str) -> list[str]:
         data = res.json()
         text = data["content"][0]["text"].strip()
         import json
+
         text = text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
 
@@ -108,11 +104,11 @@ Generate 3 post variants targeting homeowners who might want to sell fast for ca
         variants = [
             "thinking about selling your place in Stockton? we buy as-is, cash, fast. DM me your address",
             "hey 209 — if your house needs work and you just want out, we handle it. comment OFFER below",
-            "we just closed another one in the area. if you're ready to sell without the hassle, reach out today",
+            "if you are considering selling in the area, the team can review your property and discuss options",
         ]
 
     return {
-        "status": "ok",
+        "status": "draft_requires_review",
         "input_type": input_type,
         "variants": variants,
         "source_url": url or None,

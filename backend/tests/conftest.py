@@ -46,6 +46,7 @@ import models.research_memory  # noqa: F401
 import models.research_plan  # noqa: F401
 import models.research_task  # noqa: F401
 import models.research_task_dependency  # noqa: F401
+import models.social_lead  # noqa: F401
 import models.sophia_event  # noqa: F401
 import models.sophia_session  # noqa: F401
 import models.sophia_turn  # noqa: F401
