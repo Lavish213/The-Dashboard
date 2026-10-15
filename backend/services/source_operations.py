@@ -84,9 +84,17 @@ def source_operations(lead, view, start=None, end=None):
                         row.get("at"),
                         text=row.get("text"),
                     )
-        commands = (lead.metadata_ or {}).get('source_commands') or {}
-        if isinstance(commands, dict):
-            for identity, command in list(commands.items())[:100]:
-                if isinstance(command, dict) and isinstance(command.get('payload'), dict):
-                    add('command:' + identity, 'callback_command', command.get('state'), command['payload'].get('at'), text=command.get('error'))
+    commands = (lead.metadata_ or {}).get('source_commands') or {}
+    if isinstance(commands, dict):
+        for identity, command in list(commands.items())[:100]:
+            if not isinstance(command, dict) or not isinstance(command.get('payload'), dict):
+                continue
+            action = command.get('action', 'schedule_callback')
+            target_view = 'deals' if action == 'draft_offer' else 'followups' if action == 'set_disposition' else 'calendar'
+            if view != target_view and not (view == 'followups' and action == 'schedule_callback'):
+                continue
+            payload = command['payload']
+            detail = payload.get('data') or {}
+            at = payload.get('at') or detail.get('starts_at') or command.get('created_at')
+            add('command:' + identity, 'callback_command' if action == 'schedule_callback' else action + '_command', command.get('state'), at, detail.get('amount_cents'), command.get('error'))
     return rows

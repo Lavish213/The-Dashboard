@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiFetch } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
+import { SourceActions } from '@/features/operations/SourceActions'
 
 interface Snapshot {
   address: string | null
@@ -73,6 +74,7 @@ export function BusinessEvidencePanel({leadId}: {leadId: string}) {
         <label className="block text-sm">Source callback time (your device timezone)<input type="datetime-local" value={callbackAt} onChange={event => { setCallbackAt(event.target.value); setRequestId(null) }} className="block rounded border bg-background p-2" /></label>
         <Button disabled={sending || !callbackAt} onClick={() => void scheduleCallback()}>{sending ? 'Queuing…' : 'Queue source callback'}</Button>
       </div>}
+      {evidence.status === 'current' && evidence.revision && <SourceActions key={evidence.revision} leadId={leadId} revision={evidence.revision} appointment={snapshot.appointment} />}
       {commandState && <p role="status">{commandState}</p>}
       <p className="text-xs text-muted-foreground">Source records. Research, draft offers and saved appointment records do not grant offer or contact authority. Confirm current availability before booking.</p>
     </>}
