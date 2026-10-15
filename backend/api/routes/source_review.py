@@ -105,3 +105,25 @@ async def resolve_price(identity: str, body: PriceReviewDecision, actor=Depends(
     if type(result.get('schema_version')) is not int or result.get('schema_version') != 1 or result.get('persisted') is not True or result.get('approval_id') != identity or result.get('status') != body.status or result.get('action') != 'resolve_price_review':
         raise HTTPException(503, 'Source decision receipt not confirmed; refresh before retrying')
     return result
+
+
+@router.get('/email-holds')
+async def email_holds(page: int = Query(1, ge=1, le=100000)):
+    return await source_request('GET', '/api/operations/email-holds?page=' + str(page))
+
+
+class EmailResumption(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    request_id: UUID
+    fingerprint: str = Field(pattern='^[0-9a-f]{64}$')
+    reason: str = Field(min_length=10, max_length=1000)
+
+
+@router.post('/email-holds/{lead_id}/resume', status_code=202)
+async def resume_email(lead_id: UUID, body: EmailResumption, actor=Depends(require_permission(Permission.LEADS_WRITE))):
+    if len(body.reason.strip()) < 10:
+        raise HTTPException(422, 'Explicit reviewed reason required')
+    result = await source_request('POST', '/api/operations/email-holds/' + str(lead_id) + '/resume', {**body.model_dump(mode='json'), 'actor_id': str(actor.id)})
+    if type(result.get('schema_version')) is not int or result.get('schema_version') != 1 or result.get('persisted') is not True or result.get('request_id') != str(body.request_id) or result.get('lead_id') != str(lead_id) or result.get('state') not in {'pending','applied','requires_review'}:
+        raise HTTPException(503, 'Resumption receipt not confirmed; refresh source review')
+    return result

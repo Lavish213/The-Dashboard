@@ -24,9 +24,11 @@ let approvalResolved = false, approvalFailure = false
 let approvalExpired = false
 let sourcePricePopulated = false, sourcePriceResolved = false, sourcePriceFailure = false, sourcePriceExpired = false
 const sourceCommands = []
+let emailHoldsPopulated = false, emailResumePending = false, emailResumeApplied = false
 function fixture(url) {
   const path = url.pathname
   if (path.includes('/source-operations')) return {items: [], page: 1, total_pages: 0}
+  if (path.includes('/source-review/email-holds')) return {items: !emailHoldsPopulated ? [] : [{lead_id:'00000000-0000-0000-0000-000000000050',email:'blocked@example.invalid',count:1,stopped:true,pending:0,text:'STOP',fingerprint:'e'.repeat(64),can_resume:false,review_state:null,error:null},...(!emailResumeApplied ? [{lead_id:'00000000-0000-0000-0000-000000000051',email:'seller@example.invalid',count:1,stopped:false,pending:0,text:'Thanks for the information',fingerprint:'d'.repeat(64),can_resume:true,review_state:emailResumePending ? 'pending' : null,error:null}] : [])],page:1}
   if (path.includes('/source-review/price-reviews')) return {items: sourcePricePopulated && !sourcePriceResolved ? [{id: 'abcdef0123456789abcdef0123456789', lead_id: 'source-lead', property_id: 'source-property', address: '123 Synthetic Street', call_sid: 'synthetic-call', requested_action: 'get_offer_range', expires_at: sourcePriceExpired ? '2020-01-01T00:00:00Z' : '2099-01-01T00:00:00Z', risk_reason: 'Review synthetic property pricing', fingerprint: 'b'.repeat(64)}] : [], page: 1}
   if (path.endsWith('/source-commands')) return {items: sourceCommands}
   if (path.includes('/source-review/candidates')) return {items: [], page: 1}
@@ -80,6 +82,12 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (route.request().method() === 'POST' && url.pathname.includes('/source-review/email-holds/')) {
+        const body=route.request().postDataJSON()
+        if (Object.hasOwn(body,'actor_id') || body.fingerprint !== 'd'.repeat(64) || !url.pathname.includes('000000000051')) throw new Error('Email resumption lost its operator/STOP boundary')
+        emailResumePending=true
+        return route.fulfill({status:202,json:{schema_version:1,persisted:true,request_id:body.request_id,lead_id:'00000000-0000-0000-0000-000000000051',state:'pending'}})
+      }
       if (route.request().method() === 'POST' && url.pathname.includes('/source-review/price-reviews/')) {
         const body = route.request().postDataJSON()
         if (Object.hasOwn(body, 'actor_id')) throw new Error('Pricing UI supplied actor identity')
@@ -283,9 +291,22 @@ try {
       await capture('47-expired-source-pricing', '/source-review')
       if (!(await page.getByRole('button', {name: 'Approve this price range', exact: true}).isDisabled())) throw new Error('Expired source price authority remains actionable')
       evidence.interactions.push('Source draft remains pending; source pricing enforces roles, integer cents, failed-write acknowledgement and expiry')
+      emailHoldsPopulated=true
+      actorRole='operator'
+      await capture('48-email-hold-review','/source-review')
+      if (await page.getByRole('button',{name:'Queue reviewed email resumption',exact:true}).count() !== 1) throw new Error('STOP hold exposed resumption controls')
+      await page.getByLabel('Email resumption review reason',{exact:true}).fill('Reviewed ordinary reply and existing follow-up schedule')
+      await page.getByRole('button',{name:'Queue reviewed email resumption',exact:true}).click()
+      await page.getByText(/Reviewed resumption queued. Email follow-ups remain held/).waitFor()
+      await capture('49-email-resume-pending','/source-review')
+      emailResumeApplied=true
+      await capture('50-stop-remains-blocked','/source-review')
+      await page.getByText('STOP or opt-out: resumption is blocked.',{exact:true}).waitFor()
+      if (await page.getByRole('button',{name:'Queue reviewed email resumption',exact:true}).count()) throw new Error('STOP hold became resumable')
+      evidence.interactions.push('Only ordinary email replies can be reviewed; pending resumption is not called confirmed and STOP remains blocked')
       actorId = user.id
       actorRole = 'operator'
-      await capture('38-operator-approval-queue', '/approvals')
+      await capture('38-operator-approval-queue' , '/approvals')
       if (await page.getByRole('button', { name: 'Approve', exact: true }).count()) throw new Error('Operator can resolve approval in UI')
       evidence.interactions.push('Operator approval queue exposes no resolve controls')
       actorRole = 'reviewer'
