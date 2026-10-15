@@ -84,4 +84,9 @@ def source_operations(lead, view, start=None, end=None):
                         row.get("at"),
                         text=row.get("text"),
                     )
+        commands = (lead.metadata_ or {}).get('source_commands') or {}
+        if isinstance(commands, dict):
+            for identity, command in list(commands.items())[:100]:
+                if isinstance(command, dict) and isinstance(command.get('payload'), dict):
+                    add('command:' + identity, 'callback_command', command.get('state'), command['payload'].get('at'), text=command.get('error'))
     return rows

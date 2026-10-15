@@ -55,6 +55,10 @@ async def test_source_views_keep_appointments_offers_and_replies_distinct(db):
     assert source_operations(lead, "calendar")[0]["kind"] == "walkthrough"
     assert source_operations(lead, "deals")[0]["amount_cents"] == 25000000
     assert source_operations(lead, "followups")[0]["text"] == "Tuesday works"
+    lead.metadata_ = {**lead.metadata_, 'source_commands': {'command': {'state': 'requires_review', 'payload': {'at': datetime.now(UTC).isoformat()}, 'error':'source_rejected'}}}
+    command = source_operations(lead, 'calendar')[-1]
+    assert command['kind'] == 'callback_command' and command['state'] == 'requires_review'
+    assert command['text'] == 'source_rejected'
     lead.deleted_at = datetime.now(UTC)
 
 
