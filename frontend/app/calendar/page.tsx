@@ -1,5 +1,7 @@
 'use client'
 
+import { SourceOperations } from '@/features/operations/SourceOperations'
+
 import { useState } from 'react'
 import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
@@ -73,7 +75,8 @@ export default function CalendarPage() {
   const today = now.getFullYear() === year && now.getMonth() === month ? now.getDate() : null
 
   return (
-    <PageContainer title="Calendar" description="Lead follow-up dates — external calendar bookings are not connected here">
+    <PageContainer title="Calendar" description="Saved Sophia walkthroughs, callbacks, and dashboard follow-up dates">
+      <SourceOperations view="calendar" start={new Date(year, month, 1).toISOString()} end={new Date(year, month + 1, 1).toISOString()} />
       {error && <p role="alert" className="mb-4 text-sm text-destructive">Calendar data unavailable. Existing dates may be stale.</p>}
       {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} follow-ups for this month.</p>}
       {hasNextPage && <Button variant="outline" className="mb-4" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more calendar dates'}</Button>}

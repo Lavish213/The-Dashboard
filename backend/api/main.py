@@ -110,13 +110,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     cleanup_task = asyncio.create_task(_stale_session_cleanup_loop())
     approval_expiry_task = asyncio.create_task(_approval_expiry_loop())
     ws_eviction_task = asyncio.create_task(_stale_ws_eviction_loop())
+    from services.source_commands import recovery_loop
+
+    source_commands_task = asyncio.create_task(recovery_loop())
     logger.info("karpathys.startup.complete")
 
     try:
         yield
     finally:
         logger.info("karpathys.shutdown.starting")
-        for task in (cleanup_task, approval_expiry_task, ws_eviction_task):
+        for task in (
+            cleanup_task,
+            approval_expiry_task,
+            ws_eviction_task,
+            source_commands_task,
+        ):
             task.cancel()
             try:
                 await task

@@ -144,6 +144,40 @@ def validate_snapshot(body):
             type(v) is not int or not 0 < v <= 10**14 for v in amounts
         ) or amounts != sorted(amounts):
             raise HTTPException(422, "Invalid valuation amounts")
+    for field in ("followups", "email_replies"):
+        rows = snapshot.get(field, [])
+        if not isinstance(rows, list) or len(rows) > 20:
+            raise HTTPException(422, "Bounded operational records required")
+        for row in rows:
+            if (
+                not isinstance(row, dict)
+                or not isinstance(row.get("id"), str)
+                or not 0 < len(row["id"]) <= 200
+            ):
+                raise HTTPException(422, "Operational identity required")
+            stamp = row.get("at")
+            if stamp is not None:
+                try:
+                    if (
+                        datetime.fromisoformat(stamp.replace("Z", "+00:00")).tzinfo
+                        is None
+                    ):
+                        raise ValueError("Timezone required")
+                except (ValueError, TypeError, AttributeError) as error:
+                    raise HTTPException(
+                        422, "Dated operational records required"
+                    ) from error
+            if field == "email_replies" and (
+                not isinstance(row.get("text"), str) or len(row["text"]) > 10000
+            ):
+                raise HTTPException(422, "Bounded reply text required")
+    callback = snapshot.get("callback_at")
+    if callback is not None:
+        try:
+            if datetime.fromisoformat(callback.replace("Z", "+00:00")).tzinfo is None:
+                raise ValueError("Timezone required")
+        except (ValueError, TypeError, AttributeError) as error:
+            raise HTTPException(422, "Dated callback required") from error
     revision = hashlib.sha256(
         json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -231,6 +265,11 @@ async def read_business(session, lead_id):
     )
     if lead is None:
         raise HTTPException(404, "Lead not found")
+
+    return business_from_lead(lead)
+
+
+def business_from_lead(lead):
     evidence = (lead.metadata_ or {}).get("business_evidence")
     if not evidence:
         return {"status": "unavailable", "snapshot": None}

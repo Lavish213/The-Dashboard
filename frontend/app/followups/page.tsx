@@ -1,5 +1,7 @@
 'use client'
 
+import { SourceOperations } from '@/features/operations/SourceOperations'
+
 import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
@@ -100,6 +102,7 @@ export default function FollowupsPage() {
 
   return (
     <PageContainer title="Follow-ups" description="Scheduled callbacks and follow-up queue">
+      <SourceOperations view="followups" />
       {error && <p role="alert" className="mb-4 text-sm text-destructive">Follow-ups unavailable. Existing values may be stale.</p>}
       {data && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {leads.length} of {data.pages[0].total} scheduled follow-ups. Counts below cover loaded records.</p>}
       {hasNextPage && <Button className="mb-4" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? 'Loading more…' : 'Load more follow-ups'}</Button>}

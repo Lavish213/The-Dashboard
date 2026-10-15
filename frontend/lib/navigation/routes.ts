@@ -54,6 +54,13 @@ export const NAV_ROUTES: NavRoute[] = [
     matchPrefixes: ['/leads/'],
   },
   {
+    id: 'source-review',
+    label: 'Source review',
+    href: '/source-review',
+    icon: CheckSquare,
+    group: 'operations',
+  },
+  {
     id: 'deals',
     label: 'Deals',
     href: '/deals',

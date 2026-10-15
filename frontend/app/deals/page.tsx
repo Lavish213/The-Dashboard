@@ -1,5 +1,7 @@
 'use client'
 
+import { SourceOperations } from '@/features/operations/SourceOperations'
+
 import { useLeadPages } from '@/hooks/data/useLeadPages'
 import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/workspace/PageContainer'
@@ -101,6 +103,7 @@ export default function DealsPage() {
 
   return (
     <PageContainer title="Deals" description="Active pipeline — qualified leads and closed deals">
+      <SourceOperations view="deals" />
       {(error || convertedQuery.error) && <p role="alert" className="mb-4 text-sm text-destructive">Deals unavailable. Existing values may be stale.</p>}
       {completeTotals && <p role="status" className="mb-4 text-sm text-muted-foreground">Loaded {deals.length} of {total} deals. Totals cover all matching records.</p>}
       {hasNextPage && <Button variant="outline" className="mb-4 mr-2" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>Load more qualified deals</Button>}
