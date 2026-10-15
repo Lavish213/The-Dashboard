@@ -227,6 +227,21 @@ async def schedule_source_callback(
     )
 
 
+class SourceOperationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: UUID
+    revision: str = Field(pattern="^[0-9a-f]{64}$")
+    action: str = Field(pattern="^(set_disposition|cancel_walkthrough|draft_offer)$")
+    data: dict
+    reason: str = Field(min_length=10, max_length=1000)
+
+
+@router.post("/{lead_id}/source-operation", status_code=202)
+async def source_operation(lead_id: UUID, body: SourceOperationRequest, session: AsyncSession = Depends(get_session), actor=Depends(require_permission(Permission.LEADS_WRITE))):
+    from services.source_commands import stage_operation
+    return await stage_operation(session, lead_id, body.request_id, body.revision, actor.id, body.action, body.data, body.reason)
+
+
 @router.get("/{lead_id}")
 async def get_lead(
     lead_id: UUID,

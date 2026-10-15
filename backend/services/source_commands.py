@@ -71,13 +71,44 @@ async def locked_source_lead(session, lead_id):
 
 
 async def stage_callback(session, lead_id, request_id, at, revision, actor_id):
+    return await _stage_command(session, lead_id, request_id, revision, actor_id, at=at)
+
+
+async def stage_operation(session, lead_id, request_id, revision, actor_id, action, data, reason):
+    if not isinstance(reason, str) or not 10 <= len(reason.strip()) <= 1000 or not isinstance(data, dict):
+        raise HTTPException(422, "Explicit operation and review reason required")
+    if action == "set_disposition":
+        if set(data) != {"disposition"} or data["disposition"] not in {"HOT", "WARM", "COLD", "DEAD"}:
+            raise HTTPException(422, "Valid disposition required")
+    elif action == "cancel_walkthrough":
+        if set(data) != {"starts_at"}:
+            raise HTTPException(422, "Exact reservation required")
+        try:
+            if datetime.fromisoformat(data['starts_at'].replace('Z', '+00:00')).tzinfo is None:
+                raise ValueError('Timezone required')
+        except (ValueError, TypeError, AttributeError) as error:
+            raise HTTPException(422, "Exact timezone-aware reservation required") from error
+    elif action == "draft_offer":
+        if set(data) != {"amount_cents", "repair_cents", "arv_cents"}:
+            raise HTTPException(422, "Explicit draft money required")
+        for key, value in data.items():
+            if key == "arv_cents" and value is None:
+                continue
+            if type(value) is not int or not 0 <= value <= 10**14 or (key != "repair_cents" and value == 0):
+                raise HTTPException(422, "Bounded integer cents required")
+    else:
+        raise HTTPException(422, "Unsupported source operation")
+    return await _stage_command(session, lead_id, request_id, revision, actor_id, action=action, detail=data, reason=reason.strip())
+
+
+async def _stage_command(session, lead_id, request_id, revision, actor_id, at=None, action="schedule_callback", detail=None, reason=None):
     _, _, target = destination()
     lead = await locked_source_lead(session, lead_id)
     evidence = business_from_lead(lead)
     snapshot = evidence.get("snapshot") or {}
     if evidence.get("status") != "current" or revision != evidence.get("revision"):
         raise HTTPException(409, "Refresh source evidence before scheduling")
-    if (
+    if action == "schedule_callback" and (
         at.tzinfo is None
         or not 0 < (at - datetime.now(UTC)).total_seconds() <= 90 * 86400
     ):
@@ -88,8 +119,15 @@ async def stage_callback(session, lead_id, request_id, at, revision, actor_id):
         "lead_id": lead.metadata_["external_lead_id"],
         "property_id": snapshot.get("property_id"),
         "expected_updated_at": snapshot.get("source_updated_at"),
-        "at": at.astimezone(UTC).isoformat(),
     }
+    if action == "schedule_callback":
+        payload["at"] = at.astimezone(UTC).isoformat()
+    else:
+        if action == "cancel_walkthrough":
+            appointment = snapshot.get("appointment") or {}
+            if appointment.get("status") != "confirmed" or appointment.get("at") != detail["starts_at"]:
+                raise HTTPException(409, "Refresh the confirmed source reservation")
+        payload.update({"action": action, "data": detail, "actor_id": str(actor_id), "reason": reason})
     try:
         for key in ("tenant_id", "lead_id", "property_id"):
             UUID(payload[key])
@@ -118,6 +156,7 @@ async def stage_callback(session, lead_id, request_id, at, revision, actor_id):
         raise HTTPException(409, "Source command review budget exhausted")
     commands[str(request_id)] = {
         "payload": payload,
+        "action": action,
         "fingerprint": fingerprint,
         "target": target,
         "state": "pending",
@@ -178,11 +217,17 @@ async def recover_commands(limit=20):
                 attempts_this_lead += 1
                 command["attempts"] += 1
                 try:
+                    action = command.get("action", "schedule_callback")
+                    if action not in {"schedule_callback", "set_disposition", "cancel_walkthrough", "draft_offer"}:
+                        command["state"] = "requires_review"
+                        command["error"] = "unsupported_operation"
+                        continue
+                    endpoint = "/api/operations/callback" if action == "schedule_callback" else "/api/operations/command"
                     async with httpx.AsyncClient(
                         timeout=5, follow_redirects=False
                     ) as client:
                         response = await client.post(
-                            url + "/api/operations/callback",
+                            url + endpoint,
                             json=command["payload"],
                             headers={"X-Source-Command-Secret": secret},
                         )
@@ -192,7 +237,7 @@ async def recover_commands(limit=20):
                         and receipt.get("persisted") is True
                         and receipt.get("receipt_id") == key
                         and receipt.get("lead_id") == command["payload"]["lead_id"]
-                        and receipt.get("action") == "schedule_callback"
+                        and receipt.get("action") == action
                     ):
                         command["state"] = "applied"
                         command["receipt"] = receipt
@@ -230,6 +275,7 @@ async def command_status(session, lead_id):
             {
                 "id": identity,
                 "state": command.get("state"),
+                "action": command.get("action", "schedule_callback"),
                 "at": (command.get("payload") or {}).get("at"),
                 "created_at": command.get("created_at"),
                 "error": command.get("error"),

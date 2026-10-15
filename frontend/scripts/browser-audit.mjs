@@ -22,12 +22,16 @@ let populated = false, notificationRead = false, notificationFailure = false
 let actorId = user.id, actorRole = 'admin'
 let approvalResolved = false, approvalFailure = false
 let approvalExpired = false
+let sourcePricePopulated = false, sourcePriceResolved = false, sourcePriceFailure = false, sourcePriceExpired = false
+const sourceCommands = []
 function fixture(url) {
   const path = url.pathname
   if (path.includes('/source-operations')) return {items: [], page: 1, total_pages: 0}
+  if (path.includes('/source-review/price-reviews')) return {items: sourcePricePopulated && !sourcePriceResolved ? [{id: 'abcdef0123456789abcdef0123456789', lead_id: 'source-lead', property_id: 'source-property', address: '123 Synthetic Street', call_sid: 'synthetic-call', requested_action: 'get_offer_range', expires_at: sourcePriceExpired ? '2020-01-01T00:00:00Z' : '2099-01-01T00:00:00Z', risk_reason: 'Review synthetic property pricing', fingerprint: 'b'.repeat(64)}] : [], page: 1}
+  if (path.endsWith('/source-commands')) return {items: sourceCommands}
   if (path.includes('/source-review/candidates')) return {items: [], page: 1}
   if (path.includes('/source-review/workflow-review')) return {items: [], requires_review: 0, review_owner_configured: false}
-  if (path.endsWith('/business-evidence')) return {status: 'current', observed_at: new Date().toISOString(), snapshot: {address: '123 Synthetic Street', apn: '00123456', valuation: {point_cents: 46000000, supported_low_cents: 45000000, supported_high_cents: 47000000, comparable_count: 3, purpose: 'after_repair', as_of: '2026-10-14'}, comparables: [{sale_id: 'sale-1', source_ref: 'synthetic-reviewed-source', closed_on: '2026-10-01', sale_price_cents: 45000000, adjusted_value_cents: 46000000}], offers: [{id: 'offer-1', status: 'draft', amount_cents: 25000000, repairs_cents: 2000000}], appointment: {at: '2099-01-01T22:00:00Z', status: 'confirmed'}}}
+  if (path.endsWith('/business-evidence')) return {status: 'current', revision: 'a'.repeat(64), observed_at: new Date().toISOString(), snapshot: {address: '123 Synthetic Street', apn: '00123456', valuation: {point_cents: 46000000, supported_low_cents: 45000000, supported_high_cents: 47000000, comparable_count: 3, purpose: 'after_repair', as_of: '2026-10-14'}, comparables: [{sale_id: 'sale-1', source_ref: 'synthetic-reviewed-source', closed_on: '2026-10-01', sale_price_cents: 45000000, adjusted_value_cents: 46000000}], offers: [{id: 'offer-1', status: 'draft', amount_cents: 25000000, repairs_cents: 2000000}], appointment: {at: '2099-01-01T22:00:00Z', status: 'confirmed'}}}
   if (path === '/api/v1/leads/11111111-1111-4111-8111-111111111111') return {id: '11111111-1111-4111-8111-111111111111', full_name: 'Synthetic Owner', phone: null, email: null, lead_status: 'new', address: '123 Synthetic Street', city: 'Stockton', state: 'CA', notes: null, follow_up_at: null, created_at: '2026-10-14T00:00:00Z'}
   if (path.endsWith('/auth/me')) return { ...user, id: actorId, role: actorRole }
   if (path === '/api/v1/settings') return { source: 'dashboard_server', app_version: 'fixture', environment: 'test', security: { access_token_minutes: 1440, refresh_token_days: 7 }, permissions: [], notifications: { channel: 'in_app', delivery: 'database_and_websocket' }, voice_configuration: { available: false, reason: 'Voice configuration is managed by the separate voice service' }, calendar_booking: { available: false, reason: 'Follow-up dates only' } }
@@ -76,6 +80,22 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (route.request().method() === 'POST' && url.pathname.includes('/source-review/price-reviews/')) {
+        const body = route.request().postDataJSON()
+        if (Object.hasOwn(body, 'actor_id')) throw new Error('Pricing UI supplied actor identity')
+        if (!['admin', 'reviewer'].includes(actorRole)) return route.fulfill({status: 403, json: {detail: 'Synthetic permission rejection'}})
+        if (sourcePriceFailure) return route.fulfill({status: 503, json: {detail: 'Synthetic source outage'}})
+        if (body.offer_low_cents !== 25000000 || body.offer_high_cents !== 27000000 || body.fingerprint !== 'b'.repeat(64)) throw new Error('Pricing UI lost integer cents or reviewed fingerprint')
+        sourcePriceResolved = true
+        return route.fulfill({status: 200, json: {persisted: true, approval_id: 'abcdef0123456789abcdef0123456789', status: body.status}})
+      }
+      if (route.request().method() === 'POST' && url.pathname.endsWith('/source-operation')) {
+        const body = route.request().postDataJSON()
+        if (Object.hasOwn(body, 'actor_id') || body.revision !== 'a'.repeat(64)) throw new Error('Operation UI lost authenticated identity/version boundary')
+        if (body.action === 'draft_offer' && (body.data.amount_cents !== 25000000 || body.data.repair_cents !== 2500000 || body.data.arv_cents !== null)) throw new Error('Draft UI fabricated valuation or lost cents')
+        sourceCommands.push({id: body.request_id, action: body.action, state: 'pending'})
+        return route.fulfill({status: 202, json: {id: body.request_id, state: 'pending'}})
+      }
       if (populated && route.request().method() === 'POST' && /^\/api\/v1\/approvals\/[^/]+\/resolve$/.test(url.pathname)) {
         const body = route.request().postDataJSON()
         if (Object.hasOwn(body, 'resolved_by')) throw new Error('Approval UI supplied an actor instead of relying on authenticated identity')
@@ -235,6 +255,34 @@ try {
       await page.getByText(/draft: \$250,000.00/).waitFor()
       await page.getByText(/Reviewed ARV advisory: \$460,000.00/).waitFor()
       evidence.interactions.push('Business evidence shows reviewed cents, comp reference, draft status and appointment separately')
+      await page.getByLabel('Operation', {exact: true}).selectOption('draft_offer')
+      await page.getByLabel('Draft offer ($, whole dollars)', {exact: true}).fill('250000')
+      await page.getByLabel('Repair estimate ($, whole dollars)', {exact: true}).fill('25000')
+      await page.getByLabel('Operation review reason', {exact: true}).fill('Reviewed synthetic property and repairs')
+      await page.getByRole('button', {name: 'Queue source operation', exact: true}).click()
+      await page.getByText(/Operation queued. It is not confirmed/).waitFor()
+      await capture('43-source-draft-pending', '/leads/11111111-1111-4111-8111-111111111111')
+      sourcePricePopulated = true
+      actorRole = 'operator'
+      await capture('44-operator-source-pricing', '/source-review')
+      if (await page.getByRole('button', {name: 'Approve this price range', exact: true}).count()) throw new Error('Operator can grant source price authority')
+      actorRole = 'reviewer'
+      sourcePriceFailure = true
+      await capture('45-reviewer-source-pricing', '/source-review')
+      await page.getByLabel('Approved minimum offer ($, whole dollars)', {exact: true}).fill('250000')
+      await page.getByLabel('Approved maximum offer ($, whole dollars)', {exact: true}).fill('270000')
+      await page.getByLabel('Pricing review reason', {exact: true}).fill('Reviewed synthetic comparable sales and repair scope')
+      await page.getByRole('button', {name: 'Approve this price range', exact: true}).click()
+      await page.getByText(/Decision not confirmed. Refresh the source review/).waitFor()
+      sourcePriceFailure = false
+      await page.getByRole('button', {name: 'Approve this price range', exact: true}).click()
+      await page.getByText('No current pricing requests on this page.', {exact: true}).waitFor()
+      await capture('46-source-price-confirmed', '/source-review')
+      sourcePriceResolved = false
+      sourcePriceExpired = true
+      await capture('47-expired-source-pricing', '/source-review')
+      if (!(await page.getByRole('button', {name: 'Approve this price range', exact: true}).isDisabled())) throw new Error('Expired source price authority remains actionable')
+      evidence.interactions.push('Source draft remains pending; source pricing enforces roles, integer cents, failed-write acknowledgement and expiry')
       actorId = user.id
       actorRole = 'operator'
       await capture('38-operator-approval-queue', '/approvals')

@@ -229,6 +229,7 @@ async function loadBusinessEvidence(fetcher) {
     }, { context })
     if (name === '@/services/api') return new SyntheticModule(['apiFetch'], function () { this.setExport('apiFetch', fetcher) }, { context })
     if (name === '@/stores/auth.store') return new SyntheticModule(['useAuthStore'], function () { this.setExport('useAuthStore', selector => selector({user: null})) }, {context})
+    if (name === '@/features/operations/SourceActions') return new SyntheticModule(['SourceActions'], function () { this.setExport('SourceActions', () => null) }, {context})
     if (name === '@/components/ui/button') return new SyntheticModule(['Button'], function () { this.setExport('Button', () => null) }, {context})
     throw new Error(`Unexpected component dependency: ${name}`)
   })
