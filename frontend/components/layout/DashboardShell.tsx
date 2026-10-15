@@ -54,7 +54,7 @@ export function DashboardShell({
         )}
 
         {/* Content */}
-        <main className="flex-1 overflow-auto" role="main" tabIndex={0}>
+        <main className="flex-1 overflow-auto" role="main">
           {children}
         </main>
       </div>

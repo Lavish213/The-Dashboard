@@ -58,6 +58,9 @@ export function PageContainer({
       )}
 
       <div
+        tabIndex={0}
+        role="region"
+        aria-label={title ? `${title} content` : 'Page content'}
         className={cn(
           'min-h-0 flex-1 overflow-auto px-4 py-6 sm:px-6',
           constrain && 'mx-auto w-full max-w-7xl'

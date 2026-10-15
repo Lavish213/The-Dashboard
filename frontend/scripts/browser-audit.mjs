@@ -299,8 +299,8 @@ try {
       await page.getByRole('button',{name:'Queue reviewed email resumption',exact:true}).click()
       await page.getByText(/Reviewed resumption queued. Email follow-ups remain held/).waitFor()
       await capture('49-email-resume-pending','/source-review')
-      await page.locator('main').focus()
-      if (!(await page.locator('main').evaluate(node => node === document.activeElement))) throw new Error('Pending source review cannot be focused for keyboard scrolling')
+      await page.getByRole('region', {name: 'Source review content', exact: true}).focus()
+      if (!(await page.getByRole('region', {name: 'Source review content', exact: true}).evaluate(node => node === document.activeElement))) throw new Error('Pending source review cannot be focused for keyboard scrolling')
       emailResumeApplied=true
       await capture('50-stop-remains-blocked','/source-review')
       await page.getByText('STOP or opt-out: resumption is blocked.',{exact:true}).waitFor()
