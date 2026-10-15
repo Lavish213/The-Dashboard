@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { EmailHoldReview } from '@/features/operations/EmailHoldReview'
 import { PriceReview } from '@/features/operations/PriceReview'
 import { WorkflowReview } from '@/features/operations/WorkflowReview'
 import { useQuery } from '@tanstack/react-query'
@@ -45,6 +46,7 @@ export default function SourceReviewPage() {
   const [page, setPage] = useState(1)
   const query = useQuery({queryKey: ['source-review', page], queryFn: ({signal}) => apiFetch<{items: Candidate[]}>(`/api/v1/source-review/candidates?page=${page}`, {signal})})
   return <PageContainer title="Source review" description="Unverified discovery candidates. Linking records does not authorize contact, offers, or property pricing.">
+    <EmailHoldReview />
     <PriceReview />
     <WorkflowReview />
     {query.isPending && <p role="status">Loading source candidates…</p>}
