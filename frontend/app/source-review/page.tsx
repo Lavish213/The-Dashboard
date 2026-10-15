@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { WorkflowReview } from '@/features/operations/WorkflowReview'
 import { useQuery } from '@tanstack/react-query'
 import { PageContainer } from '@/components/workspace/PageContainer'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ export default function SourceReviewPage() {
   const [page, setPage] = useState(1)
   const query = useQuery({queryKey: ['source-review', page], queryFn: ({signal}) => apiFetch<{items: Candidate[]}>(`/api/v1/source-review/candidates?page=${page}`, {signal})})
   return <PageContainer title="Source review" description="Unverified discovery candidates. Linking records does not authorize contact, offers, or property pricing.">
+    <WorkflowReview />
     {query.isPending && <p role="status">Loading source candidates…</p>}
     {query.error && <div role="alert"><p>Source candidates unavailable.</p><Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div>}
     {query.data && query.data.items.length === 0 && <p>No candidates on this page.</p>}
