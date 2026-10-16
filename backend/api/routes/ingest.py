@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -30,6 +31,12 @@ from services.voice_ingest import (
 )
 
 router = APIRouter(dependencies=[Depends(verify_karpathys_secret)])
+
+
+@router.get('/connection')
+async def connection(challenge: UUID):
+    from services.connection_status import receiver_identity, source_tenant
+    return {'schema_version': 1, 'service': 'karpathys-dashboard', 'challenge': str(challenge), 'source_tenant_id': source_tenant(), 'receiver_id': receiver_identity()}
 
 
 @router.post("/call")

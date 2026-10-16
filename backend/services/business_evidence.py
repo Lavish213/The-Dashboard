@@ -19,6 +19,11 @@ def validate_snapshot(body):
         or snapshot.get("offer_authorized") is not False
     ):
         raise HTTPException(422, "Invalid advisory business snapshot")
+    import os
+    if os.environ.get('REI_SOURCE_TENANT_ID'):
+        from services.connection_status import source_tenant
+        if snapshot.get('tenant_id') != source_tenant():
+            raise HTTPException(409, 'Source tenant does not match this dashboard')
     if (
         not isinstance(snapshot.get("property_id"), str)
         or not snapshot["property_id"]

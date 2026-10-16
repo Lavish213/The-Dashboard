@@ -3,7 +3,9 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from db.session import get_session
 from security.permissions import require_permission
 from security.rbac import Permission
 from services.source_commands import destination
@@ -11,10 +13,16 @@ from services.source_commands import destination
 router = APIRouter(dependencies=[Depends(require_permission(Permission.LEADS_READ))])
 
 
+@router.get('/connections')
+async def connections(session: AsyncSession = Depends(get_session)):
+    from services.connection_status import connection_status
+    return await connection_status(session, source_request)
+
+
 async def source_request(method, path, body=None):
     url, secret, _ = destination()
     try:
-        async with httpx.AsyncClient(timeout=5, follow_redirects=False) as client:
+        async with httpx.AsyncClient(timeout=10 if path.startswith('/api/operations/integration?') else 5, follow_redirects=False) as client:
             response = await client.request(
                 method,
                 url + path,

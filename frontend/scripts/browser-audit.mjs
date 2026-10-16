@@ -25,8 +25,10 @@ let approvalExpired = false
 let sourcePricePopulated = false, sourcePriceResolved = false, sourcePriceFailure = false, sourcePriceExpired = false
 const sourceCommands = []
 let emailHoldsPopulated = false, emailResumePending = false, emailResumeApplied = false
+let connectionState = 'degraded'
 function fixture(url) {
   const path = url.pathname
+  if (path.includes('/source-review/connections')) return {status: connectionState === 'ok' ? 'ok' : 'degraded', checked_at: new Date().toISOString(), outbound_enabled: false, background_jobs_enabled: false, components: [{id: 'dashboard_database', status: 'ok'}, {id: 'dashboard_to_sophia', status: 'ok'}, {id: 'sophia_to_dashboard', status: connectionState === 'ok' ? 'ok' : 'wrong_receiver'}, {id: 'bob_shared_database_and_worker', status: 'ok'}, {id: 'sophia_dashboard_journal', status: 'ok'}]}
   if (path.includes('/source-operations')) return {items: [], page: 1, total_pages: 0}
   if (path.includes('/source-review/email-holds')) return {items: !emailHoldsPopulated ? [] : [{lead_id:'00000000-0000-0000-0000-000000000050',email:'blocked@example.invalid',count:1,stopped:true,pending:0,text:'STOP',fingerprint:'e'.repeat(64),can_resume:false,review_state:null,error:null},...(!emailResumeApplied ? [{lead_id:'00000000-0000-0000-0000-000000000051',email:'seller@example.invalid',count:1,stopped:false,pending:0,text:'Thanks for the information',fingerprint:'d'.repeat(64),can_resume:true,review_state:emailResumePending ? 'pending' : null,error:null}] : [])],page:1}
   if (path.includes('/source-review/price-reviews')) return {items: sourcePricePopulated && !sourcePriceResolved ? [{id: 'abcdef0123456789abcdef0123456789', lead_id: 'source-lead', property_id: 'source-property', address: '123 Synthetic Street', call_sid: 'synthetic-call', requested_action: 'get_offer_range', expires_at: sourcePriceExpired ? '2020-01-01T00:00:00Z' : '2099-01-01T00:00:00Z', risk_reason: 'Review synthetic property pricing', fingerprint: 'b'.repeat(64)}] : [], page: 1}
@@ -82,6 +84,7 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (connectionState === 'outage' && url.pathname.includes('/source-review/connections')) return route.fulfill({status: 503, json: {detail: 'Synthetic connection probe outage'}})
       if (route.request().method() === 'POST' && url.pathname.includes('/source-review/email-holds/')) {
         const body=route.request().postDataJSON()
         if (Object.hasOwn(body,'actor_id') || body.fingerprint !== 'd'.repeat(64) || !url.pathname.includes('000000000051')) throw new Error('Email resumption lost its operator/STOP boundary')
@@ -306,6 +309,17 @@ try {
       await page.getByText('STOP or opt-out: resumption is blocked.',{exact:true}).waitFor()
       if (await page.getByRole('button',{name:'Queue reviewed email resumption',exact:true}).count()) throw new Error('STOP hold became resumable')
       evidence.interactions.push('Only ordinary email replies can be reviewed; pending resumption is not called confirmed and STOP remains blocked')
+      connectionState='ok'
+      await capture('51-project-connections','/source-review')
+      await page.getByRole('region',{name:'Project connections',exact:true}).getByText('Connection status: ok',{exact:true}).waitFor()
+      connectionState='degraded'
+      await capture('52-wrong-dashboard-receiver','/source-review')
+      await page.getByRole('region',{name:'Project connections',exact:true}).getByText('wrong receiver',{exact:true}).waitFor()
+      connectionState='outage'
+      await capture('53-connection-status-unavailable','/source-review')
+      await page.getByText('Connection status unavailable. Previous results may be stale.',{exact:true}).waitFor()
+      connectionState='degraded'
+      evidence.interactions.push('Three-project connections show bound success, wrong receiver and unavailable states without calling provider delivery verified')
       actorId = user.id
       actorRole = 'operator'
       await capture('38-operator-approval-queue' , '/approvals')

@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Lavish213/REI-AGENT
-          ref: 92e98c79a00d652f97c58d6232c64a73716ab7d7
+          ref: 4a5d25210608f0ca8dbe5b22fc4614d1ab72c10b
           path: _rei-contract
       - run: ruff check .
       - run: pytest tests tests_safety -q --junitxml=test-results.xml
@@ -61,14 +61,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Lavish213/Bob-Intelligence-
-          ref: 44059af6766811add52cf7849dda7ea36e8e164c
+          ref: 7d265ab8b3ea244674a249504d481e55cc55973c
           path: _bob-contract
       - name: Install isolated REI bridge runtime
         run: |
           python -m venv /tmp/rei-bridge-runtime
-          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0 pytest==9.0.2
+          /tmp/rei-bridge-runtime/bin/pip install httpx==0.28.1 loguru==0.7.3 supabase==2.32.0 pytest==9.0.2 fastapi==0.143.2 uvicorn==0.54.0
       - name: Real HTTP voice outbox restart and receipt recovery
         run: PYTHONPATH=. BOB_REPO="$GITHUB_WORKSPACE/_bob-contract" REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_voice_outbox_boundary.py
+      - name: Authenticated project connection round trip
+        run: PYTHONPATH=. REI_CONTRACT_PYTHON=/tmp/rei-bridge-runtime/bin/python python scripts/verify_project_connections.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -76,6 +78,7 @@ jobs:
           path: |
             backend/test-results.xml
             backend/voice-outbox-boundary-results.json
+            backend/project-connection-boundary-results.json
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
