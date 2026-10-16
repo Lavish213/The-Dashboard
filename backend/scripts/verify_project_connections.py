@@ -96,6 +96,8 @@ def main():
     source = Path(os.environ["REI_REPO"])
     source_python = os.environ["REI_CONTRACT_PYTHON"]
     receiver_port, source_port = port(), port()
+    while source_port == receiver_port:
+        source_port = port()
     tenant = "00000000-0000-0000-0000-000000000001"
     secret = "synthetic-connection-command-" * 2
     environment = {
@@ -135,6 +137,7 @@ def main():
                             "warning",
                         ],
                         env={**environment, "PYTHONPATH": module_path},
+                        cwd=module_path,
                         stdout=log,
                         stderr=log,
                     )
