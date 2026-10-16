@@ -25,9 +25,12 @@ let approvalExpired = false
 let sourcePricePopulated = false, sourcePriceResolved = false, sourcePriceFailure = false, sourcePriceExpired = false
 const sourceCommands = []
 let emailHoldsPopulated = false, emailResumePending = false, emailResumeApplied = false
+let deliveryState = 'normal'
 let connectionState = 'degraded'
 function fixture(url) {
   const path = url.pathname
+  if (path.includes('/source-review/delivery') && deliveryState === 'empty') return {journal: {pending: 0, received: 0, oldest_pending_seconds: 0}, messages: []}
+  if (path.includes('/source-review/delivery')) return {journal: {pending: 1, received: 5, oldest_pending_seconds: 10}, messages: [{intent_id: 'a'.repeat(64), lead_id: null, channel: 'email', delivery_status: 'conflicting_receipts', opened: true, clicked: false, suppressed: true}]}
   if (path.includes('/source-review/connections')) return {status: connectionState === 'ok' ? 'ok' : 'degraded', checked_at: new Date().toISOString(), outbound_enabled: false, background_jobs_enabled: false, components: [{id: 'dashboard_database', status: 'ok'}, {id: 'dashboard_to_sophia', status: 'ok'}, {id: 'sophia_to_dashboard', status: connectionState === 'ok' ? 'ok' : 'wrong_receiver'}, {id: 'bob_shared_database_and_worker', status: 'ok'}, {id: 'sophia_dashboard_journal', status: 'ok'}]}
   if (path.includes('/source-operations')) return {items: [], page: 1, total_pages: 0}
   if (path.includes('/source-review/email-holds')) return {items: !emailHoldsPopulated ? [] : [{lead_id:'00000000-0000-0000-0000-000000000050',email:'blocked@example.invalid',count:1,stopped:true,pending:0,text:'STOP',fingerprint:'e'.repeat(64),can_resume:false,review_state:null,error:null},...(!emailResumeApplied ? [{lead_id:'00000000-0000-0000-0000-000000000051',email:'seller@example.invalid',count:1,stopped:false,pending:0,text:'Thanks for the information',fingerprint:'d'.repeat(64),can_resume:true,review_state:emailResumePending ? 'pending' : null,error:null}] : [])],page:1}
@@ -84,6 +87,7 @@ try {
     const url = new URL(route.request().url())
     if (url.pathname.startsWith('/api/')) {
       evidence.requests.push({ method: route.request().method(), path: url.pathname, outage })
+      if (deliveryState === 'outage' && url.pathname.includes('/source-review/delivery')) return route.fulfill({status: 503, json: {detail: 'Synthetic receipt outage'}})
       if (connectionState === 'outage' && url.pathname.includes('/source-review/connections')) return route.fulfill({status: 503, json: {detail: 'Synthetic connection probe outage'}})
       if (route.request().method() === 'POST' && url.pathname.includes('/source-review/email-holds/')) {
         const body=route.request().postDataJSON()
@@ -319,6 +323,16 @@ try {
       await capture('53-connection-status-unavailable','/source-review')
       await page.getByText('Connection status unavailable. Previous results may be stale.',{exact:true}).waitFor()
       connectionState='degraded'
+      await capture('54-delivery-receipts','/source-review')
+      await page.getByText('Conflicting provider receipts require review.',{exact:true}).waitFor()
+      deliveryState='empty'
+      await capture('55-delivery-empty','/source-review')
+      await page.getByText('No synced message receipts available.',{exact:true}).waitFor()
+      deliveryState='outage'
+      await capture('56-delivery-unavailable','/source-review')
+      await page.getByText('Delivery evidence unavailable. Previous results may be stale.',{exact:true}).waitFor()
+      deliveryState='normal'
+      evidence.interactions.push('Delivery receipts show conflicting evidence, pending recovery, empty and unavailable states')
       evidence.interactions.push('Three-project connections show bound success, wrong receiver and unavailable states without calling provider delivery verified')
       actorId = user.id
       actorRole = 'operator'
