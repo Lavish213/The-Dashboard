@@ -135,3 +135,13 @@ async def resume_email(lead_id: UUID, body: EmailResumption, actor=Depends(requi
     if type(result.get('schema_version')) is not int or result.get('schema_version') != 1 or result.get('persisted') is not True or result.get('request_id') != str(body.request_id) or result.get('lead_id') != str(lead_id) or result.get('state') not in {'pending','applied','requires_review'}:
         raise HTTPException(503, 'Resumption receipt not confirmed; refresh source review')
     return result
+
+
+@router.get('/delivery')
+async def delivery_receipts():
+    data = await source_request('GET', '/api/operations/delivery')
+    from services.delivery_evidence import validate_delivery_overview
+    try:
+        return validate_delivery_overview(data)
+    except (ValueError, TypeError, KeyError) as error:
+        raise HTTPException(503, 'Provider delivery evidence unavailable') from error
