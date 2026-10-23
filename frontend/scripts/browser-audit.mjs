@@ -29,6 +29,8 @@ let deliveryState = 'normal'
 let connectionState = 'degraded'
 function fixture(url) {
   const path = url.pathname
+  if (path.includes('/source-review/delivery') && deliveryState === 'legacy') return {journal: {pending: 0, received: 0, oldest_pending_seconds: 0}, messages: []}
+  if (path.includes('/source-review/delivery') && deliveryState === 'accepted-only') return {inventory: {accepted: 1, uncertain_submission: 0, pending_projection: 0}, journal: {pending: 0, received: 1, oldest_pending_seconds: 0}, messages: [{intent_id: 'b'.repeat(64), lead_id: null, channel: 'email', delivery_status: 'pending', opened: false, clicked: false, suppressed: false}]}
   if (path.includes('/source-review/delivery') && deliveryState === 'empty') return {inventory: {accepted: 0, uncertain_submission: 0, pending_projection: 0}, journal: {pending: 0, received: 0, oldest_pending_seconds: 0}, messages: []}
   if (path.includes('/source-review/delivery')) return {inventory: {accepted: 3, uncertain_submission: 1, pending_projection: 1}, journal: {pending: 1, received: 5, oldest_pending_seconds: 10}, messages: [{intent_id: 'a'.repeat(64), lead_id: null, channel: 'email', delivery_status: 'conflicting_receipts', opened: true, clicked: false, suppressed: true}]}
   if (path.includes('/source-review/connections')) return {status: connectionState === 'ok' ? 'ok' : 'degraded', checked_at: new Date().toISOString(), outbound_enabled: false, background_jobs_enabled: false, components: [{id: 'dashboard_database', status: 'ok'}, {id: 'dashboard_to_sophia', status: 'ok'}, {id: 'sophia_to_dashboard', status: connectionState === 'ok' ? 'ok' : 'wrong_receiver'}, {id: 'bob_shared_database_and_worker', status: 'ok'}, {id: 'sophia_dashboard_journal', status: 'ok'}]}
@@ -325,13 +327,22 @@ try {
       connectionState='degraded'
       await capture('54-delivery-receipts','/source-review')
       await page.getByText('Conflicting provider receipts require review.',{exact:true}).waitFor()
+      await page.getByText('Uncertain submissions require provider reconciliation before any resend.',{exact:true}).waitFor()
+      await page.getByText('Accepted-message inventory is still staging; the list may be incomplete.',{exact:true}).waitFor()
       deliveryState='empty'
       await capture('55-delivery-empty','/source-review')
       await page.getByText('No synced message receipts available.',{exact:true}).waitFor()
       deliveryState='outage'
       await capture('56-delivery-unavailable','/source-review')
       await page.getByText('Delivery evidence unavailable. Previous results may be stale.',{exact:true}).waitFor()
+      deliveryState='legacy'
+      await capture('57-legacy-source-inventory-unavailable','/source-review')
+      await page.getByText('Accepted-message inventory unavailable from this source version.',{exact:true}).waitFor()
+      deliveryState='accepted-only'
+      await capture('58-accepted-without-provider-callback','/source-review')
+      await page.getByText('EMAIL · pending',{exact:true}).waitFor()
       deliveryState='normal'
+      evidence.interactions.push('Accepted-only messages remain pending; old-source inventory and uncertain/pending-staging warnings remain visible')
       evidence.interactions.push('Delivery receipts show conflicting evidence, pending recovery, empty and unavailable states')
       evidence.interactions.push('Three-project connections show bound success, wrong receiver and unavailable states without calling provider delivery verified')
       actorId = user.id
