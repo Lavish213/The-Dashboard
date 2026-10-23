@@ -25,4 +25,15 @@ def validate_delivery_overview(data):
         if not isinstance(identity, str) or len(identity) != 64 or any(c not in '0123456789abcdef' for c in identity):
             raise ValueError('Invalid message identity')
         safe.append({'intent_id': identity, 'lead_id': lead, 'channel': message['channel'], 'delivery_status': message['delivery_status'], **{key: message[key] for key in ('opened', 'clicked', 'suppressed')}})
-    return {'schema_version': 1, 'journal': {key: journal[key] for key in ('pending', 'received', 'oldest_pending_seconds')}, 'messages': safe, 'limit': 100}
+    return {'schema_version': 1, 'inventory': validate_inventory(data.get('inventory')), 'journal': {key: journal[key] for key in ('pending', 'received', 'oldest_pending_seconds')}, 'messages': safe, 'limit': 100}
+
+
+def validate_inventory(inventory):
+    if inventory is None:
+        return None
+    if not isinstance(inventory, dict):
+        raise ValueError('Invalid message inventory')
+    keys = ('accepted', 'uncertain_submission', 'pending_projection')
+    if any(type(inventory.get(key)) is not int or inventory[key] < 0 for key in keys):
+        raise ValueError('Invalid inventory counts')
+    return {key: inventory[key] for key in keys}

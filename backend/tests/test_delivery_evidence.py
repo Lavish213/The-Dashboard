@@ -38,3 +38,23 @@ def test_malformed_or_wrong_tenant_delivery_never_shows_verified_data(monkeypatc
         data['messages'] *= 101
     with pytest.raises((ValueError, TypeError)):
         validate_delivery_overview(data)
+
+
+def test_inventory_includes_no_callback_and_uncertain_submissions(monkeypatch):
+    monkeypatch.delenv('REI_SOURCE_TENANT_ID', raising=False)
+    data = receipt()
+    data['inventory'] = {'accepted': 5, 'uncertain_submission': 2, 'pending_projection': 1, 'recipient': 'private'}
+    result = validate_delivery_overview(data)
+    assert result['inventory'] == {'accepted': 5, 'uncertain_submission': 2, 'pending_projection': 1}
+    assert 'private' not in str(result)
+    del data['inventory']
+    assert validate_delivery_overview(data)['inventory'] is None
+
+
+@pytest.mark.parametrize('value', [True, -1, '5', [], {}])
+def test_invalid_inventory_cannot_be_presented_as_verified(value, monkeypatch):
+    monkeypatch.delenv('REI_SOURCE_TENANT_ID', raising=False)
+    data = receipt()
+    data['inventory'] = {'accepted': value, 'uncertain_submission': 0, 'pending_projection': 0}
+    with pytest.raises(ValueError):
+        validate_delivery_overview(data)
