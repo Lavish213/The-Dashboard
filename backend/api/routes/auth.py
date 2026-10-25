@@ -16,7 +16,6 @@ from db.session import get_session
 from models.enums import UserStatus
 from models.user import User
 from schemas.user import UserResponse
-from security.rate_limits import enforce_login_budget
 from security.auth import (
     blacklist_token,
     create_access_token,
@@ -25,6 +24,7 @@ from security.auth import (
     verify_password,
     verify_refresh_token,
 )
+from security.rate_limits import enforce_login_budget
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
