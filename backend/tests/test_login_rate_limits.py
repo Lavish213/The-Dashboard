@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from security.rate_limits import enforce_login_budget, _account_key, _peer_key
+from security.rate_limits import _account_key, _peer_key, enforce_login_budget
 
 
 def request(host="192.0.2.15"):
