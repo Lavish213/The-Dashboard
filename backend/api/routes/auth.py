@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
@@ -24,6 +24,7 @@ from security.auth import (
     verify_password,
     verify_refresh_token,
 )
+from security.rate_limits import enforce_login_budget
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -67,8 +68,11 @@ def _get_raw_token(
 @router.post("/login", response_model=LoginResponse)
 async def login(
     body: LoginRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
+    redis: aioredis.Redis = Depends(get_redis),
 ) -> LoginResponse:
+    await enforce_login_budget(redis, request, body.email)
     result = await session.execute(
         select(User).where(User.email == body.email, User.deleted_at.is_(None))
     )
