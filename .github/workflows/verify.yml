@@ -105,3 +105,31 @@ jobs:
         with:
           name: dashboard-browser-evidence
           path: docs/visual-audit/enhanced
+
+  zod-upgrade-lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve patched Zod and reproducible lockfile
+        working-directory: frontend
+        run: npm install 'zod@^4.6.7' --save --package-lock-only --ignore-scripts --no-audit
+      - name: Test reproducible install and frontend compatibility
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run build
+          npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zod-upgrade-resolved-manifests
+          path: |
+            frontend/package.json
+            frontend/package-lock.json
