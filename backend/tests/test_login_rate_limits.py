@@ -4,7 +4,12 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from security.rate_limits import _account_key, _peer_key, enforce_login_budget
+from security.rate_limits import (
+    _account_key,
+    _peer_key,
+    enforce_instantdm_budget,
+    enforce_login_budget,
+)
 
 
 def request(host="192.0.2.15"):
@@ -56,3 +61,29 @@ def test_missing_asgi_peer_is_rate_limited_without_exposing_identity():
     unknown_peer = SimpleNamespace(client=None)
     assert _peer_key(unknown_peer).startswith("rate:login:peer:")
     assert _peer_key(unknown_peer) == _peer_key(unknown_peer)
+
+
+@pytest.mark.asyncio
+async def test_instantdm_budget_accepts_authenticated_provider_traffic():
+    redis = SimpleNamespace(eval=AsyncMock(return_value=6000))
+    await enforce_instantdm_budget(redis)
+    redis.eval.assert_awaited_once()
+    assert redis.eval.await_args.args[2] == "rate:webhook:instantdm"
+
+
+@pytest.mark.asyncio
+async def test_instantdm_budget_rejects_excess_with_retry_after():
+    redis = SimpleNamespace(eval=AsyncMock(return_value=6001))
+    with pytest.raises(HTTPException) as caught:
+        await enforce_instantdm_budget(redis)
+    assert caught.value.status_code == 429
+    assert caught.value.headers["Retry-After"] == "300"
+
+
+@pytest.mark.asyncio
+async def test_instantdm_budget_fails_closed_when_redis_is_down():
+    redis = SimpleNamespace(eval=AsyncMock(side_effect=ConnectionError("private")))
+    with pytest.raises(HTTPException) as caught:
+        await enforce_instantdm_budget(redis)
+    assert caught.value.status_code == 503
+    assert "private" not in str(caught.value.detail)
