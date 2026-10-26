@@ -50,3 +50,9 @@ def test_budget_keys_are_stable_and_do_not_expose_email_or_peer():
     assert "example.com" not in _account_key("user@example.com")
     assert "192.0.2.15" not in _peer_key(request())
     assert _peer_key(request()) != _peer_key(request("192.0.2.16"))
+
+
+def test_missing_asgi_peer_is_rate_limited_without_exposing_identity():
+    unknown_peer = SimpleNamespace(client=None)
+    assert _peer_key(unknown_peer).startswith("rate:login:peer:")
+    assert _peer_key(unknown_peer) == _peer_key(unknown_peer)
