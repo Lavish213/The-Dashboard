@@ -68,3 +68,32 @@ async def enforce_login_budget(
             detail="Too many login attempts. Try again later.",
             headers={"Retry-After": str(_WINDOW_SECONDS)},
         )
+
+
+# An authenticated webhook can still be abused with a stolen provider secret.
+# Keep this budget independent of the account/peer login budgets.
+_PROVIDER_WINDOW_SECONDS = 300
+_INSTANTDM_EVENT_LIMIT = 6000
+
+
+async def enforce_instantdm_budget(redis: aioredis.Redis) -> None:
+    """Apply a shared five-minute budget to authenticated InstantDM requests."""
+    try:
+        count = int(
+            await redis.eval(
+                _BUDGET_SCRIPT,
+                1,
+                "rate:webhook:instantdm",
+                _PROVIDER_WINDOW_SECONDS,
+            )
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=503, detail="Webhook rate control unavailable"
+        ) from error
+    if count > _INSTANTDM_EVENT_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail="Provider event rate exceeded",
+            headers={"Retry-After": str(_PROVIDER_WINDOW_SECONDS)},
+        )
