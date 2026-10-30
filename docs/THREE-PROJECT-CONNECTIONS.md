@@ -35,6 +35,16 @@ For separate frontend/backend deployments, build the frontend with NEXT_PUBLIC_A
 
 From the dashboard repository, with private, untracked configuration exports:
 
+For a split frontend/API deployment, include `DASHBOARD_FRONTEND_ORIGIN` in the
+dashboard preflight export with the frontend's actual HTTPS origin (no path or
+trailing slash), and include the backend's actual `CORS_ORIGINS` value. This
+preflight-only origin declaration does not change the backend allowlist. The
+checker requires explicit frontend membership in the JSON-array or comma-separated
+allowlist; an API health check alone cannot establish browser access. Preserve
+other required origins when correcting the deployed allowlist, then redeploy the
+backend and verify an OPTIONS request with the frontend Origin, POST method and
+content-type header succeeds before testing authenticated login.
+
 ```bash
 python backend/scripts/verify_project_wiring.py --bob-env /private/bob.env --rei-env /private/sophia.env --dashboard-env /private/dashboard.env
 ```
