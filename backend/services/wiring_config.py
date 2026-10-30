@@ -1,4 +1,5 @@
 import hmac
+import json
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -103,6 +104,20 @@ def verify_wiring(bob, rei, dashboard, allow_loopback=False):
             endpoint(dashboard, "NEXT_PUBLIC_API_URL") == receiver,
             "browser_api_destination_mismatch",
         )
+        frontend = endpoint(dashboard, "DASHBOARD_FRONTEND_ORIGIN")
+        if frontend is not None and frontend != receiver:
+            allowed = dashboard.get("CORS_ORIGINS", "")
+            if isinstance(allowed, str):
+                try:
+                    allowed = json.loads(allowed)
+                except ValueError:
+                    allowed = [item.strip() for item in allowed.split(",") if item.strip()]
+            check(
+                isinstance(allowed, list)
+                and all(isinstance(item, str) for item in allowed)
+                and frontend in allowed,
+                "browser_frontend_origin_not_allowed_by_cors",
+            )
     else:
         check(
             dashboard.get("DASHBOARD_SAME_ORIGIN_PROXY", "").lower() == "true",
