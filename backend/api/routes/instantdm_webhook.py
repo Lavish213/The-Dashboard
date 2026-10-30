@@ -1,10 +1,13 @@
 import hmac
 import os
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.redis import get_redis
 from db.session import get_session
+from security.rate_limits import enforce_instantdm_budget
 from services.instantdm import ingest_message
 
 
@@ -21,8 +24,11 @@ router = APIRouter(dependencies=[Depends(verify_sender)])
 
 @router.post("/instantdm")
 async def instantdm_webhook(
-    request: Request, session: AsyncSession = Depends(get_session)
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    redis: aioredis.Redis = Depends(get_redis),
 ):
+    await enforce_instantdm_budget(redis)
     raw = await request.body()
     if len(raw) > 64000:
         raise HTTPException(413, "Provider event budget exceeded")
