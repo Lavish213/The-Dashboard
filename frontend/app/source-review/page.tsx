@@ -6,6 +6,7 @@ import { DeliveryEvidence } from '@/features/operations/DeliveryEvidence'
 import { ConnectionStatus } from '@/features/operations/ConnectionStatus'
 import { DataQuality } from '@/features/operations/DataQuality'
 import { RentcastBudget } from '@/features/operations/RentcastBudget'
+import { LeadTools } from '@/features/operations/LeadTools'
 import { PriceReview } from '@/features/operations/PriceReview'
 import { WorkflowReview } from '@/features/operations/WorkflowReview'
 import { useQuery } from '@tanstack/react-query'
@@ -53,6 +54,7 @@ export default function SourceReviewPage() {
     <ConnectionStatus />
     <DataQuality />
     <RentcastBudget />
+    <LeadTools />
     <DeliveryEvidence />
     <EmailHoldReview />
     <PriceReview />
