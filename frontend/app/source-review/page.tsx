@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { EmailHoldReview } from '@/features/operations/EmailHoldReview'
 import { DeliveryEvidence } from '@/features/operations/DeliveryEvidence'
 import { ConnectionStatus } from '@/features/operations/ConnectionStatus'
+import { DataQuality } from '@/features/operations/DataQuality'
 import { PriceReview } from '@/features/operations/PriceReview'
 import { WorkflowReview } from '@/features/operations/WorkflowReview'
 import { useQuery } from '@tanstack/react-query'
@@ -49,6 +50,7 @@ export default function SourceReviewPage() {
   const query = useQuery({queryKey: ['source-review', page], queryFn: ({signal}) => apiFetch<{items: Candidate[]}>(`/api/v1/source-review/candidates?page=${page}`, {signal})})
   return <PageContainer title="Source review" description="Unverified discovery candidates. Linking records does not authorize contact, offers, or property pricing.">
     <ConnectionStatus />
+    <DataQuality />
     <DeliveryEvidence />
     <EmailHoldReview />
     <PriceReview />

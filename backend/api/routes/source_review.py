@@ -70,6 +70,20 @@ async def review(
     )
 
 
+DATA_QUALITY_FIELDS = (
+    'schema_version', 'generated_at', 'properties', 'properties_with_comp_arv', 'properties_needing_comps',
+    'assessed_based_arv', 'comps_rows', 'leads', 'leads_with_phone', 'leads_with_bob_brief', 'by_distress_type',
+)
+
+
+@router.get('/data-quality')
+async def data_quality():
+    report = await source_request('GET', '/api/health/data-quality')
+    if report.get('schema_version') != 1:
+        raise HTTPException(503, 'Unsupported data quality report')
+    return {field: report.get(field) for field in DATA_QUALITY_FIELDS}
+
+
 @router.get('/workflow-review')
 async def workflows():
     health = await source_request('GET', '/api/health/workflow-recovery')
