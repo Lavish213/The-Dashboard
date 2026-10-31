@@ -49,8 +49,8 @@ export function DataQuality() {
     {report && <>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="Leads with a phone" value={report.leads_with_phone} total={report.leads} />
-        <Stat label="Properties with comp ARV" value={report.properties_with_comp_arv} total={report.properties} />
-        <Stat label="Closed sale comps on file" value={report.comps_rows} />
+        <Stat label="Properties with ARV" value={report.properties_with_comp_arv} total={report.properties} />
+        <Stat label="Comps on file" value={report.comps_rows} />
         <Stat label="Leads with a Bob brief" value={report.leads_with_bob_brief} total={report.leads} />
       </div>
       {report.assessed_based_arv > 0 && <p role="alert">{report.assessed_based_arv} properties still carry an ARV derived from tax assessed value. Do not use them for offers.</p>}
@@ -59,7 +59,7 @@ export function DataQuality() {
         <thead><tr className="text-left text-muted-foreground"><th className="py-1 font-medium">Distress type</th><th className="py-1 text-right font-medium">Properties</th><th className="py-1 text-right font-medium">Comp ARV</th><th className="py-1 text-right font-medium">Needs comps</th></tr></thead>
         <tbody>{Object.entries(report.by_distress_type).map(([kind, bucket]) => <tr key={kind} className="border-t"><td className="py-1">{kind.replaceAll('_', ' ')}</td><td className="py-1 text-right tabular-nums">{bucket.properties}</td><td className="py-1 text-right tabular-nums">{bucket.with_comp_arv}</td><td className="py-1 text-right tabular-nums">{bucket.needs_comps}</td></tr>)}</tbody>
       </table>
-      <p className="text-xs text-muted-foreground">Generated {new Date(report.generated_at).toLocaleString()}. Refreshes every 5 minutes. ARV is shown only when built from closed sale comps.</p>
+      <p className="text-xs text-muted-foreground">Generated {new Date(report.generated_at).toLocaleString()}. Refreshes every 5 minutes. ARV comes from closed sale comps or RentCast listing comps, never tax assessed value.</p>
     </>}
   </section>
 }

@@ -5,6 +5,7 @@ import { EmailHoldReview } from '@/features/operations/EmailHoldReview'
 import { DeliveryEvidence } from '@/features/operations/DeliveryEvidence'
 import { ConnectionStatus } from '@/features/operations/ConnectionStatus'
 import { DataQuality } from '@/features/operations/DataQuality'
+import { RentcastBudget } from '@/features/operations/RentcastBudget'
 import { PriceReview } from '@/features/operations/PriceReview'
 import { WorkflowReview } from '@/features/operations/WorkflowReview'
 import { useQuery } from '@tanstack/react-query'
@@ -51,6 +52,7 @@ export default function SourceReviewPage() {
   return <PageContainer title="Source review" description="Unverified discovery candidates. Linking records does not authorize contact, offers, or property pricing.">
     <ConnectionStatus />
     <DataQuality />
+    <RentcastBudget />
     <DeliveryEvidence />
     <EmailHoldReview />
     <PriceReview />
