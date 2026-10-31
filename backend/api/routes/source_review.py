@@ -22,7 +22,7 @@ async def connections(session: AsyncSession = Depends(get_session)):
 async def source_request(method, path, body=None):
     url, secret, _ = destination()
     try:
-        async with httpx.AsyncClient(timeout=10 if path.startswith('/api/operations/integration?') else 5, follow_redirects=False) as client:
+        async with httpx.AsyncClient(timeout=300 if path == '/api/operations/rentcast/price' else 10 if path.startswith('/api/operations/integration?') else 5, follow_redirects=False) as client:
             response = await client.request(
                 method,
                 url + path,
@@ -74,6 +74,16 @@ DATA_QUALITY_FIELDS = (
     'schema_version', 'generated_at', 'properties', 'properties_with_comp_arv', 'properties_needing_comps',
     'assessed_based_arv', 'comps_rows', 'leads', 'leads_with_phone', 'leads_with_bob_brief', 'by_distress_type',
 )
+RENTCAST_HARD_CAP = 50
+
+
+def rentcast_budget(value):
+    if not isinstance(value, dict):
+        return None
+    used = value.get('used')
+    if isinstance(used, bool) or not isinstance(used, int) or used < 0:
+        return None
+    return {'used': used, 'hard_cap': RENTCAST_HARD_CAP, 'window_days': 31}
 
 
 @router.get('/data-quality')
@@ -81,7 +91,32 @@ async def data_quality():
     report = await source_request('GET', '/api/health/data-quality')
     if report.get('schema_version') != 1:
         raise HTTPException(503, 'Unsupported data quality report')
-    return {field: report.get(field) for field in DATA_QUALITY_FIELDS}
+    return {**{field: report.get(field) for field in DATA_QUALITY_FIELDS}, 'rentcast': rentcast_budget(report.get('rentcast'))}
+
+
+@router.get('/rentcast/usage')
+async def rentcast_usage():
+    usage = await source_request('GET', '/api/operations/rentcast/usage')
+    budget = rentcast_budget(usage)
+    if budget is None:
+        raise HTTPException(503, 'RentCast usage unavailable')
+    cap = usage.get('configured_cap')
+    configured = cap if isinstance(cap, int) and not isinstance(cap, bool) and 0 <= cap <= RENTCAST_HARD_CAP else 0
+    return {**budget, 'enabled': usage.get('enabled') is True, 'configured_cap': configured, 'remaining': max(0, min(configured, RENTCAST_HARD_CAP) - budget['used'])}
+
+
+class RentcastPricing(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    limit: int = Field(ge=1, le=RENTCAST_HARD_CAP)
+
+
+RENTCAST_RESULT_FIELDS = ('requested', 'priced', 'no_data', 'errors', 'comps_saved', 'stopped')
+
+
+@router.post('/rentcast/price')
+async def rentcast_price(body: RentcastPricing, actor=Depends(require_permission(Permission.SETTINGS_MANAGE))):
+    result = await source_request('POST', '/api/operations/rentcast/price', {'limit': body.limit})
+    return {**{field: result.get(field) for field in RENTCAST_RESULT_FIELDS}, 'usage': rentcast_budget(result.get('usage'))}
 
 
 @router.get('/workflow-review')
