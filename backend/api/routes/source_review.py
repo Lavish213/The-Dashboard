@@ -1,7 +1,10 @@
+import csv
+import io
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -194,3 +197,63 @@ async def delivery_receipts():
         return validate_delivery_overview(data)
     except (ValueError, TypeError, KeyError) as error:
         raise HTTPException(503, 'Provider delivery evidence unavailable') from error
+
+
+MAIL_COLUMNS = (
+    'owner_name', 'mailing_address', 'mailing_city', 'mailing_state', 'mailing_zip',
+    'property_address', 'property_city', 'property_zip', 'value', 'mao', 'value_source', 'distress_type', 'distress_score',
+)
+IMPORT_LIMIT = 10 * 1024 * 1024
+
+
+def mail_cell(value):
+    if value is None:
+        return ''
+    text = str(value).replace('\r', ' ').replace('\n', ' ')
+    return "'" + text if text[:1] in ('=', '+', '-', '@', '\t') else text
+
+
+def dollars(value):
+    return value // 100 if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
+@router.get('/mail-list.csv')
+async def mail_list_csv(priced_only: bool = True, actor=Depends(require_permission(Permission.SETTINGS_MANAGE))):
+    data = await source_request('GET', '/api/operations/mail-list?priced_only=' + ('true' if priced_only else 'false'))
+    rows = data.get('rows')
+    if data.get('schema_version') != 1 or not isinstance(rows, list):
+        raise HTTPException(503, 'Mail list unavailable')
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(MAIL_COLUMNS)
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        values = {**row, 'value': dollars(row.get('value_cents')), 'mao': dollars(row.get('mao_cents'))}
+        writer.writerow([mail_cell(values.get(column)) for column in MAIL_COLUMNS])
+    name = 'mail-list-priced.csv' if priced_only else 'mail-list-all.csv'
+    return Response(buffer.getvalue(), media_type='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{name}"', 'Cache-Control': 'no-store'})
+
+
+@router.post('/import-csv')
+async def import_csv(request: Request, actor=Depends(require_permission(Permission.SETTINGS_MANAGE))):
+    body = await request.body()
+    if not body or len(body) > IMPORT_LIMIT:
+        raise HTTPException(400, 'CSV must be between 1 byte and 10MB')
+    url, secret, _ = destination()
+    try:
+        async with httpx.AsyncClient(timeout=600, follow_redirects=False) as client:
+            response = await client.post(url + '/api/operations/import-csv', files={'file': ('import.csv', body, 'text/csv')}, headers={'X-Source-Command-Secret': secret})
+        if response.status_code == 400:
+            raise HTTPException(400, 'CSV rejected')
+        if not response.is_success:
+            raise HTTPException(503, 'Import unavailable')
+        data = response.json()
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(503, 'Import unavailable') from error
+    fields = ('parsed', 'upserted', 'scored', 'leads_created', 'skipped_score', 'errors')
+    if not isinstance(data, dict) or not all(isinstance(data.get(field), int) for field in fields):
+        raise HTTPException(503, 'Import unavailable')
+    return {field: data[field] for field in fields}

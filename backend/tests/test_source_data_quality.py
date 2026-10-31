@@ -112,3 +112,94 @@ async def test_rentcast_price_forwards_and_filters(monkeypatch):
     assert response.status_code == 200
     forward.assert_awaited_once_with('POST', '/api/operations/rentcast/price', {'limit': 5})
     assert response.json() == {'requested': 5, 'priced': 4, 'no_data': 1, 'errors': 0, 'comps_saved': 60, 'stopped': None, 'usage': {'used': 5, 'hard_cap': 50, 'window_days': 31}}
+
+
+MAIL = {'schema_version': 1, 'priced_only': True, 'count': 2, 'rows': [
+    {'lead_id': 'l1', 'owner_name': '=HYPERLINK("x")', 'mailing_address': '1 Mail Rd\nApt 2', 'mailing_city': 'Lodi', 'mailing_state': 'CA', 'mailing_zip': '95240',
+     'property_address': '10 Main St', 'property_city': 'Stockton', 'property_zip': '95205', 'value_cents': 45000000, 'mao_cents': 29000000,
+     'value_source': 'rentcast_avm', 'distress_type': 'vacant', 'distress_score': 70},
+    {'lead_id': 'l2', 'owner_name': 'Bo', 'value_cents': None, 'mao_cents': True},
+]}
+
+
+async def test_mail_list_is_admin_only(monkeypatch):
+    forward = AsyncMock(return_value=MAIL)
+    monkeypatch.setattr(source_review, 'source_request', forward)
+    for role in (UserRole.operator, UserRole.reviewer):
+        assert (await call(app(role), 'GET', '/mail-list.csv')).status_code == 403
+    forward.assert_not_awaited()
+
+
+async def test_mail_list_csv_is_safe_and_in_dollars(monkeypatch):
+    forward = AsyncMock(return_value=MAIL)
+    monkeypatch.setattr(source_review, 'source_request', forward)
+    response = await call(app(UserRole.admin), 'GET', '/mail-list.csv?priced_only=false')
+    assert response.status_code == 200
+    forward.assert_awaited_once_with('GET', '/api/operations/mail-list?priced_only=false')
+    assert response.headers['content-type'].startswith('text/csv')
+    assert 'mail-list-all.csv' in response.headers['content-disposition']
+    lines = response.text.splitlines()
+    assert lines[0].startswith('owner_name,mailing_address')
+    assert lines[1].startswith('"\'=HYPERLINK(""x"")",1 Mail Rd Apt 2,Lodi')
+    assert ',450000,290000,rentcast_avm,' in lines[1]
+    assert lines[2].startswith('Bo,') and 'True' not in lines[2] and len(lines) == 3
+    assert 'lead_id' not in lines[0]
+
+
+async def test_mail_list_bad_schema(monkeypatch):
+    monkeypatch.setattr(source_review, 'source_request', AsyncMock(return_value={'schema_version': 2, 'rows': []}))
+    assert (await call(app(UserRole.admin), 'GET', '/mail-list.csv')).status_code == 503
+
+
+REAL_CLIENT = httpx.AsyncClient
+
+
+class Upstream:
+    def __init__(self, status=200, body=None):
+        self.status, self.body, self.requests = status, body, []
+
+    def handler(self, request):
+        self.requests.append(request)
+        return httpx.Response(self.status, json=self.body if self.body is not None else {'parsed': 3, 'upserted': 3, 'scored': 3, 'leads_created': 2, 'skipped_score': 0, 'errors': 0, 'extra': 1})
+
+
+async def upload(application, content, monkeypatch, upstream):
+    monkeypatch.setattr(source_review, 'destination', lambda: ('https://sophia.test', 'k' * 40, None))
+    real = REAL_CLIENT
+
+    def fake(*args, **kwargs):
+        kwargs.pop('transport', None)
+        return real(*args, transport=httpx.MockTransport(upstream.handler), **kwargs)
+    monkeypatch.setattr(source_review.httpx, 'AsyncClient', fake)
+    async with real(transport=httpx.ASGITransport(app=application), base_url='http://test') as client:
+        return await client.post('/test/import-csv', content=content, headers={'content-type': 'text/csv'})
+
+
+async def test_import_is_admin_only(monkeypatch):
+    upstream = Upstream()
+    for role in (UserRole.operator, UserRole.reviewer):
+        assert (await upload(app(role), b'a,b\n', monkeypatch, upstream)).status_code == 403
+    assert upstream.requests == []
+
+
+async def test_import_forwards_file_with_secret(monkeypatch):
+    upstream = Upstream()
+    response = await upload(app(UserRole.admin), b'Address\n1 A St\n', monkeypatch, upstream)
+    assert response.status_code == 200
+    assert response.json() == {'parsed': 3, 'upserted': 3, 'scored': 3, 'leads_created': 2, 'skipped_score': 0, 'errors': 0}
+    sent = upstream.requests[0]
+    assert str(sent.url) == 'https://sophia.test/api/operations/import-csv'
+    assert sent.headers['x-source-command-secret'] == 'k' * 40
+    assert b'1 A St' in sent.content and b'filename="import.csv"' in sent.content
+
+
+@pytest.mark.parametrize('content', [b'', b'x' * (10 * 1024 * 1024 + 1)])
+async def test_import_rejects_bad_size(monkeypatch, content):
+    upstream = Upstream()
+    assert (await upload(app(UserRole.admin), content, monkeypatch, upstream)).status_code == 400
+    assert upstream.requests == []
+
+
+@pytest.mark.parametrize('status,body,expected', [(400, {}, 400), (500, {}, 503), (200, {'parsed': 'x'}, 503)])
+async def test_import_upstream_failures(monkeypatch, status, body, expected):
+    assert (await upload(app(UserRole.admin), b'a\n', monkeypatch, Upstream(status, body))).status_code == expected

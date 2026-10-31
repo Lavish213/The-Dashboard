@@ -74,6 +74,7 @@ async function _attemptRefresh(): Promise<string | null> {
 export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {},
+  options: { timeoutMs?: number; text?: boolean } = {},
 ): Promise<T> {
   if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) {
     throw new ApiError(400, 'API paths must be relative to the configured service')
@@ -89,8 +90,8 @@ export async function apiFetch<T = unknown>(
 
   const url = `${env.apiUrl}${path}`
   const request = { ...init, headers, redirect: 'error' as const, signal: init.signal
-    ? AbortSignal.any([init.signal, AbortSignal.timeout(20_000)])
-    : AbortSignal.timeout(20_000) }
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(options.timeoutMs ?? 20_000)])
+    : AbortSignal.timeout(options.timeoutMs ?? 20_000) }
   let res = await fetch(url, request)
 
   if (res.status === 401) {
@@ -124,6 +125,7 @@ export async function apiFetch<T = unknown>(
   }
 
   const text = await res.text()
+  if (options.text) return text as T
   if (!text) return undefined as T
   return JSON.parse(text) as T
 }
