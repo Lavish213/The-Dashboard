@@ -25,8 +25,22 @@ function Stat({ label, value, total }: { label: string; value: number; total?: n
   </div>
 }
 
+const COUNTS = ['properties', 'properties_with_comp_arv', 'properties_needing_comps', 'assessed_based_arv', 'comps_rows', 'leads', 'leads_with_phone', 'leads_with_bob_brief'] as const
+
+function isReport(value: unknown): value is Report {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return COUNTS.every(key => Number.isInteger(candidate[key])) && typeof candidate.generated_at === 'string' && !!candidate.by_distress_type && typeof candidate.by_distress_type === 'object' && !Array.isArray(candidate.by_distress_type)
+}
+
+async function loadReport(signal: AbortSignal) {
+  const value = await apiFetch<unknown>('/api/v1/source-review/data-quality', { signal })
+  if (!isReport(value)) throw new Error('Malformed data quality report')
+  return value
+}
+
 export function DataQuality() {
-  const query = useQuery({ queryKey: ['data-quality'], queryFn: ({ signal }) => apiFetch<Report>('/api/v1/source-review/data-quality', { signal }), refetchInterval: 300000 })
+  const query = useQuery({ queryKey: ['data-quality'], queryFn: ({ signal }) => loadReport(signal), refetchInterval: 300000 })
   const report = query.data
   return <section className="mb-6 rounded-lg border bg-card p-4 space-y-3" aria-label="Data quality">
     <h2 className="font-semibold">Data quality</h2>
