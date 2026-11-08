@@ -6,10 +6,32 @@ import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
 import { SourceActions } from '@/features/operations/SourceActions'
 
+interface Opportunity {
+  grade: string | null
+  readiness: string
+  evidence_confidence: string
+  economics_state: string
+  arv_point_cents: number | null
+  repair_estimate_cents: number | null
+  asking_price_cents: number | null
+  purchase_limit_cents: number | null
+  headroom_cents: number | null
+  headroom_bps: number | null
+  missing_facts: string[]
+  opportunity_signals: string[]
+  contradictory_evidence: string[]
+  lockout_class: string | null
+  next_action: string | null
+}
+
+const READINESS_TEXT: Record<string, string> = { HOT_BUY: 'Hot buy', WATCH_LIST: 'Watch list', ARCHIVED: 'Archived' }
+const phrase = (value: string | null) => value ? value.replaceAll('_', ' ') : 'none'
+
 interface Snapshot {
   address: string | null
   apn: string | null
   valuation: { point_cents: number; supported_low_cents: number; supported_high_cents: number; comparable_count: number; purpose: string; as_of: string } | null
+  opportunity: Opportunity | null
   comparables: { sale_id: string | null; source_ref: string; closed_on: string | null; sale_price_cents: number; adjusted_value_cents: number | null }[]
   offers: { id: string | null; status: string; amount_cents: number | null; repairs_cents: number | null }[]
   appointment: { at: string | null; status: string | null }
@@ -64,6 +86,17 @@ export function BusinessEvidencePanel({leadId}: {leadId: string}) {
       {evidence.status === 'stale' && <p role="alert">This snapshot is stale. Refresh the source before relying on it.</p>}
       <p className="text-sm">{snapshot.address ?? 'Address unverified'} · Parcel {snapshot.apn ?? 'unverified'}</p>
       {snapshot.valuation ? <p>{snapshot.valuation.purpose === 'after_repair' ? 'Reviewed ARV advisory' : 'Reviewed as-is advisory'}: {money(snapshot.valuation.point_cents)} · {money(snapshot.valuation.supported_low_cents)}–{money(snapshot.valuation.supported_high_cents)} · {snapshot.valuation.comparable_count} comps · {snapshot.valuation.as_of}</p> : <p>No current reviewed valuation.</p>}
+      <h3 className="font-medium">Bob opportunity screening</h3>
+      {snapshot.opportunity ? <div className="space-y-1 text-sm">
+        <p>{READINESS_TEXT[snapshot.opportunity.readiness] ?? snapshot.opportunity.readiness} · Grade {snapshot.opportunity.grade ?? 'none'} · {phrase(snapshot.opportunity.evidence_confidence)} evidence</p>
+        <p>ARV {money(snapshot.opportunity.arv_point_cents)} · Asking {money(snapshot.opportunity.asking_price_cents)} · Repairs {money(snapshot.opportunity.repair_estimate_cents)} · Screening purchase limit {money(snapshot.opportunity.purchase_limit_cents)}</p>
+        {snapshot.opportunity.headroom_cents !== null && <p>Headroom {money(snapshot.opportunity.headroom_cents)}{snapshot.opportunity.headroom_bps !== null && ` (${(snapshot.opportunity.headroom_bps / 100).toFixed(1)}% of ARV)`}</p>}
+        {snapshot.opportunity.economics_state !== 'known' && snapshot.opportunity.missing_facts.length > 0 && <p role="alert">Screening incomplete, still missing: {snapshot.opportunity.missing_facts.map(phrase).join(', ')}. Figures above that read Unverified were not computed, not zero.</p>}
+        {snapshot.opportunity.opportunity_signals.length > 0 && <p>Supporting: {snapshot.opportunity.opportunity_signals.map(phrase).join(', ')}</p>}
+        {snapshot.opportunity.contradictory_evidence.length > 0 && <p>Against: {snapshot.opportunity.contradictory_evidence.map(phrase).join(', ')}</p>}
+        {snapshot.opportunity.lockout_class && <p>Held: {phrase(snapshot.opportunity.lockout_class)}</p>}
+        {snapshot.opportunity.next_action && <p>Next: {phrase(snapshot.opportunity.next_action)}</p>}
+      </div> : <p>No current opportunity screening.</p>}
       <h3 className="font-medium">Comparable evidence</h3>
       {snapshot.comparables.length ? <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th scope="col">Source reference</th><th scope="col">Closed</th><th scope="col">Sale price</th><th scope="col">Adjusted indication</th></tr></thead><tbody>{snapshot.comparables.map((row, i) => <tr key={`${row.sale_id}:${i}`}><td>{row.source_ref}</td><td>{row.closed_on ?? 'Unverified'}</td><td>{money(row.sale_price_cents)}</td><td>{money(row.adjusted_value_cents)}</td></tr>)}</tbody></table></div> : <p>No reviewed comparable detail available.</p>}
       <h3 className="font-medium">Recorded offers</h3>

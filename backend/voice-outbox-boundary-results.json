@@ -1,0 +1,88 @@
+{
+  "status": "passed",
+  "fixture_only": true,
+  "process_restarts": 2,
+  "checks": [
+    "real HTTP authentication and PostgreSQL persistence",
+    "turn staged before root waits for call creation",
+    "outage before persistence survives producer restart",
+    "lost acknowledgement after committed transcript survives restart",
+    "replay persists one call, one transcript and exactly two chunks",
+    "actual Bob pricing and REI business snapshot persist exact cents, three comps, draft offer and appointment without authority"
+  ],
+  "phases": [
+    {
+      "recovery": {
+        "delivered": 0,
+        "retrying": 1,
+        "dead": 0,
+        "unowned": 0
+      },
+      "health": {
+        "pending": 5,
+        "delivered": 0,
+        "dead": 0,
+        "leased": 0,
+        "oldest_pending_seconds": 0.6215920448303223,
+        "errors": {
+          "transport_unavailable": 1
+        },
+        "failed_events": []
+      },
+      "persisted": {
+        "calls": 0,
+        "turns": 0,
+        "transcripts": 0,
+        "chunks": 0
+      }
+    },
+    {
+      "recovery": {
+        "delivered": 2,
+        "retrying": 1,
+        "dead": 0,
+        "unowned": 0
+      },
+      "health": {
+        "pending": 3,
+        "delivered": 2,
+        "dead": 0,
+        "leased": 0,
+        "oldest_pending_seconds": 4.022488117218018,
+        "errors": {
+          "transport_unavailable": 1
+        },
+        "failed_events": []
+      },
+      "persisted": {
+        "calls": 1,
+        "turns": 1,
+        "transcripts": 1,
+        "chunks": 2
+      }
+    },
+    {
+      "recovery": {
+        "delivered": 3,
+        "retrying": 0,
+        "dead": 0,
+        "unowned": 0
+      },
+      "health": {
+        "pending": 0,
+        "delivered": 5,
+        "dead": 0,
+        "leased": 0,
+        "oldest_pending_seconds": 0,
+        "errors": {},
+        "failed_events": []
+      },
+      "persisted": {
+        "calls": 1,
+        "turns": 1,
+        "transcripts": 1,
+        "chunks": 2
+      }
+    }
+  ]
+}

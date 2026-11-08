@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "ok",
+  "checked_at": "2026-11-07T23:11:23.657732+00:00",
+  "components": [
+    {
+      "id": "dashboard_database",
+      "status": "ok"
+    },
+    {
+      "id": "dashboard_to_sophia",
+      "status": "ok"
+    },
+    {
+      "id": "sophia_to_dashboard",
+      "status": "ok"
+    },
+    {
+      "id": "bob_shared_database_and_worker",
+      "status": "ok"
+    },
+    {
+      "id": "sophia_dashboard_journal",
+      "status": "ok"
+    }
+  ],
+  "outbound_enabled": false,
+  "background_jobs_enabled": false,
+  "verification_scope": "authenticated_round_trip_and_reported_health_not_live_provider_delivery",
+  "fixture_only": true,
+  "bob_health_is_fixture": true,
+  "scope": "actual_dashboard_database_and_authenticated_http_both_directions_not_a_live_provider_or_Bob_worker_test"
+}

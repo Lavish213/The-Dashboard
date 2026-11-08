@@ -25,7 +25,7 @@ async def connections(session: AsyncSession = Depends(get_session)):
 async def source_request(method, path, body=None):
     url, secret, _ = destination()
     try:
-        async with httpx.AsyncClient(timeout=300 if path == '/api/operations/rentcast/price' else 10 if path.startswith('/api/operations/integration?') else 5, follow_redirects=False) as client:
+        async with httpx.AsyncClient(timeout=300 if path == '/api/operations/rentcast/price' else 10 if path.startswith('/api/operations/integration?') or path.startswith('/api/bob/insights') else 5, follow_redirects=False) as client:
             response = await client.request(
                 method,
                 url + path,
