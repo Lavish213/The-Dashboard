@@ -286,7 +286,7 @@ const BOB_REPORT = {
   contactable_leads: 252, briefed_leads: 19, valuation_ready_leads: 2,
   newest_grade_at: '2026-11-08T01:30:00Z', newest_grade_age_seconds: 1800, oldest_grade_age_seconds: 7200,
   economics_unknown_leads: 0, by_readiness: { HOT_BUY: 1 }, by_grade: { A: 1 },
-  by_evidence_confidence: { verified: 1 }, by_lockout_class: {}, deals: [],
+  by_evidence_confidence: { verified: 1 }, by_lockout_class: {}, by_valuation_verification: { operator_attested: 2 }, deals: [],
 }
 
 test('bob insights accepts only a version 1 report with every required shape', async () => {
@@ -307,7 +307,7 @@ test('bob insights rejects a report whose counts or distributions are malformed'
     assert.equal(isInsights({ ...BOB_REPORT, [key]: 1.5 }), false, key)
     assert.equal(isInsights({ ...BOB_REPORT, [key]: null }), false, key)
   }
-  for (const key of ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class']) {
+  for (const key of ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class', 'by_valuation_verification']) {
     assert.equal(isInsights({ ...BOB_REPORT, [key]: [] }), false, key)
     assert.equal(isInsights({ ...BOB_REPORT, [key]: null }), false, key)
   }
@@ -343,7 +343,7 @@ test('bob insights accepts the first-run empty overview', async () => {
     graded_leads: 0, contactable_leads: 252, briefed_leads: 0, valuation_ready_leads: 0,
     blocked_leads: 0, economics_unknown_leads: 0,
     newest_grade_at: null, newest_grade_age_seconds: null, oldest_grade_age_seconds: null,
-    by_readiness: {}, by_grade: {}, by_evidence_confidence: {}, by_lockout_class: {}, deals: [],
+    by_readiness: {}, by_grade: {}, by_evidence_confidence: {}, by_lockout_class: {}, by_valuation_verification: {}, deals: [],
   }
   assert.equal(isInsights(empty), true, 'a first run must render the empty state, not an error')
 })

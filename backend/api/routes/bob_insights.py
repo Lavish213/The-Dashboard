@@ -10,12 +10,12 @@ OVERVIEW_FIELDS = (
     'schema_version', 'generated_at', 'graded_leads', 'contactable_leads', 'briefed_leads',
     'valuation_ready_leads', 'newest_grade_at', 'newest_grade_age_seconds', 'oldest_grade_age_seconds',
     'blocked_leads', 'economics_unknown_leads',
-    'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class',
+    'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class', 'by_valuation_verification',
 )
 DEAL_FIELDS = (
     'lead_id', 'address', 'city', 'distress_score', 'grade', 'readiness', 'evidence_confidence',
     'economics_state', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
-    'headroom_cents', 'headroom_bps', 'valuation_status', 'comparable_count', 'blocked_count',
+    'headroom_cents', 'headroom_bps', 'valuation_status', 'valuation_verification', 'comparable_count', 'blocked_count',
     'lockout_class', 'next_action', 'graded_at',
 )
 READINESS = ('HOT_BUY', 'WATCH_LIST', 'ARCHIVED', 'UNGRADED')

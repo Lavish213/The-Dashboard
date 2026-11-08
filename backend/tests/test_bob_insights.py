@@ -15,7 +15,7 @@ DEAL = {
     'distress_score': 80, 'grade': 'A', 'readiness': 'HOT_BUY', 'evidence_confidence': 'verified',
     'economics_state': 'known', 'arv_point_cents': 46000000, 'asking_price_cents': 20000000,
     'purchase_limit_cents': 30200000, 'headroom_cents': 10200000, 'headroom_bps': 2217,
-    'valuation_status': 'ready_advisory', 'comparable_count': 5, 'blocked_count': 0,
+    'valuation_status': 'ready_advisory', 'valuation_verification': 'operator_attested', 'comparable_count': 5, 'blocked_count': 0,
     'lockout_class': None, 'next_action': 'prepare_offer_for_human_approval', 'graded_at': '2026-11-08T02:00:00Z',
     'owner_phone': '+12095550123', 'owner_name': 'never forwarded',
 }
@@ -24,7 +24,8 @@ REPORT = {
     'contactable_leads': 252, 'briefed_leads': 19, 'valuation_ready_leads': 2,
     'newest_grade_at': '2026-11-08T01:30:00Z', 'newest_grade_age_seconds': 1800, 'oldest_grade_age_seconds': 7200,
     'economics_unknown_leads': 0, 'by_readiness': {'HOT_BUY': 1, 'ARCHIVED': 1}, 'by_grade': {'A': 1, 'ungraded': 1},
-    'by_evidence_confidence': {'verified': 1}, 'by_lockout_class': {'price_dependent': 1}, 'deals': [DEAL],
+    'by_evidence_confidence': {'verified': 1}, 'by_lockout_class': {'price_dependent': 1},
+    'by_valuation_verification': {'operator_attested': 2}, 'deals': [DEAL],
     'authority': {'quote_authorized': False, 'offer_authorized': False, 'grading_basis': 'internal_screening_policy_not_an_appraisal_or_investment_guarantee'},
     'private_field': 'never forwarded',
 }
@@ -138,14 +139,14 @@ async def test_the_limit_is_passed_through_to_the_source(monkeypatch):
 PRODUCER_DEAL_FIELDS = (
     'lead_id', 'address', 'city', 'distress_score', 'grade', 'readiness', 'evidence_confidence',
     'economics_state', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
-    'headroom_cents', 'headroom_bps', 'valuation_status', 'comparable_count', 'blocked_count',
+    'headroom_cents', 'headroom_bps', 'valuation_status', 'valuation_verification', 'comparable_count', 'blocked_count',
     'lockout_class', 'next_action', 'graded_at',
 )
 PRODUCER_OVERVIEW_FIELDS = (
     'schema_version', 'generated_at', 'graded_leads', 'contactable_leads', 'briefed_leads',
     'valuation_ready_leads', 'newest_grade_at', 'newest_grade_age_seconds', 'oldest_grade_age_seconds',
     'blocked_leads', 'economics_unknown_leads',
-    'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class',
+    'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class', 'by_valuation_verification',
 )
 
 
@@ -176,3 +177,10 @@ async def test_grade_freshness_reaches_the_client(monkeypatch):
     body = (await get(app())).json()
     assert body['newest_grade_age_seconds'] == 1800
     assert body['newest_grade_at'] == '2026-11-08T01:30:00Z'
+
+
+async def test_the_provenance_class_reaches_the_client(monkeypatch):
+    forward(monkeypatch, REPORT)
+    body = (await get(app())).json()
+    assert body['deals'][0]['valuation_verification'] == 'operator_attested'
+    assert body['by_valuation_verification'] == {'operator_attested': 2}

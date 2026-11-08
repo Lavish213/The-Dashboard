@@ -22,6 +22,7 @@ interface Deal {
   headroom_cents: number | null
   headroom_bps: number | null
   valuation_status: string | null
+  valuation_verification: string | null
   comparable_count: number | null
   blocked_count: number | null
   lockout_class: string | null
@@ -45,6 +46,7 @@ interface Insights {
   by_grade: Record<string, number>
   by_evidence_confidence: Record<string, number>
   by_lockout_class: Record<string, number>
+  by_valuation_verification: Record<string, number>
   deals: Deal[]
   grading_basis: string | null
   quote_authorized: boolean
@@ -70,7 +72,7 @@ const EVIDENCE_COLOR: Record<string, string> = {
   unusable: 'text-red-400',
 }
 const COUNTS = ['graded_leads', 'contactable_leads', 'briefed_leads', 'valuation_ready_leads', 'blocked_leads', 'economics_unknown_leads'] as const
-const MAPS = ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class'] as const
+const MAPS = ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class', 'by_valuation_verification'] as const
 
 export function isInsights(value: unknown): value is Insights {
   if (!value || typeof value !== 'object') return false
@@ -126,6 +128,8 @@ function DealRow({ deal }: { deal: Deal }) {
         <span className={EVIDENCE_COLOR[deal.evidence_confidence ?? ''] ?? 'text-muted-foreground'}>{words(deal.evidence_confidence)} evidence</span>
         {deal.comparable_count !== null && <> · {deal.comparable_count} comp{deal.comparable_count === 1 ? '' : 's'}</>}
         {deal.distress_score !== null && <> · distress {deal.distress_score}</>}
+        {deal.valuation_verification === 'operator_attested' && <> · <span className="text-amber-400">attested, not researched</span></>}
+        {deal.valuation_verification === 'independently_retrieved' && <> · <span className="text-emerald-400">source retrieved</span></>}
       </p>
     </td>
     <td className="py-2 pr-2">
@@ -186,6 +190,10 @@ export function BobInsights() {
       <Distribution label="Grades" counts={report.by_grade} />
       <Distribution label="Evidence confidence" counts={report.by_evidence_confidence} />
       <Distribution label="Held for" counts={report.by_lockout_class} />
+      <Distribution label="Evidence provenance" counts={report.by_valuation_verification} />
+      {(report.by_valuation_verification.operator_attested ?? 0) > 0 && <p className="text-xs text-amber-400">
+        {report.by_valuation_verification.operator_attested} graded lead{(report.by_valuation_verification.operator_attested ?? 0) === 1 ? ' rests' : 's rest'} on comparable evidence someone asserted rather than evidence Bob retrieved and checksummed. The gates above were applied to those facts; they were not independently verified.
+      </p>}
       {report.graded_leads > 0 && report.newest_grade_age_seconds !== null && report.newest_grade_age_seconds > STALE_AFTER_SECONDS && <p role="alert" className="text-sm text-red-400">
         Bob has not graded anything in {duration(report.newest_grade_age_seconds)}. Briefs refresh roughly every 24 hours, so this usually means the Bob worker has stopped. Treat every grade below as stale.
       </p>}
