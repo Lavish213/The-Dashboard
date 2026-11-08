@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import { apiFetch } from '@/services/api'
 import { Button } from '@/components/ui/button'
 
@@ -32,6 +33,12 @@ interface Insights {
   schema_version: number
   generated_at: string
   graded_leads: number
+  contactable_leads: number
+  briefed_leads: number
+  valuation_ready_leads: number
+  newest_grade_at: string | null
+  newest_grade_age_seconds: number | null
+  oldest_grade_age_seconds: number | null
   blocked_leads: number
   economics_unknown_leads: number
   by_readiness: Record<string, number>
@@ -62,7 +69,7 @@ const EVIDENCE_COLOR: Record<string, string> = {
   thin: 'text-amber-400',
   unusable: 'text-red-400',
 }
-const COUNTS = ['graded_leads', 'blocked_leads', 'economics_unknown_leads'] as const
+const COUNTS = ['graded_leads', 'contactable_leads', 'briefed_leads', 'valuation_ready_leads', 'blocked_leads', 'economics_unknown_leads'] as const
 const MAPS = ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class'] as const
 
 export function isInsights(value: unknown): value is Insights {
@@ -82,6 +89,14 @@ export function money(cents: number | null) {
 export function percent(bps: number | null) {
   if (bps === null || !Number.isFinite(bps)) return '—'
   return (bps / 100).toFixed(1) + '%'
+}
+
+const STALE_AFTER_SECONDS = 36 * 3600
+
+export function duration(seconds: number) {
+  const hours = Math.floor(seconds / 3600)
+  if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'}`
+  return `${Math.floor(hours / 24)} days`
 }
 
 function words(value: string | null) {
@@ -106,7 +121,7 @@ function DealRow({ deal }: { deal: Deal }) {
   const address = [deal.address, deal.city].filter(Boolean).join(', ') || 'Address not on file'
   return <tr className="border-t align-top">
     <td className="py-2 pr-2">
-      <p className="font-medium">{address}</p>
+      <Link href={`/leads/${deal.lead_id}`} className="font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{address}</Link>
       <p className="text-xs text-muted-foreground">
         <span className={EVIDENCE_COLOR[deal.evidence_confidence ?? ''] ?? 'text-muted-foreground'}>{words(deal.evidence_confidence)} evidence</span>
         {deal.comparable_count !== null && <> · {deal.comparable_count} comp{deal.comparable_count === 1 ? '' : 's'}</>}
@@ -160,12 +175,20 @@ export function BobInsights() {
         <Stat label="Hot buys" value={readiness.HOT_BUY ?? 0} />
         <Stat label="Watch list" value={readiness.WATCH_LIST ?? 0} />
         <Stat label="Archived" value={readiness.ARCHIVED ?? 0} />
-        <Stat label="Graded leads" value={report.graded_leads} />
+        <Stat label="Graded leads" value={report.graded_leads} total={report.contactable_leads} />
         <Stat label="Blocked on contact" value={report.blocked_leads} total={report.graded_leads} />
       </div>
+      <p className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">Coverage:</span>{' '}
+        {report.contactable_leads} contactable · {report.briefed_leads} briefed · {report.valuation_ready_leads} with a supported valuation · {report.graded_leads} graded.
+        {report.contactable_leads > report.briefed_leads && ` ${report.contactable_leads - report.briefed_leads} contactable lead${report.contactable_leads - report.briefed_leads === 1 ? ' has' : 's have'} no brief yet, so Bob has not looked at ${report.contactable_leads - report.briefed_leads === 1 ? 'it' : 'them'}.`}
+      </p>
       <Distribution label="Grades" counts={report.by_grade} />
       <Distribution label="Evidence confidence" counts={report.by_evidence_confidence} />
       <Distribution label="Held for" counts={report.by_lockout_class} />
+      {report.graded_leads > 0 && report.newest_grade_age_seconds !== null && report.newest_grade_age_seconds > STALE_AFTER_SECONDS && <p role="alert" className="text-sm text-red-400">
+        Bob has not graded anything in {duration(report.newest_grade_age_seconds)}. Briefs refresh roughly every 24 hours, so this usually means the Bob worker has stopped. Treat every grade below as stale.
+      </p>}
       {report.economics_unknown_leads > 0 && <p role="alert" className="text-sm text-amber-400">
         {report.economics_unknown_leads} graded lead{report.economics_unknown_leads === 1 ? '' : 's'} still lack a repair estimate or asking price, so no purchase limit was computed. Missing figures are shown as an em dash, never as zero.
       </p>}

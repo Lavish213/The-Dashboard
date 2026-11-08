@@ -7,7 +7,9 @@ from security.rbac import Permission
 router = APIRouter(dependencies=[Depends(require_permission(Permission.LEADS_READ))])
 
 OVERVIEW_FIELDS = (
-    'schema_version', 'generated_at', 'graded_leads', 'blocked_leads', 'economics_unknown_leads',
+    'schema_version', 'generated_at', 'graded_leads', 'contactable_leads', 'briefed_leads',
+    'valuation_ready_leads', 'newest_grade_at', 'newest_grade_age_seconds', 'oldest_grade_age_seconds',
+    'blocked_leads', 'economics_unknown_leads',
     'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class',
 )
 DEAL_FIELDS = (

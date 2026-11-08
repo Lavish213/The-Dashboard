@@ -21,6 +21,8 @@ DEAL = {
 }
 REPORT = {
     'schema_version': 1, 'generated_at': '2026-11-08T02:00:00Z', 'graded_leads': 2, 'blocked_leads': 1,
+    'contactable_leads': 252, 'briefed_leads': 19, 'valuation_ready_leads': 2,
+    'newest_grade_at': '2026-11-08T01:30:00Z', 'newest_grade_age_seconds': 1800, 'oldest_grade_age_seconds': 7200,
     'economics_unknown_leads': 0, 'by_readiness': {'HOT_BUY': 1, 'ARCHIVED': 1}, 'by_grade': {'A': 1, 'ungraded': 1},
     'by_evidence_confidence': {'verified': 1}, 'by_lockout_class': {'price_dependent': 1}, 'deals': [DEAL],
     'authority': {'quote_authorized': False, 'offer_authorized': False, 'grading_basis': 'internal_screening_policy_not_an_appraisal_or_investment_guarantee'},
@@ -131,3 +133,46 @@ async def test_the_limit_is_passed_through_to_the_source(monkeypatch):
     mock = forward(monkeypatch, REPORT)
     await get(app(), '?limit=7')
     assert mock.await_args.args[1] == '/api/bob/insights?limit=7'
+
+
+PRODUCER_DEAL_FIELDS = (
+    'lead_id', 'address', 'city', 'distress_score', 'grade', 'readiness', 'evidence_confidence',
+    'economics_state', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
+    'headroom_cents', 'headroom_bps', 'valuation_status', 'comparable_count', 'blocked_count',
+    'lockout_class', 'next_action', 'graded_at',
+)
+PRODUCER_OVERVIEW_FIELDS = (
+    'schema_version', 'generated_at', 'graded_leads', 'contactable_leads', 'briefed_leads',
+    'valuation_ready_leads', 'newest_grade_at', 'newest_grade_age_seconds', 'oldest_grade_age_seconds',
+    'blocked_leads', 'economics_unknown_leads',
+    'by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class',
+)
+
+
+async def test_no_field_bob_sends_is_silently_dropped(monkeypatch):
+    forward(monkeypatch, REPORT)
+    body = (await get(app())).json()
+    missing_overview = [field for field in PRODUCER_OVERVIEW_FIELDS if field not in body]
+    missing_deal = [field for field in PRODUCER_DEAL_FIELDS if field not in body['deals'][0]]
+    assert not missing_overview, f'overview fields dropped: {missing_overview}'
+    assert not missing_deal, f'deal fields dropped: {missing_deal}'
+
+
+def test_the_whitelists_match_the_producer_contract():
+    assert set(bob_insights.DEAL_FIELDS) == set(PRODUCER_DEAL_FIELDS)
+    assert set(bob_insights.OVERVIEW_FIELDS) == set(PRODUCER_OVERVIEW_FIELDS)
+
+
+async def test_the_funnel_denominator_reaches_the_client(monkeypatch):
+    forward(monkeypatch, REPORT)
+    body = (await get(app())).json()
+    assert body['contactable_leads'] == 252
+    assert body['briefed_leads'] == 19
+    assert body['valuation_ready_leads'] == 2
+
+
+async def test_grade_freshness_reaches_the_client(monkeypatch):
+    forward(monkeypatch, REPORT)
+    body = (await get(app())).json()
+    assert body['newest_grade_age_seconds'] == 1800
+    assert body['newest_grade_at'] == '2026-11-08T01:30:00Z'

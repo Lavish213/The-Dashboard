@@ -272,6 +272,7 @@ async function loadBobInsights() {
       this.setExport('jsx', () => null); this.setExport('jsxs', () => null); this.setExport('Fragment', 'fragment')
     }, { context })
     if (name === '@tanstack/react-query') return new SyntheticModule(['useQuery'], function () { this.setExport('useQuery', () => ({ isPending: true })) }, { context })
+    if (name === 'next/link') return new SyntheticModule(['default'], function () { this.setExport('default', () => null) }, { context })
     if (name === '@/services/api') return new SyntheticModule(['apiFetch'], function () { this.setExport('apiFetch', async () => ({})) }, { context })
     if (name === '@/components/ui/button') return new SyntheticModule(['Button'], function () { this.setExport('Button', () => null) }, { context })
     throw new Error(`Unexpected component dependency: ${name}`)
@@ -282,6 +283,8 @@ async function loadBobInsights() {
 
 const BOB_REPORT = {
   schema_version: 1, generated_at: '2026-11-08T02:00:00Z', graded_leads: 2, blocked_leads: 1,
+  contactable_leads: 252, briefed_leads: 19, valuation_ready_leads: 2,
+  newest_grade_at: '2026-11-08T01:30:00Z', newest_grade_age_seconds: 1800, oldest_grade_age_seconds: 7200,
   economics_unknown_leads: 0, by_readiness: { HOT_BUY: 1 }, by_grade: { A: 1 },
   by_evidence_confidence: { verified: 1 }, by_lockout_class: {}, deals: [],
 }
@@ -299,7 +302,7 @@ test('bob insights accepts only a version 1 report with every required shape', a
 
 test('bob insights rejects a report whose counts or distributions are malformed', async () => {
   const { isInsights } = await loadBobInsights()
-  for (const key of ['graded_leads', 'blocked_leads', 'economics_unknown_leads']) {
+  for (const key of ['graded_leads', 'blocked_leads', 'economics_unknown_leads', 'contactable_leads', 'briefed_leads', 'valuation_ready_leads']) {
     assert.equal(isInsights({ ...BOB_REPORT, [key]: '2' }), false, key)
     assert.equal(isInsights({ ...BOB_REPORT, [key]: 1.5 }), false, key)
     assert.equal(isInsights({ ...BOB_REPORT, [key]: null }), false, key)
@@ -322,4 +325,13 @@ test('bob insights renders a missing figure as an em dash and never as zero', as
   assert.equal(money(10200000), '$102,000')
   assert.equal(percent(2217), '22.2%')
   assert.equal(percent(-3217), '-32.2%')
+})
+
+
+test('bob insights formats a stale-grade duration in hours then days', async () => {
+  const { duration } = await loadBobInsights()
+  assert.equal(duration(3600), '1 hour')
+  assert.equal(duration(7200), '2 hours')
+  assert.equal(duration(36 * 3600), '36 hours')
+  assert.equal(duration(72 * 3600), '3 days')
 })
