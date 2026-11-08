@@ -261,3 +261,65 @@ test('business evidence rejects late updates after leaving the lead', async () =
   await new Promise(setImmediate)
   assert.equal(harness.updates.length, 0)
 })
+
+async function loadBobInsights() {
+  const context = createContext({ Intl, Date, Number, JSON, Object, Array, isNaN })
+  const code = await readFile(new URL('../features/operations/BobInsights.tsx', import.meta.url), 'utf8')
+  const compiled = ts.transpileModule(code, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
+  const mod = new SourceTextModule(compiled, { context })
+  await mod.link((name) => {
+    if (name === 'react/jsx-runtime') return new SyntheticModule(['jsx', 'jsxs', 'Fragment'], function () {
+      this.setExport('jsx', () => null); this.setExport('jsxs', () => null); this.setExport('Fragment', 'fragment')
+    }, { context })
+    if (name === '@tanstack/react-query') return new SyntheticModule(['useQuery'], function () { this.setExport('useQuery', () => ({ isPending: true })) }, { context })
+    if (name === '@/services/api') return new SyntheticModule(['apiFetch'], function () { this.setExport('apiFetch', async () => ({})) }, { context })
+    if (name === '@/components/ui/button') return new SyntheticModule(['Button'], function () { this.setExport('Button', () => null) }, { context })
+    throw new Error(`Unexpected component dependency: ${name}`)
+  })
+  await mod.evaluate()
+  return mod.namespace
+}
+
+const BOB_REPORT = {
+  schema_version: 1, generated_at: '2026-11-08T02:00:00Z', graded_leads: 2, blocked_leads: 1,
+  economics_unknown_leads: 0, by_readiness: { HOT_BUY: 1 }, by_grade: { A: 1 },
+  by_evidence_confidence: { verified: 1 }, by_lockout_class: {}, deals: [],
+}
+
+test('bob insights accepts only a version 1 report with every required shape', async () => {
+  const { isInsights } = await loadBobInsights()
+  assert.equal(isInsights(BOB_REPORT), true)
+  for (const version of [undefined, null, 0, 2, '1']) {
+    assert.equal(isInsights({ ...BOB_REPORT, schema_version: version }), false, `version ${version}`)
+  }
+  for (const value of [null, undefined, 'report', 7, []]) {
+    assert.equal(isInsights(value), false)
+  }
+})
+
+test('bob insights rejects a report whose counts or distributions are malformed', async () => {
+  const { isInsights } = await loadBobInsights()
+  for (const key of ['graded_leads', 'blocked_leads', 'economics_unknown_leads']) {
+    assert.equal(isInsights({ ...BOB_REPORT, [key]: '2' }), false, key)
+    assert.equal(isInsights({ ...BOB_REPORT, [key]: 1.5 }), false, key)
+    assert.equal(isInsights({ ...BOB_REPORT, [key]: null }), false, key)
+  }
+  for (const key of ['by_readiness', 'by_grade', 'by_evidence_confidence', 'by_lockout_class']) {
+    assert.equal(isInsights({ ...BOB_REPORT, [key]: [] }), false, key)
+    assert.equal(isInsights({ ...BOB_REPORT, [key]: null }), false, key)
+  }
+  assert.equal(isInsights({ ...BOB_REPORT, deals: {} }), false)
+  assert.equal(isInsights({ ...BOB_REPORT, generated_at: 0 }), false)
+})
+
+test('bob insights renders a missing figure as an em dash and never as zero', async () => {
+  const { money, percent } = await loadBobInsights()
+  assert.equal(money(null), '—')
+  assert.equal(percent(null), '—')
+  assert.equal(money(Number.NaN), '—')
+  assert.equal(percent(Number.NaN), '—')
+  assert.equal(money(0), '$0')
+  assert.equal(money(10200000), '$102,000')
+  assert.equal(percent(2217), '22.2%')
+  assert.equal(percent(-3217), '-32.2%')
+})

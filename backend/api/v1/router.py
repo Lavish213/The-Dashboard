@@ -6,6 +6,7 @@ from api.routes import (
     approvals,
     audit_timeline,
     auth,
+    bob_insights,
     calls,
     curator,
     email_drip,
@@ -76,3 +77,5 @@ router.include_router(realtime_router)
 router.include_router(
     source_review.router, prefix="/source-review", tags=["source-review"]
 )
+
+router.include_router(bob_insights.router, prefix="/bob", tags=["bob"])
