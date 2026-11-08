@@ -13,7 +13,7 @@ from security.auth import get_current_active_user
 DEAL = {
     'lead_id': '11111111-1111-1111-1111-111111111111', 'address': '1420 N El Dorado St', 'city': 'Stockton',
     'distress_score': 80, 'grade': 'A', 'readiness': 'HOT_BUY', 'evidence_confidence': 'verified',
-    'economics_state': 'known', 'arv_point_cents': 46000000, 'asking_price_cents': 20000000,
+    'economics_state': 'known', 'limit_method': 'profit_solved_from_itemised_costs', 'profit_at_asking_cents': 2568482, 'arv_point_cents': 46000000, 'asking_price_cents': 20000000,
     'purchase_limit_cents': 30200000, 'headroom_cents': 10200000, 'headroom_bps': 2217,
     'valuation_status': 'ready_advisory', 'valuation_verification': 'operator_attested', 'comparable_count': 5, 'blocked_count': 0,
     'lockout_class': None, 'next_action': 'prepare_offer_for_human_approval', 'graded_at': '2026-11-08T02:00:00Z',
@@ -138,7 +138,7 @@ async def test_the_limit_is_passed_through_to_the_source(monkeypatch):
 
 PRODUCER_DEAL_FIELDS = (
     'lead_id', 'address', 'city', 'distress_score', 'grade', 'readiness', 'evidence_confidence',
-    'economics_state', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
+    'economics_state', 'limit_method', 'profit_at_asking_cents', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
     'headroom_cents', 'headroom_bps', 'valuation_status', 'valuation_verification', 'comparable_count', 'blocked_count',
     'lockout_class', 'next_action', 'graded_at',
 )
@@ -184,3 +184,10 @@ async def test_the_provenance_class_reaches_the_client(monkeypatch):
     body = (await get(app())).json()
     assert body['deals'][0]['valuation_verification'] == 'operator_attested'
     assert body['by_valuation_verification'] == {'operator_attested': 2}
+
+
+async def test_the_limit_method_reaches_the_client(monkeypatch):
+    forward(monkeypatch, REPORT)
+    deal = (await get(app())).json()['deals'][0]
+    assert deal['limit_method'] == 'profit_solved_from_itemised_costs'
+    assert deal['profit_at_asking_cents'] == 2568482

@@ -14,7 +14,7 @@ OVERVIEW_FIELDS = (
 )
 DEAL_FIELDS = (
     'lead_id', 'address', 'city', 'distress_score', 'grade', 'readiness', 'evidence_confidence',
-    'economics_state', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
+    'economics_state', 'limit_method', 'profit_at_asking_cents', 'arv_point_cents', 'asking_price_cents', 'purchase_limit_cents',
     'headroom_cents', 'headroom_bps', 'valuation_status', 'valuation_verification', 'comparable_count', 'blocked_count',
     'lockout_class', 'next_action', 'graded_at',
 )

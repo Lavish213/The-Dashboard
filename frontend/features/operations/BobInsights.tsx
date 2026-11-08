@@ -16,6 +16,8 @@ interface Deal {
   readiness: Readiness
   evidence_confidence: string | null
   economics_state: string | null
+  limit_method: string | null
+  profit_at_asking_cents: number | null
   arv_point_cents: number | null
   asking_price_cents: number | null
   purchase_limit_cents: number | null
@@ -142,6 +144,7 @@ function DealRow({ deal }: { deal: Deal }) {
     <td className={'py-2 pr-6 text-right tabular-nums ' + ((deal.headroom_cents ?? 0) > 0 ? 'text-emerald-400' : 'text-muted-foreground')}>
       {money(deal.headroom_cents)}
       {deal.headroom_bps !== null && <span className="block text-xs font-normal text-muted-foreground">{percent(deal.headroom_bps)} of ARV</span>}
+      {deal.limit_method === 'percentage_screen_not_an_underwriting_result' && <span className="block text-xs font-normal text-amber-400">screen only</span>}
     </td>
     <td className="py-2 text-xs">
       <p>{words(deal.next_action)}</p>
@@ -217,6 +220,9 @@ export function BobInsights() {
             <tbody>{report.deals.map(deal => <DealRow key={deal.lead_id + (deal.graded_at ?? '')} deal={deal} />)}</tbody>
           </table>
         </div>}
+      <p className="text-xs text-muted-foreground">
+        A purchase limit marked &quot;screen only&quot; is a flat percentage of ARV less repairs; it over-reserves on light rehabs and under-reserves on heavy ones. Supply itemised holding, financing and selling costs and the limit is solved from them instead.
+      </p>
       <p className="text-xs text-muted-foreground">
         Screening estimates from Bob&apos;s comparable evidence, not an appraisal and not an investment guarantee. A grade is capped by its evidence confidence, so strong economics on thin evidence never reads as a hot buy. Purchase limit is a screening figure; it is not an approved offer, and nothing here authorizes a quote or an offer.
       </p>
