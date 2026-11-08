@@ -335,3 +335,15 @@ test('bob insights formats a stale-grade duration in hours then days', async () 
   assert.equal(duration(36 * 3600), '36 hours')
   assert.equal(duration(72 * 3600), '3 days')
 })
+
+test('bob insights accepts the first-run empty overview', async () => {
+  const { isInsights } = await loadBobInsights()
+  const empty = {
+    schema_version: 1, generated_at: '2026-11-08T03:00:00Z',
+    graded_leads: 0, contactable_leads: 252, briefed_leads: 0, valuation_ready_leads: 0,
+    blocked_leads: 0, economics_unknown_leads: 0,
+    newest_grade_at: null, newest_grade_age_seconds: null, oldest_grade_age_seconds: null,
+    by_readiness: {}, by_grade: {}, by_evidence_confidence: {}, by_lockout_class: {}, deals: [],
+  }
+  assert.equal(isInsights(empty), true, 'a first run must render the empty state, not an error')
+})
